@@ -2,28 +2,33 @@ import { Glass } from '@samasante/liquid-glass';
 import Icon from './Icon';
 import type { Theme } from './theme';
 
-/** One real SVG-displacement glass lens; larger text surfaces stay opaque for readability. */
-export default function ThemeToggle({ theme, onToggle, compact = false }: {
+/** A real refractive thumb sliding over an opaque track, rather than a blur-only icon button. */
+export default function ThemeToggle({ theme, onToggle }: {
   theme: Theme;
   onToggle: () => void;
   compact?: boolean;
 }) {
   return (
-    <Glass
-      className="theme-lens"
-      radius={100}
-      style={{
-        borderRadius: 100,
-        background: theme === 'dark' ? 'rgba(185,213,245,0.09)' : 'rgba(255,255,255,0.38)',
-      }}
-      optics={{ strength: 0.32, depth: 0.48, dispersion: 0.15, sheen: 0.75, frost: 7 }}
-    >
-      <button style={{ background: 'transparent', boxShadow: 'none', border: 0, backdropFilter: 'none' }} className={'theme-toggle theme-toggle-refracted' + (compact ? ' theme-toggle-compact' : '')}
-        type="button" onClick={onToggle} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
-        <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={17} />
-        {!compact && <span>{theme === 'dark' ? 'Light' : 'Dark'} mode</span>}
-      </button>
-    </Glass>
+    <button type="button" className="liquid-theme-switch" role="switch"
+      data-appearance={theme} aria-checked={theme === 'light'}
+      aria-label="Light appearance" title={`Appearance: ${theme}. Switch to ${theme === 'dark' ? 'light' : 'dark'}`}
+      onClick={onToggle}>
+      <span className="liquid-switch-track" aria-hidden="true">
+        <span className="liquid-switch-label">{theme === 'dark' ? 'Dark' : 'Light'}</span>
+      </span>
+      <Glass className="liquid-switch-thumb" radius={36}
+        style={{ borderRadius: 36, background: theme === 'dark' ? 'rgba(24,33,41,.23)' : 'rgba(255,255,255,.36)' }}
+        optics={{
+          mapSize: 256, strength: .23, depth: .72, curvature: .48,
+          bend: .44, bendWidth: .12, dispersion: .34, splay: .3,
+          sheen: .94, sheenWidth: 1.6, specular: 1.35,
+          glow: .22, glowSpread: .45, frost: 0, brightness: 0.02,
+          clipToShape: true, softEdge: true,
+        }}>
+        <span className="liquid-switch-puck" aria-hidden="true">
+          <Icon name={theme === 'dark' ? 'moon' : 'sun'} size={24}/>
+        </span>
+      </Glass>
+    </button>
   );
 }

@@ -1,3 +1,6 @@
+import { Glass } from '@samasante/liquid-glass';
+import LiquidButton from '../../ui/LiquidButton';
+import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { addResponse, deleteResponse, updateResponse } from './api';
 import TransferWorkspace from './TransferWorkspace';
@@ -149,9 +152,9 @@ export default function LibraryWorkspace({
         <div className="archive-library-header-actions">
           <button type="button" className="archive-button" aria-expanded={transferOpen}
             onClick={openTransfer}>Import / Export</button>
-          <button type="button" className="archive-button archive-button-primary" onClick={openCreate}>
+          <LiquidButton type="button" className="archive-button archive-button-primary" onClick={openCreate}>
             + New response
-          </button>
+          </LiquidButton>
         </div>
       </div>
       {transferOpen && agent && <TransferWorkspace agent={agent} onClose={() => setTransferOpen(false)}
@@ -198,13 +201,21 @@ export default function LibraryWorkspace({
             )}
           </div>
           <p className="archive-hint">Use letters, numbers, underscores or hyphens (1–64 characters). Choosing an existing shortcut adds a new response to it.</p>
-          <button className="archive-button archive-button-primary" type="submit" disabled={saving || !body.trim() || !shortcut.trim()}>
+          <LiquidButton className="archive-button archive-button-primary" type="submit" disabled={saving || !body.trim() || !shortcut.trim()}>
             {saving ? 'Saving…' : 'Save response'}
-          </button>
+          </LiquidButton>
         </form>
       )}
       <div className="archive-library-tools">
-        <div className="archive-tabs" role="group" aria-label="Response visibility filters">
+        <div className="archive-tabs" role="group" aria-label="Response visibility filters"
+          style={{ '--filter-index': scope === 'all' ? 0 : scope === 'shared' ? 1 : 2 } as CSSProperties}>
+          <Glass className="archive-tabs-lens" radius={24}
+            style={{ borderRadius: 24, background: 'var(--liquid-selection-fill)' }}
+            optics={{ depth: .75, curvature: .4, strength: .17, bend: .48,
+              bendWidth: .13, dispersion: .21, specular: 1.15, sheen: 1,
+              frost: 0, clipToShape: true, softEdge: true }}>
+            <span aria-hidden="true"/>
+          </Glass>
           {(['all', 'shared', 'private'] as const).map(item => (
             <button type="button" key={item} className={scope === item ? 'active' : ''} aria-pressed={scope === item}
               onClick={() => chooseScope(item)}>{item[0]!.toUpperCase() + item.slice(1)}</button>
@@ -275,9 +286,9 @@ export default function LibraryWorkspace({
                     </div>
                     <p className="archive-hint">Changing this shortcut moves only this response, not other responses sharing the old shortcut.</p>
                     <div>
-                      <button className="archive-button archive-button-primary" type="submit" disabled={saving || !editBody.trim() || !editShortcut.trim()}>
+                      <LiquidButton className="archive-button archive-button-primary" type="submit" disabled={saving || !editBody.trim() || !editShortcut.trim()}>
                         {saving ? 'Saving…' : 'Save changes'}
-                      </button>
+                      </LiquidButton>
                       <button className="archive-button archive-button-quiet" type="button" onClick={() => setEditing(null)}>Cancel</button>
                     </div>
                   </form>
@@ -296,7 +307,7 @@ export default function LibraryWorkspace({
         <div className="archive-empty-library">
           <h2>{loading ? 'Loading…' : 'No responses found'}</h2>
           <p>{search ? 'Try another search term.' : 'No saved responses in this view yet.'}</p>
-          {!search && <button className="archive-button archive-button-primary" type="button" onClick={openCreate}>Add a response</button>}
+          {!search && <LiquidButton className="archive-button archive-button-primary" type="button" onClick={openCreate}>Add a response</LiquidButton>}
         </div>
       )}
     </section>

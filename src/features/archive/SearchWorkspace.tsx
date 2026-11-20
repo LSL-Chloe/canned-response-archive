@@ -1,3 +1,4 @@
+import LiquidButton from '../../ui/LiquidButton';
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { findHashQuery, findSuggestions, insertSuggestion, type ArchiveResponse } from './model';
 
@@ -149,9 +150,9 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
         )}
         <div className="archive-composer-bottom">
           <span><kbd>#</kbd> Search <span aria-hidden="true">·</span> <kbd>Enter</kbd> Insert <span aria-hidden="true">·</span> <kbd>Ctrl</kbd> + <kbd>Z</kbd> Undo</span>
-          <button className="archive-button archive-button-primary" type="button" disabled={!draft} onClick={() => void copyDraft()}>
+          <LiquidButton className="archive-button archive-button-primary" type="button" disabled={!draft} onClick={() => void copyDraft()}>
             Copy draft
-          </button>
+          </LiquidButton>
         </div>
       </div>
       <p className="archive-search-note">Shared responses are available to everyone. Sign in to include your private responses.</p>

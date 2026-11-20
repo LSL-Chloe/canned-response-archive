@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { ApiProblem, fetchFeed, login, logout, session } from './api';
 import type { Agent, ArchiveResponse } from './model';
 import SearchWorkspace from './SearchWorkspace';
@@ -9,25 +9,9 @@ import Icon from '../../ui/Icon';
 import ThemeToggle from '../../ui/ThemeToggle';
 import type { Theme } from '../../ui/theme';
 import { Glass } from '@samasante/liquid-glass';
-import type { ReactNode } from 'react';
 
 type Page = 'search' | 'library' | 'team' | 'settings';
 type LoginIntent = 'private' | 'create' | 'transfer' | null;
-
-/** A real bounded refractive lens for the currently selected navigation item. */
-function NavLens({ active, children }: { active: boolean; children: ReactNode }) {
-  if (!active) return <>{children}</>;
-  return (
-    <Glass
-      className="archive-nav-lens"
-      radius={12}
-      style={{ width: '100%', borderRadius: 12, background: 'rgba(165,205,246,.07)' }}
-      optics={{ strength: .22, depth: .4, dispersion: .09, sheen: .68, frost: 5 }}
-    >
-      {children}
-    </Glass>
-  );
-}
 
 function LoginDialog({
   intent, onClose, onSuccess,
@@ -98,7 +82,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   onThemeToggle: () => void;
 }) {
   const [page, setPage] = useState<Page>('search');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.matchMedia('(max-width: 780px)').matches);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [shared, setShared] = useState<ArchiveResponse[]>([]);
@@ -166,6 +150,8 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   }, [refresh]);
 
   const responses = [...shared, ...privateRows];
+  const selectedTab = page === 'search' ? 0 : page === 'library' ? 1 : page === 'team' ? 2 : -1;
+
   function requireLogin(reason: 'private' | 'create' | 'transfer') {
     setLoginIntent(reason);
     setPendingAction(reason);
@@ -215,20 +201,34 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
             <Icon name="panel" size={17}/>
           </button>
         </div>
-        <nav aria-label="Main navigation" className="archive-nav">
-          <NavLens active={page === 'search'}>
-            <button type="button" className={page === 'search' ? 'active' : ''} aria-current={page === 'search' ? 'page' : undefined}
-              onClick={() => navigate('search')} title="Search workspace"><span className="archive-nav-icon"><Icon name="search" size={19}/></span><span className="archive-nav-label">Search workspace</span></button>
-          </NavLens>
-          <NavLens active={page === 'library'}>
-            <button type="button" className={page === 'library' ? 'active' : ''} aria-current={page === 'library' ? 'page' : undefined}
-              onClick={() => navigate('library')} title="Canned responses"><span className="archive-nav-icon"><Icon name="library" size={19}/></span><span className="archive-nav-label">Canned responses</span></button>
-          </NavLens>
+        <nav aria-label="Main navigation" className={`archive-nav${selectedTab < 0 ? ' no-selection' : ''}`}
+          style={{ '--active-tab': selectedTab } as CSSProperties}>
+          <Glass className="archive-nav-selection" radius={30} style={{
+            borderRadius: 30, background: 'var(--liquid-selection-fill)',
+          }} optics={{
+            mapSize: 256, depth: .78, curvature: .48, strength: .19,
+            bend: .49, bendWidth: .12, dispersion: .24,
+            sheen: 1.08, sheenWidth: 1.55, specular: 1.25,
+            glow: .16, frost: 0, clipToShape: true, softEdge: true,
+          }}>
+            <span className="archive-nav-selection-center" aria-hidden="true"/>
+          </Glass>
+          <button type="button" className={page === 'search' ? 'active' : ''} aria-current={page === 'search' ? 'page' : undefined}
+            onClick={() => navigate('search')} title="Search workspace">
+            <span className="archive-nav-icon"><Icon name="search" size={20}/></span>
+            <span className="archive-nav-label">Search workspace</span>
+          </button>
+          <button type="button" className={page === 'library' ? 'active' : ''} aria-current={page === 'library' ? 'page' : undefined}
+            onClick={() => navigate('library')} title="Canned responses">
+            <span className="archive-nav-icon"><Icon name="library" size={20}/></span>
+            <span className="archive-nav-label">Canned responses</span>
+          </button>
           {agent?.role === 'admin' && (
-            <NavLens active={page === 'team'}>
-              <button type="button" className={page === 'team' ? 'active' : ''} aria-current={page === 'team' ? 'page' : undefined}
-                onClick={() => navigate('team')} title="Team overview"><span className="archive-nav-icon"><Icon name="team" size={19}/></span><span className="archive-nav-label">Team overview</span></button>
-            </NavLens>
+            <button type="button" className={page === 'team' ? 'active' : ''} aria-current={page === 'team' ? 'page' : undefined}
+              onClick={() => navigate('team')} title="Team overview">
+              <span className="archive-nav-icon"><Icon name="team" size={20}/></span>
+              <span className="archive-nav-label">Team overview</span>
+            </button>
           )}
         </nav>
         <div className="archive-sidebar-foot">

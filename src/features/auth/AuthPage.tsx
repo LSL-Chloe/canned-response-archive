@@ -1,3 +1,4 @@
+import LiquidButton from '../../ui/LiquidButton';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { api } from '../archive/api';
 import type { Agent } from '../archive/model';
@@ -184,7 +185,7 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
                 <span className="auth-eyebrow">PIN UPDATED</span>
                 <h2>Back in control.</h2>
                 <p>Your PIN has been reset. Sign in using your new four-digit PIN.</p>
-                <button className="auth-primary" type="button" onClick={() => selectMode('login')}>Back to sign in <Icon name="arrow" size={17}/></button>
+                <LiquidButton className="auth-primary" type="button" onClick={() => selectMode('login')}>Back to sign in <Icon name="arrow" size={17}/></LiquidButton>
               </div>
             ) : stage === 'otp' ? (
               <form className="auth-otp-form" onSubmit={verify}>
@@ -210,9 +211,9 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
                   <span>{secondsLeft > 0 ? 'Code valid for' : 'Code expired'}</span>
                   <span className="auth-timer">{String(Math.floor(secondsLeft / 60)).padStart(2, '0')}:{String(secondsLeft % 60).padStart(2, '0')}</span>
                 </div>
-                <button className="auth-primary" type="submit" disabled={busy || secondsLeft === 0 || code.length !== 6}>
+                <LiquidButton className="auth-primary" type="submit" disabled={busy || secondsLeft === 0 || code.length !== 6}>
                   {busy ? 'Verifying…' : 'Verify & continue'} <Icon name="arrow" size={17}/>
-                </button>
+                </LiquidButton>
                 <button type="button" className="auth-text-action" disabled={busy} onClick={() => selectMode(mode)}>
                   Start over
                 </button>
@@ -260,10 +261,10 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
                       </div>
                     </div>
                   )}
-                  <button className="auth-primary" type="submit" disabled={busy}>
+                  <LiquidButton className="auth-primary" type="submit" disabled={busy}>
                     {busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : mode === 'recover' ? 'Send recovery code' : 'Sign in'}
                     <Icon name="arrow" size={17}/>
-                  </button>
+                  </LiquidButton>
                 </form>
                 {mode === 'login' && <button className="auth-text-action" type="button" onClick={() => selectMode('recover')}>Forgot your PIN?</button>}
                 {mode === 'recover' && <button className="auth-text-action" type="button" onClick={() => selectMode('login')}>Back to sign in</button>}
