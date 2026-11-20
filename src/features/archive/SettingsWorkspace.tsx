@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { api } from './api';
+import { OtpCells, OtpRing } from '../auth/OtpVisual';
 import type { Agent } from './model';
 
 interface Props {
@@ -109,9 +110,9 @@ export default function SettingsWorkspace({ agent, onAgentChange, onNotice, onEr
           {challenge ? (
             <form className="archive-settings-form-inner" onSubmit={verifyEmail}>
               <p className="archive-hint">Enter the code sent to {newEmail}. Your existing email remains active until verification.</p>
+              <OtpRing progress={code.length / 6} />
               <label htmlFor="archive-setting-otp">Six-digit email code</label>
-              <input id="archive-setting-otp" value={code} onChange={event => setCode(event.target.value)} inputMode="numeric"
-                pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" required />
+              <OtpCells id="archive-setting-otp" value={code} onChange={setCode} disabled={busy}/>
               <button type="submit" className="archive-button archive-button-primary" disabled={busy}>Verify email</button>
               <button type="button" className="archive-button archive-button-quiet" onClick={() => { setChallenge(''); setCode(''); }}>Cancel</button>
             </form>

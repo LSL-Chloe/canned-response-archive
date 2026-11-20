@@ -568,3 +568,38 @@
 .theme-lens .theme-toggle-refracted{position:relative;z-index:2;background:transparent}
 .theme-lens:focus-within{outline:2px solid var(--a-accent);outline-offset:2px}
 .auth-experience .theme-lens,.archive-app .theme-lens{flex:0 0 auto}
+
+/* Lens is bounded to the selected item; no heavy refraction over response text. */
+.archive-app .archive-nav-lens{display:block;width:100%;border-radius:12px;position:relative}
+.archive-app .archive-nav-lens>button{width:100%;position:relative;z-index:1}
+.archive-app .archive-nav-lens>button.active{
+  background:transparent;border-color:transparent;box-shadow:none;
+  color:var(--a-text);
+}
+.archive-app .archive-nav-lens:focus-within{outline:2px solid var(--a-accent);outline-offset:2px}
+.archive-app.is-sidebar-collapsed .archive-nav-lens{display:grid;place-items:center}
+/* A saved response is acknowledged without pushing the editor down. */
+.archive-app .archive-stage .archive-message{
+  position:fixed;z-index:80;bottom:24px;right:25px;left:auto;
+  display:flex;align-items:center;gap:11px;max-width:min(460px,calc(100vw - 44px));
+  width:max-content;margin:0;padding:12px 13px;
+  border:1px solid var(--glass-line);border-radius:14px;
+  background:var(--glass);box-shadow:inset 0 1px 0 var(--glass-highlight),var(--glass-shadow);
+  -webkit-backdrop-filter:blur(25px) saturate(150%);backdrop-filter:blur(25px) saturate(150%);
+  animation:archive-toast-in .28s cubic-bezier(.16,1,.3,1);
+}
+.archive-app .archive-message-symbol{flex:0 0 auto;display:grid;place-items:center;width:30px;height:30px;
+  border-radius:10px;color:var(--ui-success);background:color-mix(in srgb,var(--ui-success) 13%,transparent)}
+.archive-app .archive-message-error .archive-message-symbol{color:#f0a2a9;background:rgba(216,91,106,.12)}
+.archive-app .archive-message-copy{min-width:0;flex:1;overflow-wrap:anywhere;font-size:12.5px;line-height:1.5;color:var(--a-text)}
+.archive-app .archive-message button{width:28px;height:28px;display:grid;place-items:center;flex:0 0 auto;border-radius:8px}
+.archive-app .archive-message button:hover{background:var(--a-accent-soft)}
+.archive-app .archive-settings .otp-orbit{height:128px;width:128px;margin:0 auto 6px}
+.archive-app .archive-settings .otp-core{width:62px;height:62px;border-radius:19px}
+.archive-app .archive-settings .otp-progress{width:100%;height:100%}
+.archive-app .archive-settings .auth-code-row{gap:5px;margin-top:0}
+.archive-app .archive-settings .auth-code-cell{height:43px;border-radius:8px;font-size:17px}
+@keyframes archive-toast-in{from{opacity:0;transform:translateY(13px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:530px){
+ .archive-app .archive-stage .archive-message{bottom:15px;right:12px;max-width:calc(100vw - 70px)}
+}
