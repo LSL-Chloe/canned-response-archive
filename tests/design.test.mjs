@@ -110,7 +110,7 @@ test('profile picture picker includes custom upload first and catalog choices', 
   const app = read('src/features/archive/ArchiveApp.tsx');
   const server = read('worker/api/avatars.ts');
   assert.match(ui, /archive-avatar-upload-circle/);
-  assert.ok(ui.indexOf('archive-avatar-upload"') < ui.indexOf('items.map('), 'Custom upload should precede catalog portraits');
+  assert.ok(ui.indexOf('archive-avatar-upload"') < ui.indexOf('portraits.map('), 'Custom upload should precede catalog portraits');
   assert.match(ui, /image\/jpeg/);
   assert.match(ui, /compressAvatar/);
   assert.match(settings, /<AvatarPicker/);
@@ -119,4 +119,18 @@ test('profile picture picker includes custom upload first and catalog choices', 
   assert.match(server, /sourceUrl/);
   assert.match(server, /TMDB_READ_ACCESS_TOKEN/);
   assert.match(server, /imageData/);
+});
+
+test('character avatar search separates navigation titles from actual portraits', () => {
+  const picker = read('src/features/archive/AvatarPicker.tsx');
+  const server = read('worker/api/avatars.ts');
+  const images = read('src/features/archive/avatarImages.ts');
+  assert.match(server, /kitsuSearch/);
+  assert.match(server, /kitsuCharacters/);
+  assert.match(server, /api\/avatars\/image/);
+  assert.doesNotMatch(server, /poster_path/);
+  assert.match(picker, /archive-avatar-title-choice/);
+  assert.match(picker, /portraits\.map/);
+  assert.match(picker, /setBroken\(true\)/);
+  assert.match(images, /encodeURIComponent/);
 });

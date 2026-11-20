@@ -25,7 +25,7 @@ function sourceUrl(value: unknown): string | null {
   if (typeof value !== 'string' || value.length > 600) fail(400, 'invalid_avatar', 'Choose a valid avatar');
   let url: URL;
   try { url = new URL(value); } catch { return fail(400, 'invalid_avatar', 'Choose an image from the catalog'); }
-  const allowed = /^(?:s[1-9][0-9]*\.anilist\.co|cdn\.anilist\.co|static\.tvmaze\.com|image\.tmdb\.org)$/i.test(url.hostname);
+  const allowed = /^(?:s[1-9][0-9]*\.anilist\.co|cdn\.anilist\.co|static\.tvmaze\.com|image\.tmdb\.org|media\.kitsu\.(?:io|app))$/i.test(url.hostname);
   if (url.protocol !== 'https:' || !allowed || url.username || url.password || url.port) {
     fail(400, 'invalid_avatar', 'This image source is not supported');
   }
@@ -55,89 +55,146 @@ async function tmdb(path: string, env: Env): Promise<any> {
   });
 }
 
+
+function kitsuPicture(record: any): string | null {
+  const images = record?.attributes?.image;
+  return images?.original || images?.large || images?.medium || null;
+}
+function kitsuCharacter(record: any): CatalogEntry | null {
+  const url = kitsuPicture(record);
+  if (!url) return null;
+  return {
+    id: 'k-' + record.id,
+    title: record.attributes?.canonicalName || record.attributes?.name || 'Character',
+    subtitle: 'Anime character',
+    imageUrl: url, avatarUrl: url, kind: 'avatar',
+  };
+}
+async function kitsuSearch(term: string): Promise<CatalogEntry[]> {
+  const searchText = encodeURIComponent(term);
+  const [shows, people] = await Promise.all([
+    upstream('https://kitsu.io/api/edge/anime?filter%5Btext%5D=' + searchText + '&page%5Blimit%5D=15'),
+    upstream('https://kitsu.io/api/edge/characters?filter%5Bname%5D=' + searchText + '&page%5Blimit%5D=20'),
+  ]);
+  const titles: CatalogEntry[] = (shows.data ?? []).map((item: any) => ({
+    id: 'k-' + item.id,
+    title: item.attributes?.titles?.en || item.attributes?.canonicalTitle || 'Anime',
+    subtitle: 'Anime series', imageUrl: null, kind: 'title',
+  }));
+  const portraits: CatalogEntry[] = (people.data ?? []).map(kitsuCharacter)
+    .filter((item: CatalogEntry | null): item is CatalogEntry => Boolean(item));
+  return [...titles, ...portraits];
+}
+async function kitsuCharacters(id: string, page: number): Promise<{ items: CatalogEntry[]; hasMore: boolean }> {
+  const offset = (page - 1) * 20;
+  const result = await upstream(
+    'https://kitsu.io/api/edge/anime/' + id + '/characters?include=character&page%5Blimit%5D=20&page%5Boffset%5D=' + offset,
+  );
+  const byId = new Map<string, any>((result.included ?? []).map((record: any) => [record.id, record]));
+  const items: CatalogEntry[] = (result.data ?? [])
+    .map((entry: any) => kitsuCharacter(byId.get(entry.relationships?.character?.data?.id)))
+    .filter((entry: CatalogEntry | null): entry is CatalogEntry => Boolean(entry));
+  return { items, hasMore: Boolean(result.links?.next) };
+}
+
 async function search(source: Source, term: string, env: Env): Promise<CatalogEntry[]> {
   if (source === 'anime') {
-    const data = await anilist(
-      'query($term:String) { Page(page:1, perPage:20) { media(search:$term, type:ANIME) { id title { english romaji } coverImage { medium large } } characters(search:$term) { id name { full } image { medium large } } } }',
-      { term },
-    );
-    const media: CatalogEntry[] = (data?.Page?.media ?? []).map((item: any) => ({
-      id: String(item.id), title: item.title.english || item.title.romaji || 'Anime',
-      subtitle: 'Anime series', imageUrl: item.coverImage?.large || item.coverImage?.medium || null, kind: 'title',
-    }));
-    const characters: CatalogEntry[] = (data?.Page?.characters ?? []).filter((item: any) => item.image?.large).map((item: any) => ({
-      id: String(item.id), title: item.name?.full || 'Character',
-      subtitle: 'Anime character', imageUrl: item.image.large, kind: 'avatar', avatarUrl: item.image.large,
-    }));
-    return [...media, ...characters];
+    try {
+      const data = await anilist(
+        'query($term:String) { Page(page:1, perPage:20) { media(search:$term, type:ANIME, isAdult:false) { id title { english romaji } } characters(search:$term) { id name { full } image { medium large } } } }',
+        { term },
+      );
+      const titles: CatalogEntry[] = (data?.Page?.media ?? []).map((item: any) => ({
+        id: String(item.id), title: item.title?.english || item.title?.romaji || 'Anime',
+        subtitle: 'Anime series', imageUrl: null, kind: 'title',
+      }));
+      const portraits: CatalogEntry[] = (data?.Page?.characters ?? [])
+        .filter((item: any) => item.image?.large || item.image?.medium)
+        .map((item: any) => ({
+          id: String(item.id), title: item.name?.full || 'Character',
+          subtitle: 'Anime character', imageUrl: item.image.large || item.image.medium,
+          avatarUrl: item.image.large || item.image.medium, kind: 'avatar',
+        }));
+      if (titles.length || portraits.length) return [...titles, ...portraits];
+    } catch {
+      // AniList sometimes rejects Cloudflare Worker egress. Use Kitsu's public
+      // character catalog instead of displaying an unavailable error.
+    }
+    return kitsuSearch(term);
   }
   if (source === 'tv') {
-    const params = '?q=' + encodeURIComponent(term);
-    const [series, people] = await Promise.all([
-      upstream('https://api.tvmaze.com/search/shows' + params),
-      upstream('https://api.tvmaze.com/search/people' + params),
-    ]);
-    const titles: CatalogEntry[] = series.slice(0, 20).map((item: any) => ({
-      id: String(item.show.id), title: item.show.name, subtitle: 'TV series',
-      imageUrl: item.show.image?.medium || null, kind: 'title',
+    const shows = await upstream('https://api.tvmaze.com/search/shows?q=' + encodeURIComponent(term));
+    return (shows as any[]).slice(0, 25).map((item: any) => ({
+      id: String(item.show.id), title: item.show.name,
+      subtitle: item.show.premiered?.slice(0, 4) || 'TV series', imageUrl: null, kind: 'title',
     }));
-    const portraits: CatalogEntry[] = people.slice(0, 12).filter((item: any) => item.person.image?.medium).map((item: any) => ({
-      id: String(item.person.id), title: item.person.name, subtitle: 'Actor portrait',
-      imageUrl: item.person.image.medium, kind: 'avatar', avatarUrl: item.person.image.original || item.person.image.medium,
-    }));
-    return [...titles, ...portraits];
   }
   const params = '?query=' + encodeURIComponent(term) + '&include_adult=false';
   const [movies, people] = await Promise.all([
     tmdb('/search/movie' + params, env),
     tmdb('/search/person' + params, env),
   ]);
+  // Movie posters are NOT profile pictures. Titles are navigation rows only.
   const titles: CatalogEntry[] = (movies.results ?? []).slice(0, 20).map((item: any) => ({
-    id: String(item.id), title: item.title, subtitle: item.release_date?.slice(0, 4) || 'Movie',
-    imageUrl: tmdbImage(item.poster_path), kind: 'title',
+    id: String(item.id), title: item.title,
+    subtitle: item.release_date?.slice(0, 4) || 'Movie',
+    imageUrl: null, kind: 'title',
   }));
-  const portraits: CatalogEntry[] = (people.results ?? []).slice(0, 12).filter((item: any) => item.profile_path).map((item: any) => ({
-    id: String(item.id), title: item.name, subtitle: 'Actor portrait',
-    imageUrl: tmdbImage(item.profile_path), kind: 'avatar', avatarUrl: tmdbImage(item.profile_path)!,
-  }));
-  return [...titles, ...portraits];
+  const peoplePortraits: CatalogEntry[] = (people.results ?? []).slice(0, 10)
+    .filter((item: any) => item.profile_path && item.name?.toLowerCase().includes(term.toLowerCase()))
+    .map((item: any) => ({
+      id: String(item.id), title: item.name, subtitle: 'Actor portrait',
+      imageUrl: tmdbImage(item.profile_path), kind: 'avatar', avatarUrl: tmdbImage(item.profile_path)!,
+    }));
+  return [...titles, ...peoplePortraits];
 }
 async function characters(source: Source, id: string, page: number, env: Env): Promise<{ items: CatalogEntry[]; hasMore: boolean }> {
   if (source === 'anime') {
+    if (id.startsWith('k-')) return kitsuCharacters(id.slice(2), page);
     const data = await anilist(
       'query($id:Int,$page:Int) { Media(id:$id, type:ANIME) { characters(page:$page, perPage:40) { pageInfo { hasNextPage } nodes { id name { full } image { large medium } } } } }',
       { id: Number(id), page },
     );
     return {
-      items: (data?.Media?.characters?.nodes ?? []).filter((item: any) => item.image?.large || item.image?.medium).map((item: any) => ({
-        id: String(item.id), title: item.name?.full || 'Character',
-        subtitle: 'Anime character', imageUrl: item.image.large || item.image.medium, kind: 'avatar',
-        avatarUrl: item.image.large || item.image.medium,
-      })),
+      items: (data?.Media?.characters?.nodes ?? [])
+        .filter((item: any) => item.image?.large || item.image?.medium)
+        .map((item: any) => ({
+          id: String(item.id), title: item.name?.full || 'Character', subtitle: 'Anime character',
+          imageUrl: item.image.large || item.image.medium,
+          avatarUrl: item.image.large || item.image.medium, kind: 'avatar',
+        })),
       hasMore: data?.Media?.characters?.pageInfo?.hasNextPage === true,
     };
   }
   if (source === 'tv') {
     const cast = await upstream('https://api.tvmaze.com/shows/' + id + '/cast');
     return {
-      items: (cast as any[]).filter((item: any) => item.character?.image?.medium || item.person?.image?.medium).map((item: any) => {
-        const characterImage = item.character?.image?.original || item.character?.image?.medium;
-        const portrait = characterImage || item.person?.image?.original || item.person?.image?.medium;
-        return {
-          id: String(item.character?.id || item.person?.id), title: item.character?.name || item.person?.name || 'Character',
-          subtitle: characterImage ? 'Character photo' : 'Actor portrait · ' + (item.person?.name || ''),
-          imageUrl: portrait, avatarUrl: portrait, kind: 'avatar',
-        };
-      }),
+      items: (cast as any[])
+        .filter((item: any) => item.character?.image?.medium || item.person?.image?.medium)
+        .map((item: any) => {
+          const characterPhoto = item.character?.image?.medium;
+          const imageUrl = characterPhoto || item.person?.image?.medium;
+          return {
+            id: String(item.character?.id || item.person?.id),
+            title: item.character?.name || item.person?.name || 'Character',
+            subtitle: characterPhoto ? 'Character portrait' : 'Cast portrait · ' + (item.person?.name || ''),
+            imageUrl, avatarUrl: imageUrl, kind: 'avatar',
+          };
+        }),
       hasMore: false,
     };
   }
   const credits = await tmdb('/movie/' + id + '/credits', env);
   return {
-    items: (credits.cast ?? []).filter((item: any) => item.profile_path).map((item: any) => ({
-      id: String(item.cast_id ?? item.id), title: item.character || item.name, subtitle: 'Actor portrait · ' + item.name,
-      imageUrl: tmdbImage(item.profile_path), avatarUrl: tmdbImage(item.profile_path)!, kind: 'avatar',
-    })),
+    items: (credits.cast ?? [])
+      .filter((item: any) => item.profile_path)
+      .slice(0, 100)
+      .map((item: any) => ({
+        id: String(item.cast_id ?? item.id), title: item.character || item.name,
+        subtitle: 'Cast portrait · ' + item.name,
+        imageUrl: tmdbImage(item.profile_path), avatarUrl: tmdbImage(item.profile_path)!,
+        kind: 'avatar',
+      })),
     hasMore: false,
   };
 }
@@ -146,6 +203,32 @@ export async function handleAvatars(request: Request, env: Env, path: string, ur
   const signed = await getSession(env, request);
   if (!signed) fail(401, 'login_required', 'Sign in to manage your profile picture');
   const agentId = signed.agent.id;
+
+
+  if (path === '/api/avatars/image' && request.method === 'GET') {
+    const raw = sourceUrl(url.searchParams.get('url'));
+    if (!raw) fail(400, 'invalid_image', 'Choose an image');
+    // Strict allowlist + no redirects: this must never become an arbitrary URL proxy.
+    const response = await fetch(raw, {
+      redirect: 'manual', signal: AbortSignal.timeout(9000),
+      headers: { Accept: 'image/avif,image/webp,image/jpeg,image/png,image/gif' },
+    });
+    if (!response.ok) fail(502, 'image_unavailable', 'Portrait image unavailable');
+    const mime = (response.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'].includes(mime)) {
+      fail(502, 'invalid_image', 'Portrait source did not return an image');
+    }
+    const limit = 2_500_000;
+    if (Number(response.headers.get('Content-Length') || 0) > limit) fail(413, 'image_too_large', 'Portrait is too large');
+    const body = await response.arrayBuffer();
+    if (body.byteLength > limit) fail(413, 'image_too_large', 'Portrait is too large');
+    return new Response(body, {
+      status: 200, headers: {
+        'Content-Type': mime, 'Cache-Control': 'private, max-age=86400',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    });
+  }
 
   if (path === '/api/account/avatar' && request.method === 'GET') {
     const rows = await queryTable<{ avatar_url: string | null }>(env, 'agents', {
@@ -199,7 +282,7 @@ export async function handleAvatars(request: Request, env: Env, path: string, ur
     const source = sourceFrom(url.searchParams.get('source'));
     const id = url.searchParams.get('id') || '';
     const page = Number(url.searchParams.get('page') || '1');
-    if (!/^[0-9]{1,10}$/.test(id) || !Number.isInteger(page) || page < 1 || page > 30) {
+    if (!/^(?:k-)?[0-9]{1,10}$/.test(id) || !Number.isInteger(page) || page < 1 || page > 30) {
       fail(400, 'invalid_id', 'Choose a catalog title');
     }
     if (!await requireRateLimit(env, 'avatar:characters:' + agentId, 90, 900)) fail(429, 'rate_limited', 'Too many catalog requests');
