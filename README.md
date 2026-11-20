@@ -37,6 +37,10 @@ tested development SQL migrations.
 See [backend API](docs/backend-api.md) and [Gmail OTP setup](docs/gmail-otp-setup.md)
 for current routes, security model, setup and limitations.
 
+For a temporary browser-based authentication smoke test, see
+[Development authentication QA](docs/auth-qa.md) at `/dev/auth-test`.
+This is **not** the final login or signup interface.
+
 **Not yet configured/tested end-to-end:** Gmail sending authorization, deployed Supabase Worker integration,
 realtime browser subscriptions, visual design, staging/production deployments.
 The development Supabase database is provisioned, but no Worker credentials have been added.

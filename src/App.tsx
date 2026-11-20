@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
+import DevAuthTest from './features/auth/DevAuthTest';
 
 type ApiState = 'checking' | 'online' | 'offline';
 
-// Intentional placeholder. Final interaction and visual design come after reference review.
-export default function App() {
+// Final visual design remains a placeholder until references are approved.
+function FoundationPage() {
   const [api, setApi] = useState<ApiState>('checking');
-
   useEffect(() => {
     const controller = new AbortController();
     void fetch('/api/health', { signal: controller.signal, cache: 'no-store' })
@@ -32,17 +32,19 @@ export default function App() {
       <section className="status-card" aria-label="Backend connection status">
         <div className="status-heading">
           <span className={`indicator ${api}`} aria-hidden="true" />
-          <strong>Local API</strong>
+          <strong>Development API</strong>
         </div>
         <p role="status" aria-live="polite">
-          {api === 'checking'
-            ? 'Checking /api/health…'
-            : api === 'online'
-              ? 'Connected. The backend health check is responding.'
-              : 'Offline. Check the development server and API Worker.'}
+          {api === 'checking' ? 'Checking /api/health…' :
+            api === 'online' ? 'Connected. The backend health check is responding.' :
+              'Offline. Check the development server and API Worker.'}
         </p>
       </section>
-      <p className="footnote">No accounts, canned responses, or live data are connected yet.</p>
+      <p className="footnote">This is a development preview, not the finished archive.</p>
     </main>
   );
+}
+
+export default function App() {
+  return window.location.pathname === '/dev/auth-test' ? <DevAuthTest /> : <FoundationPage />;
 }

@@ -26,3 +26,38 @@ h1 { font-size: clamp(30px, 5vw, 50px); margin: 8px 0 12px; letter-spacing: -.03
   .eyebrow { color: #a9b8c5; }
   .status-card { background: #1a2530; border-color: #314253; }
 }
+
+/* Temporary auth QA only: visual system will be developed after references. */
+.qa-shell{max-width:700px;margin:0 auto;padding:42px 24px 70px}
+.qa-heading h1{margin:14px 0 8px}.qa-heading .intro{font-size:15px}
+.qa-back{color:inherit;font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.qa-heading .eyebrow{margin-top:22px}
+.qa-panel{background:#fff;border:1px solid #d4dfe8;border-radius:14px;padding:25px;margin-top:24px}
+.qa-warning{background:#fff9e9;color:#6f4b03;border:1px solid #eed7a1;padding:13px 15px;border-radius:8px;font-size:13px;line-height:1.6;margin:0 0 20px}
+.qa-modes{display:flex;gap:9px;flex-wrap:wrap;border-bottom:1px solid #dde5eb;padding-bottom:16px;margin-bottom:21px}
+.qa-modes button{cursor:pointer;background:#f0f4f7;color:#233345;border:1px solid #d5dfe7;padding:9px 13px;border-radius:7px}
+.qa-modes button[aria-pressed="true"]{color:#fff;background:#1f526e;border-color:#1f526e}
+.qa-form{display:flex;flex-direction:column;gap:10px;max-width:430px}
+.qa-form h2,.qa-signed-in h2{font-size:20px;margin:0 0 9px}
+.qa-form label{font-size:13px;font-weight:650}
+.qa-form input{border:1px solid #a6b6c3;color:#18232f;background:#fff;border-radius:7px;font:inherit;padding:11px 12px;width:100%}
+.qa-form input:focus-visible,.qa-panel button:focus-visible{outline:3px solid #94c8ee;outline-offset:2px}
+.qa-form button,.qa-signed-in button{background:#215677;border:0;color:#fff;border-radius:8px;padding:11px 15px;cursor:pointer;font:inherit;font-weight:650;margin-top:7px}
+.qa-form button.qa-secondary{color:#1d3850;background:#eaf0f5}
+.qa-form button:disabled,.qa-signed-in button:disabled{opacity:.6;cursor:wait}
+.qa-help{color:#536273;font-size:13px;margin:0 0 3px;line-height:1.5}
+.qa-error,.qa-notice{font-size:13px;line-height:1.5;border-radius:8px;padding:12px}
+.qa-error{background:#fde8e8;color:#932b2b}
+.qa-notice{background:#e8f4ef;color:#1d6348}
+.qa-footer{color:#667a89;font-size:12px}
+@media(prefers-color-scheme:dark){
+.qa-panel{background:#192430;border-color:#324454}
+.qa-warning{background:#473719;color:#f3dcac;border-color:#7d6540}
+.qa-modes{border-color:#324454}
+.qa-modes button{background:#263646;border-color:#3c5367;color:#d8e6ef}
+.qa-modes button[aria-pressed="true"]{background:#337398;color:#fff}
+.qa-form input{background:#14202c;border-color:#546879;color:#f5f8fc}
+.qa-help{color:#aabccc}
+.qa-error{background:#4b2326;color:#ffd9d9}
+.qa-notice{background:#1c4133;color:#c8ffe5}
+.qa-form button.qa-secondary{background:#34516a;color:#fff}}
