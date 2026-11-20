@@ -62,7 +62,7 @@ and functionality review. Stage and test every future migration first.
 
 ## Profile pictures
 
-Profile pictures require the avatar migration in `supabase/migrations/20261121033500_account_avatars.sql`.
+Profile pictures require the avatar migration in `supabase/migrations/20261120225401_account_avatars.sql`.
 It adds an avatar URL field and creates the `archive-avatars` public-read storage bucket.
 Uploads go through the authenticated Worker, which resizes them to square JPEGs in the browser
 (256×256, under 150 KB) and writes to a per-account object. Never expose the Supabase secret key
