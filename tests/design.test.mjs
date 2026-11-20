@@ -109,6 +109,7 @@ test('profile picture picker includes custom upload first and catalog choices', 
   const settings = read('src/features/archive/SettingsWorkspace.tsx');
   const app = read('src/features/archive/ArchiveApp.tsx');
   const server = read('worker/api/avatars.ts');
+  const catalog = read('worker/api/avatarCatalog.ts');
   assert.match(ui, /archive-avatar-upload-circle/);
   assert.ok(ui.indexOf('archive-avatar-upload"') < ui.indexOf('portraits.map('), 'Custom upload should precede catalog portraits');
   assert.match(ui, /image\/jpeg/);
@@ -117,7 +118,7 @@ test('profile picture picker includes custom upload first and catalog choices', 
   assert.match(app, /avatarUrl \? <img/);
   assert.match(server, /getSession/);
   assert.match(server, /sourceUrl/);
-  assert.match(server, /TMDB_READ_ACCESS_TOKEN/);
+  assert.match(catalog, /TMDB_READ_ACCESS_TOKEN/);
   assert.match(server, /imageData/);
 });
 
@@ -125,12 +126,29 @@ test('character avatar search separates navigation titles from actual portraits'
   const picker = read('src/features/archive/AvatarPicker.tsx');
   const server = read('worker/api/avatars.ts');
   const images = read('src/features/archive/avatarImages.ts');
-  assert.match(server, /kitsuSearch/);
-  assert.match(server, /kitsuCharacters/);
+  assert.match(read('worker/api/avatarCatalog.ts'), /kitsuSearch/);
+  assert.match(read('worker/api/avatarCatalog.ts'), /kitsuCharacters/);
   assert.match(server, /api\/avatars\/image/);
   assert.doesNotMatch(server, /poster_path/);
   assert.match(picker, /archive-avatar-title-choice/);
   assert.match(picker, /portraits\.map/);
-  assert.match(picker, /setBroken\(true\)/);
+  assert.match(picker, /setAttempt/);
   assert.match(images, /encodeURIComponent/);
+});
+
+test('avatar chooser loads popular characters immediately and searches without title clicks', () => {
+  const picker = read('src/features/archive/AvatarPicker.tsx');
+  const catalog = read('worker/api/avatarCatalog.ts');
+  const api = read('worker/api/avatars.ts');
+  assert.match(picker, /api\/avatars\/popular/);
+  assert.match(picker, /api\/avatars\/search/);
+  assert.match(picker, /Popular characters/);
+  assert.match(picker, /More looks/);
+  assert.match(catalog, /POPULAR_TV/);
+  assert.match(catalog, /POPULAR_MOVIES/);
+  assert.match(catalog, /wikiPortraits/);
+  assert.match(catalog, /kitsuSearch/);
+  assert.match(catalog, /variations/);
+  assert.match(api, /api\/avatars\/variations/);
+  assert.doesNotMatch(catalog, /profile_path|poster_path/);
 });

@@ -11,6 +11,9 @@ type Entry = {
   imageUrl: string | null;
   avatarUrl?: string;
   kind: 'title' | 'avatar';
+  wiki?: string;
+  wikiPage?: string;
+  malId?: number;
 };
 type Props = {
   avatarUrl: string | null;
@@ -24,10 +27,11 @@ const sources: { id: Source; label: string }[] = [
 ];
 
 function PortraitImage({ url, label }: { url: string; label: string }) {
-  const [broken, setBroken] = useState(false);
-  useEffect(() => setBroken(false), [url]);
-  return broken ? <span className="archive-avatar-image-fallback" aria-label={label + ' portrait unavailable'}>◯</span> :
-    <img src={avatarImageSrc(url)} loading="lazy" alt="" onError={() => setBroken(true)}/>;
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => setAttempt(0), [url]);
+  if (attempt > 1) return <span className="archive-avatar-image-fallback" aria-label={label + ' portrait unavailable'}>◯</span>;
+  return <img src={attempt === 0 ? avatarImageSrc(url) : url} loading="lazy" alt=""
+    onError={() => setAttempt(value => value + 1)}/>;
 }
 
 async function compressAvatar(file: File): Promise<string> {
@@ -65,81 +69,110 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   const [query, setQuery] = useState('');
   const [term, setTerm] = useState('');
   const [items, setItems] = useState<Entry[]>([]);
+  const [titles, setTitles] = useState<Entry[]>([]);
   const [selectedTitle, setSelectedTitle] = useState<Entry | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [moreFrom, setMoreFrom] = useState<Entry | null>(null);
+  const [moreItems, setMoreItems] = useState<Entry[]>([]);
+  const [moreBusy, setMoreBusy] = useState(false);
+  const [moreError, setMoreError] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const next = query.trim();
-    const timer = window.setTimeout(() => setTerm(next.length >= 2 ? next : ''), 350);
+    const timer = window.setTimeout(() => setTerm(query.trim()), 260);
     return () => window.clearTimeout(timer);
   }, [query]);
 
+  // Opening a category loads featured characters. Searching replaces them
+  // with actual character portraits without requiring any title selection.
   useEffect(() => {
-    if (!term || selectedTitle) {
-      if (!selectedTitle) setItems([]);
-      return;
-    }
+    if (selectedTitle) return;
     const controller = new AbortController();
+    const path = term.length >= 2
+      ? '/api/avatars/search?source=' + source + '&q=' + encodeURIComponent(term)
+      : '/api/avatars/popular?source=' + source;
     setLoading(true);
     setSearchError('');
-    void api<{ items: Entry[] }>(`/api/avatars/search?source=${source}&q=${encodeURIComponent(term)}`, {
-      signal: controller.signal,
-    }).then(data => setItems(data.items))
+    void api<{items:Entry[];titles?:Entry[]}>(path,{signal:controller.signal})
+      .then(data => {
+        if (controller.signal.aborted) return;
+        setItems(data.items || []);
+        setTitles(data.titles || []);
+      })
       .catch(error => {
         if (controller.signal.aborted) return;
         setItems([]);
-        setSearchError(error instanceof Error ? error.message : 'Could not search the catalog.');
-      }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+        setTitles([]);
+        setSearchError(error instanceof Error ? error.message : 'Character catalog could not load.');
+      })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [source, term, selectedTitle]);
+  }, [source,term,selectedTitle]);
 
-  async function openTitle(title: Entry, nextPage = 1) {
+  async function openTitle(title: Entry, nextPage=1) {
     if (loading) return;
     setLoading(true);
     setSearchError('');
     try {
-      const result = await api<{ items: Entry[]; hasMore: boolean }>(
-        `/api/avatars/characters?source=${source}&id=${encodeURIComponent(title.id)}&page=${nextPage}`,
+      const result = await api<{items:Entry[];hasMore:boolean}>(
+        '/api/avatars/characters?source=' + source + '&id=' + encodeURIComponent(title.id) + '&page=' + nextPage,
       );
-      setItems(previous => nextPage === 1 ? result.items : [...previous, ...result.items]);
+      setItems(previous => nextPage===1 ? result.items : [...previous,...result.items]);
       setPage(nextPage);
       setHasMore(result.hasMore);
       setSelectedTitle(title);
     } catch (error) {
-      setSearchError(error instanceof Error ? error.message : 'Unable to load characters.');
+      setSearchError(error instanceof Error ? error.message : 'Characters could not load.');
     } finally { setLoading(false); }
   }
-  async function selectAvatar(value: string) {
+  async function selectAvatar(value:string) {
     if (busy) return;
     setBusy(true);
     try {
-      const result = await api<{ avatarUrl: string }>('/api/account/avatar', {
-        method: 'PATCH', body: JSON.stringify({ avatarUrl: value }),
+      const result = await api<{avatarUrl:string}>('/api/account/avatar',{
+        method:'PATCH',body:JSON.stringify({avatarUrl:value}),
       });
       onAvatarChange(result.avatarUrl);
+      setMoreFrom(null);
       onNotice('Profile picture updated.');
-    } catch (error) {
-      onError(error instanceof Error ? error.message : 'Could not save your profile picture.');
+    } catch(error) {
+      onError(error instanceof Error ? error.message : 'Could not save profile picture.');
     } finally { setBusy(false); }
   }
+  async function showMore(item:Entry) {
+    if (!item.wiki && !item.malId) return;
+    setMoreFrom(item);
+    setMoreItems([]);
+    setMoreError('');
+    setMoreBusy(true);
+    try {
+      const params = new URLSearchParams({
+        wiki:item.wiki || '',page:item.wikiPage || item.title,
+        malId:String(item.malId || 0),
+      });
+      const result = await api<{items:Entry[]}>('/api/avatars/variations?' + params);
+      setMoreItems((result.items || []).filter(x=>x.avatarUrl));
+    } catch(error) {
+      setMoreError(error instanceof Error ? error.message : 'Alternate looks are unavailable.');
+    } finally { setMoreBusy(false); }
+  }
   async function upload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0];
-    event.currentTarget.value = '';
+    const file=event.currentTarget.files?.[0];
+    event.currentTarget.value='';
     if (!file || busy) return;
     setBusy(true);
     try {
-      const imageData = await compressAvatar(file);
-      const result = await api<{ avatarUrl: string }>('/api/account/avatar/upload', {
-        method: 'POST', body: JSON.stringify({ imageData }),
+      const imageData=await compressAvatar(file);
+      const result=await api<{avatarUrl:string}>('/api/account/avatar/upload',{
+        method:'POST',body:JSON.stringify({imageData}),
       });
       onAvatarChange(result.avatarUrl);
-      onNotice('Your own profile picture was uploaded.');
-    } catch (error) {
+      onNotice('Custom profile picture uploaded.');
+    } catch(error) {
       onError(error instanceof Error ? error.message : 'Upload failed.');
     } finally { setBusy(false); }
   }
@@ -147,38 +180,34 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
     if (busy) return;
     setBusy(true);
     try {
-      await api('/api/account/avatar', { method: 'PATCH', body: JSON.stringify({ avatarUrl: null }) });
+      await api('/api/account/avatar',{method:'PATCH',body:JSON.stringify({avatarUrl:null})});
       onAvatarChange(null);
       onNotice('Profile picture reset to initials.');
-    } catch (error) {
-      onError(error instanceof Error ? error.message : 'Could not reset the profile picture.');
+    } catch(error) {
+      onError(error instanceof Error ? error.message : 'Could not reset profile picture.');
     } finally { setBusy(false); }
   }
-  function changeSource(next: Source) {
-    setSource(next);
-    setItems([]);
-    setSelectedTitle(null);
-    setHasMore(false);
-    setPage(1);
-    setSearchError('');
+  function resetNavigation() {
+    setSelectedTitle(null);setPage(1);setHasMore(false);
+    setMoreFrom(null);setMoreItems([]);setSearchError('');
   }
-  function back() {
-    setSelectedTitle(null);
-    setItems([]);
-    setPage(1);
-    setHasMore(false);
-    setSearchError('');
+  function changeSource(next:Source) {
+    if (next===source) return;
+    setSource(next);setQuery('');setTerm('');
+    setItems([]);setTitles([]);
+    resetNavigation();
   }
-  const titles = items.filter(item => item.kind === 'title');
-  const portraits = items.filter(item => item.kind === 'avatar' && item.avatarUrl);
+  const portraits=items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl));
+  const showFeatured=term.length<2 && !selectedTitle;
   return (
     <section className="archive-card archive-avatar-picker" aria-label="Choose profile picture">
       <div className="archive-avatar-heading">
         <div>
           <h2>Profile picture</h2>
-          <p className="archive-hint">Upload your own picture or browse characters from anime, TV and movies.</p>
+          <p className="archive-hint">Choose a character portrait or upload your own.</p>
         </div>
-        {avatarUrl && <button type="button" className="archive-avatar-reset" onClick={() => void remove()} disabled={busy}>Remove</button>}
+        {avatarUrl && <button type="button" className="archive-avatar-reset"
+          onClick={()=>void remove()} disabled={busy}>Remove</button>}
       </div>
       <div className="archive-avatar-current">
         <span className="archive-avatar-preview">
@@ -188,72 +217,106 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
         <span className="archive-faint">{avatarUrl ? 'Current picture' : 'No picture selected'}</span>
       </div>
       <div className="archive-avatar-source-tabs" role="group" aria-label="Avatar catalog">
-        {sources.map(option => (
-          <button key={option.id} type="button" className={source === option.id ? 'active' : ''}
-            aria-pressed={source === option.id} onClick={() => changeSource(option.id)} disabled={busy}>
-            {option.label}
-          </button>
+        {sources.map(option=>(
+          <button key={option.id} type="button" className={source===option.id?'active':''}
+            aria-pressed={source===option.id} disabled={busy}
+            onClick={()=>changeSource(option.id)}>{option.label}</button>
         ))}
       </div>
-      <label htmlFor="archive-avatar-search" className="archive-avatar-search-label">Search by series or character</label>
+      <label htmlFor="archive-avatar-search" className="archive-avatar-search-label">
+        Search characters, movies or series
+      </label>
       <input id="archive-avatar-search" type="search" value={query} maxLength={80}
-        placeholder={source === 'anime' ? 'e.g. Naruto or Levi' : source === 'tv' ? 'e.g. Breaking Bad' : 'e.g. The Dark Knight'}
-        onChange={event => { setQuery(event.target.value); back(); }}
-        className="archive-avatar-search"/>
+        className="archive-avatar-search"
+        placeholder={source==='anime'?'Search Naruto, Black Clover, Asta…':
+          source==='tv'?'Search Breaking Bad, Walter White…':'Search Avengers, Harry Potter, Loki…'}
+        onChange={event=>{setQuery(event.target.value);resetNavigation();}}/>
       {selectedTitle && (
-        <button type="button" className="archive-avatar-back" onClick={back}>
-          <span aria-hidden="true">‹</span> {selectedTitle.title} — back to search
+        <button type="button" className="archive-avatar-back" onClick={resetNavigation}>
+          <span aria-hidden="true">‹</span> {selectedTitle.title} — back to results
         </button>
       )}
-      {!selectedTitle && titles.length > 0 && (
-        <div className="archive-avatar-title-results" aria-label="Matching series and movies">
-          <span className="archive-faint">Select a title to browse character portraits</span>
+      <div className="archive-avatar-gallery-header">
+        <strong>{selectedTitle ? selectedTitle.title : showFeatured?'Popular characters':'Character portraits'}</strong>
+        <span className="archive-faint">{loading ? 'Searching…' : portraits.length + ' available'}</span>
+      </div>
+      <div className="archive-avatar-gallery" aria-label="Available character profile pictures" aria-busy={loading}>
+        <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp"
+          className="archive-avatar-file" aria-label="Choose picture from your computer"
+          onChange={event=>void upload(event)}/>
+        <button type="button" className="archive-avatar-tile archive-avatar-upload" disabled={busy}
+          onClick={()=>fileInput.current?.click()} title="Upload a custom profile picture">
+          <span className="archive-avatar-upload-circle"><span aria-hidden="true">+</span></span>
+          <span className="archive-avatar-tile-name">Custom PFP</span>
+        </button>
+        {portraits.map((item,index)=>(
+          <div key={item.id + ':' + index} className="archive-avatar-choice">
+            <button type="button" disabled={busy}
+              className="archive-avatar-tile" title={'Use '+item.title}
+              onClick={()=>item.avatarUrl&&void selectAvatar(item.avatarUrl)}>
+              <span className="archive-avatar-tile-image">
+                {item.imageUrl ? <PortraitImage url={item.imageUrl} label={item.title}/> :
+                  <span className="archive-avatar-image-fallback" aria-hidden="true">◯</span>}
+              </span>
+              <span className="archive-avatar-tile-name">{item.title}</span>
+            </button>
+            {(item.wiki || item.malId) &&
+              <button type="button" className="archive-avatar-more-link" disabled={busy}
+                onClick={()=>void showMore(item)}>More looks</button>}
+          </div>
+        ))}
+      </div>
+      {loading && <p className="archive-hint" role="status">Finding character portraits…</p>}
+      {searchError && <p className="archive-avatar-error" role="alert">{searchError}</p>}
+      {!loading && !searchError && !portraits.length &&
+        <p className="archive-hint">
+          No character portraits available here yet. Try a different name or choose a custom picture.
+        </p>}
+      {selectedTitle && hasMore && !loading &&
+        <LiquidButton type="button" tone="neutral" className="archive-button"
+          disabled={busy} onClick={()=>void openTitle(selectedTitle,page+1)}>Load more characters</LiquidButton>}
+      {!selectedTitle && titles.length>0 &&
+        <div className="archive-avatar-title-results" aria-label="Browse a specific title">
+          <span className="archive-faint">Want more from a specific series or movie? Browse its characters.</span>
           <div className="archive-avatar-title-list">
-            {titles.map(item => (
-              <button type="button" key={item.id} disabled={busy || loading}
-                className="archive-avatar-title-choice"
-                onClick={() => void openTitle(item)}>
+            {titles.slice(0,9).map(item=>(
+              <button type="button" key={item.id} className="archive-avatar-title-choice"
+                disabled={busy||loading} onClick={()=>void openTitle(item)}>
                 <span className="archive-avatar-title-name">{item.title}</span>
                 <span className="archive-avatar-title-kind">{item.subtitle}</span>
                 <span aria-hidden="true">›</span>
               </button>
             ))}
           </div>
-        </div>
-      )}
-      <div className="archive-avatar-gallery" aria-label="Available profile pictures">
-        <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp"
-          className="archive-avatar-file" aria-label="Choose picture from your computer" onChange={event => void upload(event)}/>
-        <button type="button" className="archive-avatar-tile archive-avatar-upload" disabled={busy}
-          onClick={() => fileInput.current?.click()} title="Upload a custom profile picture">
-          <span className="archive-avatar-upload-circle"><span aria-hidden="true">+</span></span>
-          <span className="archive-avatar-tile-name">Custom PFP</span>
-        </button>
-        {portraits.map((item, index) => (
-          <button type="button" key={item.kind + ':' + item.id + ':' + index} disabled={busy || loading}
-            className="archive-avatar-tile" title={item.title}
-            onClick={() => item.avatarUrl && void selectAvatar(item.avatarUrl)}>
-            <span className="archive-avatar-tile-image">
-              {item.imageUrl ? <PortraitImage url={item.imageUrl} label={item.title}/> :
-                <span className="archive-avatar-image-fallback" aria-hidden="true">◯</span>}
-            </span>
-            <span className="archive-avatar-tile-name">{item.title}</span>
-            <span className="archive-avatar-tile-subtitle">{item.subtitle || 'Character'}</span>
-          </button>
-        ))}
-      </div>
-      {loading && <p className="archive-hint" role="status">Finding portraits…</p>}
-      {searchError && <p className="archive-avatar-error" role="alert">{searchError}</p>}
-      {selectedTitle && hasMore && !loading && (
-        <LiquidButton type="button" tone="neutral" disabled={busy} className="archive-button"
-          onClick={() => void openTitle(selectedTitle, page + 1)}>Load more characters</LiquidButton>
-      )}
-      {!loading && !searchError && !portraits.length && (!titles.length || selectedTitle) && (
-        <p className="archive-hint">{selectedTitle ? 'No character portraits available for this title.' :
-          query.trim().length < 2 ? 'Search a show, movie or character, or use the first circle to upload from your PC.' :
-            'No matches found. Try searching a series or character name.'}</p>
-      )}
-      <p className="archive-avatar-attribution">Portraits from AniList, Kitsu, TVmaze and TMDB. Cast headshots are used when character pictures are unavailable; movie posters are not selectable.</p>
+        </div>}
+      {moreFrom &&
+        <div className="archive-avatar-variations" aria-label={'Alternate looks for '+moreFrom.title}>
+          <div className="archive-avatar-variations-header">
+            <strong>{moreFrom.title} · more looks</strong>
+            <button type="button" onClick={()=>setMoreFrom(null)} aria-label="Close alternate looks">×</button>
+          </div>
+          <div className="archive-avatar-variation-grid">
+            {[moreFrom,...moreItems].filter(item=>item.avatarUrl).map((item,index)=>(
+              <button type="button" key={item.id+':'+index} disabled={busy}
+                title={'Choose '+moreFrom.title+' look '+(index+1)}
+                className="archive-avatar-tile"
+                onClick={()=>item.avatarUrl&&void selectAvatar(item.avatarUrl)}>
+                <span className="archive-avatar-tile-image">
+                  <PortraitImage url={item.avatarUrl!} label={moreFrom.title}/>
+                </span>
+                <span className="archive-avatar-tile-subtitle">Look {index+1}</span>
+              </button>
+            ))}
+          </div>
+          {moreBusy && <p className="archive-hint" role="status">Finding additional looks…</p>}
+          {moreError && <p className="archive-avatar-error" role="alert">{moreError}</p>}
+          {!moreBusy && !moreError && !moreItems.length &&
+            <p className="archive-hint">No additional portraits are available for this character.</p>}
+        </div>}
+      <p className="archive-avatar-attribution">
+        Character artwork from AniList, Kitsu, Jikan and fan-wiki contributors.
+        Portrait availability varies by title; actor headshots are excluded.
+      </p>
     </section>
   );
 }
