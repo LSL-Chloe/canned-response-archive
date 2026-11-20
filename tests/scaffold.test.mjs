@@ -12,9 +12,9 @@ test('Cloudflare Worker is configured for explicit API routes', () => {
   assert.equal(config.assets.not_found_handling, 'single-page-application');
 });
 
-test('health endpoint is reachable by app source and has no write routes', () => {
+test('health endpoint exists and archive reads responses only through same-origin API', () => {
   assert.match(read('worker/index.ts'), /\/api\/health/);
-  assert.match(read('src/App.tsx'), /\/api\/health/);
+  assert.match(read('src/features/archive/api.ts'), /\/api\/responses/);
   assert.doesNotMatch(read('worker/index.ts'), /SUPABASE_SECRET_KEY|OTP_MAILER_SECRET/);
 });
 

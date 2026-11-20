@@ -7,7 +7,7 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf
 test('QA route is separate from the planned homepage', () => {
   const app = read('src/App.tsx');
   assert.match(app, /\/dev\/auth-test/);
-  assert.match(app, /FoundationPage/);
+  assert.match(app, /ArchiveApp/);
 });
 
 test('QA form uses same-origin requests and existing auth endpoints', () => {
