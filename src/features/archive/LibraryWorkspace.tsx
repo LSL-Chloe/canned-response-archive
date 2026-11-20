@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { addResponse, deleteResponse, updateResponse } from './api';
+import TransferWorkspace from './TransferWorkspace';
 import {
   canManageResponse, formatCount, shortcutOptions,
   type Agent, type ArchiveResponse, type LibraryScope, type Visibility,
@@ -9,9 +10,9 @@ interface Props {
   agent: Agent | null;
   records: ArchiveResponse[];
   loading: boolean;
-  pendingAction: 'private' | 'create' | null;
+  pendingAction: 'private' | 'create' | 'transfer' | null;
   onHandled: () => void;
-  onRequireLogin: (reason: 'private' | 'create') => void;
+  onRequireLogin: (reason: 'private' | 'create' | 'transfer') => void;
   reload: () => Promise<void>;
   onNotice: (message: string) => void;
   onError: (message: string) => void;
@@ -23,6 +24,7 @@ export default function LibraryWorkspace({
   const [scope, setScope] = useState<LibraryScope>('all');
   const [search, setSearch] = useState('');
   const [creating, setCreating] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [visibility, setVisibility] = useState<Visibility>('shared');
   const [shortcut, setShortcut] = useState('');
   const [body, setBody] = useState('');
@@ -41,6 +43,7 @@ export default function LibraryWorkspace({
     if (!agent || !pendingAction) return;
     if (pendingAction === 'private') setScope('private');
     if (pendingAction === 'create') setCreating(true);
+    if (pendingAction === 'transfer') setTransferOpen(true);
     onHandled();
   }, [agent, pendingAction, onHandled]);
 
@@ -68,8 +71,15 @@ export default function LibraryWorkspace({
     }
     setScope(next);
   }
+  function openTransfer() {
+    if (!agent) { onRequireLogin('transfer'); return; }
+    setCreating(false);
+    setEditing(null);
+    setTransferOpen(open => !open);
+  }
   function openCreate() {
     if (!agent) { onRequireLogin('create'); return; }
+    setTransferOpen(false);
     setEditing(null);
     setShortcut('');
     setBody('');
@@ -136,10 +146,16 @@ export default function LibraryWorkspace({
           <h1>Canned responses</h1>
           <p>Browse shortcuts, reuse responses, and organize the archive.</p>
         </div>
-        <button type="button" className="archive-button archive-button-primary" onClick={openCreate}>
-          + New response
-        </button>
+        <div className="archive-library-header-actions">
+          <button type="button" className="archive-button" aria-expanded={transferOpen}
+            onClick={openTransfer}>Import / Export</button>
+          <button type="button" className="archive-button archive-button-primary" onClick={openCreate}>
+            + New response
+          </button>
+        </div>
       </div>
+      {transferOpen && agent && <TransferWorkspace agent={agent} onClose={() => setTransferOpen(false)}
+        reload={reload} onNotice={onNotice} onError={onError} />}
       {creating && (
         <form className="archive-card archive-create-form" onSubmit={event => void submitCreate(event)}>
           <div className="archive-form-heading">
