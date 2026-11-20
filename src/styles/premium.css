@@ -603,3 +603,9 @@
 @media(max-width:530px){
  .archive-app .archive-stage .archive-message{bottom:15px;right:12px;max-width:calc(100vw - 70px)}
 }
+
+.archive-app .archive-sign-in-link{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:38px;text-decoration:none;white-space:nowrap;
+}
+.archive-app .archive-sign-in-link:hover{text-decoration:none}

@@ -263,8 +263,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
                 )}
               </div>
             ) : (
-              <button className="archive-button archive-button-primary" type="button"
-                onClick={() => { setLoginIntent(null); setPendingAction(null); setLoginOpen(true); }}>Sign in</button>
+              <a href="/auth?mode=login" className="archive-button archive-button-primary archive-sign-in-link">Sign in</a>
             )}
           </div>
         </header>

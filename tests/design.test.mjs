@@ -46,6 +46,7 @@ test('premium UI preserves the search, library and admin functionality', () => {
     assert.ok(app.includes(feature), `Missing ${feature}`);
   }
   assert.match(app, /<ThemeToggle/);
+  assert.match(app, /href="\/auth\?mode=login"/);
   assert.match(app, /data-theme=\{theme\}/);
   const pkg = JSON.parse(read('package.json'));
   assert.equal(pkg.dependencies['@samasante/liquid-glass'], '0.1.1');
