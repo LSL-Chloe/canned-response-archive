@@ -149,8 +149,8 @@ export default function LibraryWorkspace({
           <h1>Canned responses</h1>
         </div>
         <div className="archive-library-header-actions">
-          <button type="button" className="archive-button" aria-expanded={transferOpen}
-            onClick={openTransfer}>Import / Export</button>
+          <LiquidButton type="button" tone="neutral" className="archive-button" aria-expanded={transferOpen}
+            onClick={openTransfer}>Import / Export</LiquidButton>
           <LiquidButton type="button" className="archive-button archive-button-primary" onClick={openCreate}>
             + New response
           </LiquidButton>
@@ -166,21 +166,26 @@ export default function LibraryWorkspace({
               <h2>Add a canned response</h2>
               <p>Each shortcut can have multiple responses. Nothing will be overwritten.</p>
             </div>
-            <button type="button" className="archive-button archive-button-quiet" onClick={cancelCreate}>Cancel</button>
+            <LiquidButton type="button" tone="neutral" className="archive-button archive-button-quiet" onClick={cancelCreate}>Cancel</LiquidButton>
           </div>
-          <div className="archive-visibility-options" role="group" aria-label="Response visibility">
+          <div className="archive-visibility-options" role="group" aria-label="Response visibility" data-visibility={visibility}>
+            <Glass className="archive-visibility-lens" radius={18} style={{ borderRadius:18, background:'var(--liquid-selection-fill)' }}
+              optics={{ mapSize:96, depth:.56, curvature:.40, strength:.15, bend:.42, bendWidth:.13,
+                dispersion:.12, sheen:.9, specular:.9, frost:0, clipToShape:true }}>
+              <span/>
+            </Glass>
             <button type="button" className={visibility === 'shared' ? 'active' : ''} aria-pressed={visibility === 'shared'}
               onClick={() => { setVisibility('shared'); setShowExisting(false); }}>Shared</button>
             <button type="button" className={visibility === 'private' ? 'active' : ''} aria-pressed={visibility === 'private'}
               onClick={() => { setVisibility('private'); setShowExisting(false); }}>Private</button>
           </div>
-          <label htmlFor="archive-response-body">Response text</label>
-          <textarea id="archive-response-body" rows={5} placeholder="Frequently used response…" value={body}
-            onChange={event => setBody(event.target.value)} maxLength={10000} required />
           <div className="archive-form-between">
-            <label htmlFor="archive-shortcut-name">Shortcut</label>
+            <label htmlFor="archive-response-body">Response text</label>
             <span className="archive-faint">{body.length}/10000 characters</span>
           </div>
+          <textarea id="archive-response-body" rows={5} placeholder="Frequently used response…" value={body}
+            onChange={event => setBody(event.target.value)} maxLength={10000} required />
+          <label htmlFor="archive-shortcut-name">Shortcut</label>
           <div className="archive-shortcut-pick">
             <span aria-hidden="true" className="archive-hash-symbol">#</span>
             <input id="archive-shortcut-name" value={shortcut} autoComplete="off" required
@@ -226,9 +231,10 @@ export default function LibraryWorkspace({
           <input type="search" value={search} onChange={event => setSearch(event.target.value)}
             placeholder="Search shortcuts and responses…" />
         </label>
-        <button className="archive-button archive-button-quiet" type="button" onClick={() => void reload().catch(err => onError(String(err)))}>
+        <LiquidButton className="archive-button archive-button-quiet" tone="neutral" type="button"
+          onClick={() => void reload().catch(err => onError(String(err)))}>
           Refresh
-        </button>
+        </LiquidButton>
       </div>
       <div className="archive-list-summary" aria-live="polite">
         {loading ? 'Loading responses…' : formatCount(shown.length, 'response')}

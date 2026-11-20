@@ -14,7 +14,7 @@ export default function LiquidButton({
       radius={30}
       style={{ borderRadius: 30, background: 'var(--liquid-button-tint)' }}
       optics={{
-        mapSize: 192, depth: .62, curvature: .42, strength: .16,
+        mapSize: 128, depth: .62, curvature: .42, strength: .16,
         bend: .46, bendWidth: .12, dispersion: .16,
         specular: 1.12, sheen: .9, sheenWidth: 1.5,
         glow: .12, frost: 0, clipToShape: true, softEdge: true,

@@ -70,3 +70,22 @@ test('real glass controls are interactive and sidebar state remains mounted for 
   assert.match(read('src/features/archive/SearchWorkspace.tsx'), /<LiquidButton/);
   assert.match(read('src/features/auth/AuthPage.tsx'), /<LiquidButton/);
 });
+
+
+test('compact auto-growing composer preserves hashtag insertion and undo', () => {
+  const src = read('src/features/archive/SearchWorkspace.tsx');
+  assert.match(src, /rows=\{2\}/);
+  assert.match(src, /useLayoutEffect/);
+  assert.match(src, /fullHeight > 216/);
+  assert.match(src, /lastInsert\.current/);
+  assert.match(src, /setDismissed\(false\)/);
+  assert.match(src, /archive-composer-hint/);
+});
+
+test('form labels and glass selectors stay aligned', () => {
+  const library = read('src/features/archive/LibraryWorkspace.tsx');
+  const transfer = read('src/features/archive/TransferWorkspace.tsx');
+  assert.match(library, /archive-visibility-lens/);
+  assert.match(transfer, /archive-visibility-lens/);
+  assert.match(library, /htmlFor="archive-response-body"[\s\S]*\{body.length\}\/10000 characters[\s\S]*<textarea id="archive-response-body"/);
+});

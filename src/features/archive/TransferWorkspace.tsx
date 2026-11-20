@@ -1,4 +1,5 @@
 import LiquidButton from '../../ui/LiquidButton';
+import { Glass } from '@samasante/liquid-glass';
 import LiquidUnderlay from '../../ui/LiquidUnderlay';
 import { useState, type ChangeEvent } from 'react';
 import { exportResponses, importResponses } from './api';
@@ -135,7 +136,12 @@ export default function TransferWorkspace({ agent, onClose, reload, onNotice, on
         </div>
         <button className="archive-button archive-button-quiet" type="button" disabled={busy} onClick={onClose}>Close</button>
       </div>
-      <div className="archive-transfer-scope" role="group" aria-label="Import export destination">
+      <div className="archive-transfer-scope" role="group" aria-label="Import export destination" data-visibility={scope}>
+        <Glass className="archive-visibility-lens" radius={18} style={{ borderRadius:18, background:'var(--liquid-selection-fill)' }}
+          optics={{ mapSize:96, depth:.56, curvature:.4, strength:.15, bend:.42, bendWidth:.13,
+            dispersion:.12, sheen:.9, specular:.9, frost:0, clipToShape:true }}>
+          <span/>
+        </Glass>
         <button type="button" className={scope === 'private' ? 'active' : ''} aria-pressed={scope === 'private'}
           onClick={() => chooseScope('private')} disabled={busy}>My Private</button>
         {canShared && <button type="button" className={scope === 'shared' ? 'active' : ''} aria-pressed={scope === 'shared'}
