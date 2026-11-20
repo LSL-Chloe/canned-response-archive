@@ -1,5 +1,6 @@
 import type { CSSProperties, RefObject } from 'react';
 import Icon from '../../ui/Icon';
+import { Glass } from '@samasante/liquid-glass';
 
 /** Visual OTP progress is driven by typed digits; success is driven only by server confirmation. */
 export function OtpRing({ progress, verified = false }: {
@@ -15,7 +16,12 @@ export function OtpRing({ progress, verified = false }: {
           <circle cx="70" cy="70" r="60" className="otp-progress-value" />
         </svg>
       )}
-      <span className="otp-core"><Icon name={verified ? 'check' : 'shield'} size={verified ? 36 : 30}/></span>
+      <Glass className="otp-core-lens" radius={24}
+        style={{ borderRadius:24,background:'var(--liquid-selection-fill)' }}
+        optics={{depth:.62,curvature:.43,strength:.20,bend:.45,bendWidth:.12,
+          dispersion:.17,sheen:.90,specular:1.12,frost:0,clipToShape:true}}>
+        <span className="otp-core"><Icon name={verified ? 'check' : 'shield'} size={verified ? 36 : 30}/></span>
+      </Glass>
     </div>
   );
 }

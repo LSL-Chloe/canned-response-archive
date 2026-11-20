@@ -4,6 +4,9 @@ import { api } from '../archive/api';
 import type { Agent } from '../archive/model';
 import Icon from '../../ui/Icon';
 import ThemeToggle from '../../ui/ThemeToggle';
+import OpticalBackdrop from '../../ui/OpticalBackdrop';
+import LiquidUnderlay from '../../ui/LiquidUnderlay';
+import { Glass } from '@samasante/liquid-glass';
 import { OtpCells, OtpRing } from './OtpVisual';
 import type { Theme } from '../../ui/theme';
 
@@ -145,26 +148,17 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
   const otpProgress = code.length / 6;
   return (
     <main className="auth-experience" data-theme={theme}>
-      <div className="auth-ambient" aria-hidden="true"><span/><span/><span/></div>
+      <OpticalBackdrop/>
       <header className="auth-nav">
-        <a href="/" className="auth-brand"><span className="brand-monogram glass-control">#</span>
-          <span>response<span className="auth-brand-muted">/archive</span></span></a>
+        <a href="/" className="auth-brand">Response Archive</a>
         <div className="auth-nav-actions">
-          <span className="auth-secure"><Icon name="shield" size={15}/> Secure workspace</span>
           <ThemeToggle theme={theme} onToggle={onThemeToggle} compact/>
         </div>
       </header>
 
       <section className="auth-layout">
-        <div className="auth-story">
-          <div className="auth-story-tag"><span className="auth-light-dot"/> THE RESPONSE WORKSPACE</div>
-          <h1>Every reply,<br/><em>right on cue.</em></h1>
-          <p>A quieter place for the words you use every day. Find, save, and share your best responses without breaking the conversation.</p>
-          <div className="auth-story-caption">
-            <div className="auth-story-line"/><span>Designed for the team behind the conversation.</span>
-          </div>
-        </div>
         <section className="auth-card glass-panel" aria-label="Account access">
+          <LiquidUnderlay radius={22}/>
           <div className="auth-card-inner">
             {checking ? (
               <div className="auth-loading" role="status">Checking your session…</div>
@@ -189,7 +183,6 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
               </div>
             ) : stage === 'otp' ? (
               <form className="auth-otp-form" onSubmit={verify}>
-                <div className="auth-card-kicker"><Icon name="lock" size={15}/> ONE LAST STEP</div>
                 <OtpRing progress={otpProgress}/>
                 <div className="auth-otp-title">
                   <span className="auth-eyebrow">VERIFY YOUR EMAIL</span>
@@ -220,14 +213,19 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
               </form>
             ) : (
               <>
-                <div className="auth-card-kicker"><Icon name="lock" size={15}/> YOUR WORKSPACE, YOUR WORDS</div>
                 <div className="auth-form-header">
                   <h2>{mode === 'login' ? 'Welcome back.' : mode === 'signup' ? 'Create your account.' : 'Recover your PIN.'}</h2>
                   <p>{mode === 'login' ? 'Sign in to pick up where you left off.' :
                     mode === 'signup' ? 'A few details, and you’re in.' :
                       'We’ll send a code to your verified email.'}</p>
                 </div>
-                <div className="auth-mode-tabs" role="group" aria-label="Account actions">
+                <div className="auth-mode-tabs" role="group" aria-label="Account actions" data-mode={mode}>
+                  <Glass className="auth-tabs-lens" radius={24}
+                    style={{ borderRadius: 24, background: 'var(--liquid-selection-fill)' }}
+                    optics={{ depth:.65,curvature:.38,strength:.17,bend:.44,bendWidth:.12,
+                      dispersion:.15,sheen:.92,specular:1.1,frost:0,clipToShape:true }}>
+                    <span/>
+                  </Glass>
                   <button type="button" className={mode === 'login' ? 'active' : ''} aria-pressed={mode === 'login'} onClick={() => selectMode('login')}>Sign in</button>
                   <button type="button" className={mode === 'signup' ? 'active' : ''} aria-pressed={mode === 'signup'} onClick={() => selectMode('signup')}>Sign up</button>
                 </div>
@@ -276,7 +274,6 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
         </section>
       </section>
       <footer className="auth-footer">
-        <span>Response Archive · Development environment</span>
         <a href="/">Continue as guest <Icon name="arrow" size={13}/></a>
       </footer>
     </main>

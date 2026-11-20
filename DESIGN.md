@@ -5,9 +5,9 @@
 The visual brief is based on the user's **Liquid Glass Switch**, **Dark Light Button UI Animation**, and rounded-rectangle tab navigation screenshots. The old “Frosted Instrument” visual system was rejected.
 
 ## Primary interaction language
-- **Dark:** graphite-black work surfaces, black navigation track, bright glass lips; no blue gradients, neon, full-page blur or fogged panels.
-- **Light:** neutral soft-grey work surface, polished translucent-white lenses and a pearly toggle, black readable text.
-- The large light/dark switch is a horizontal capsule with a **larger round refractive puck** that slides across the track, just like the supplied example.
+- **Dark:** deep neutral mesh background with slow-moving muted optical bands, translucent navigation, refractive edges and matte content typography.
+- **Light:** pearl-grey woven mesh with lower-contrast travelling light and glossy neutral lenses, ink-dark readable text.
+- The theme switch is a **compact 84 × 34 px capsule** with a 38 px refractive puck, proportionate to the top bar.
 - Sidebar navigation uses a **single persistent glass selection** moving smoothly from tab to tab instead of mounting a new lens for each tab.
 - Sidebar collapse/expand animates width (420ms) and text opacity/width together. Mobile uses an icon rail and an accessible close backdrop when expanded.
 - Action buttons with high visual priority use the same SVG-displacement lens. Reading/editor surfaces stay opaque.
@@ -34,3 +34,9 @@ The visual brief is based on the user's **Liquid Glass Switch**, **Dark Light Bu
 
 ## Verification before production rollout
 Capture desktop + 390px mobile in both modes; exercise sidebar toggling and selection, theme toggle, library tabs, primary buttons, live OTP, and permission regressions. GitHub build and unit tests alone cannot prove optical fidelity or touch smoothness.
+
+## November 21 corrections
+- Removed decorative green connectivity dots, development badge, hashtag branding and oversized authentication marketing copy.
+- Added a subtle slow-moving woven monochrome background behind the real glass lenses in both modes; animation respects reduced motion.
+- Main team table, composer, library list, settings, import/export and account card now have bounded refractive underlays while their text remains above the shader.
+- Reduced heading scale, chrome height, panel padding and theme-control size to match the reference's smaller inset controls.

@@ -1,5 +1,6 @@
 import { Glass } from '@samasante/liquid-glass';
 import LiquidButton from '../../ui/LiquidButton';
+import LiquidUnderlay from '../../ui/LiquidUnderlay';
 import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { addResponse, deleteResponse, updateResponse } from './api';
@@ -145,9 +146,7 @@ export default function LibraryWorkspace({
     <section className="archive-library" aria-label="Canned responses library">
       <div className="archive-page-heading">
         <div>
-          <p className="archive-kicker">LIBRARY</p>
           <h1>Canned responses</h1>
-          <p>Browse shortcuts, reuse responses, and organize the archive.</p>
         </div>
         <div className="archive-library-header-actions">
           <button type="button" className="archive-button" aria-expanded={transferOpen}
@@ -161,6 +160,7 @@ export default function LibraryWorkspace({
         reload={reload} onNotice={onNotice} onError={onError} />}
       {creating && (
         <form className="archive-card archive-create-form" onSubmit={event => void submitCreate(event)}>
+          <LiquidUnderlay radius={18}/>
           <div className="archive-form-heading">
             <div>
               <h2>Add a canned response</h2>
@@ -236,6 +236,7 @@ export default function LibraryWorkspace({
       </div>
       {shown.length ? (
         <div className="archive-response-list">
+          <LiquidUnderlay radius={18}/>
           {shown.map(item => {
             const permission = canManageResponse(agent, item);
             return (
