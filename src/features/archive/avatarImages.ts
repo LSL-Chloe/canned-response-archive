@@ -1,5 +1,5 @@
 /** Route third-party images through our authenticated Worker to avoid broken hotlinks. */
-const catalogHosts = new Set(['static.tvmaze.com', 'image.tmdb.org', 'media.kitsu.io', 'media.kitsu.app', 'cdn.anilist.co']);
+const catalogHosts = new Set(['static.tvmaze.com', 'image.tmdb.org', 'media.kitsu.io', 'media.kitsu.app', 'cdn.anilist.co', 'static.wikia.nocookie.net', 'cdn.myanimelist.net', 'images.myanimelist.net']);
 export function avatarImageSrc(value: string): string {
   try {
     const url = new URL(value);

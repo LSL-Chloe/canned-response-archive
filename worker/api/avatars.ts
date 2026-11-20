@@ -1,20 +1,11 @@
 import { database, queryTable, type Env } from '../services/db.ts';
 import { getSession, requireRateLimit } from '../auth/session.ts';
 import { fail, json, readJson } from './shared.ts';
+import { popular, search, characterList, variations, type AvatarSource } from './avatarCatalog.ts';
 
-type Source = 'anime' | 'tv' | 'movie';
-interface CatalogEntry {
-  id: string;
-  title: string;
-  subtitle?: string;
-  imageUrl: string | null;
-  kind: 'title' | 'avatar';
-  avatarUrl?: string;
-}
 const BUCKET = 'archive-avatars';
 const MAX_UPLOAD_BYTES = 150_000;
-
-function sourceFrom(raw: string | null): Source {
+function sourceFrom(raw: string | null): AvatarSource {
   if (raw !== 'anime' && raw !== 'tv' && raw !== 'movie') {
     fail(400, 'invalid_source', 'Choose Anime, TV or Movies');
   }
@@ -22,181 +13,14 @@ function sourceFrom(raw: string | null): Source {
 }
 function sourceUrl(value: unknown): string | null {
   if (value === null) return null;
-  if (typeof value !== 'string' || value.length > 600) fail(400, 'invalid_avatar', 'Choose a valid avatar');
+  if (typeof value !== 'string' || value.length > 900) fail(400, 'invalid_avatar', 'Choose a valid avatar');
   let url: URL;
   try { url = new URL(value); } catch { return fail(400, 'invalid_avatar', 'Choose an image from the catalog'); }
-  const allowed = /^(?:s[1-9][0-9]*\.anilist\.co|cdn\.anilist\.co|static\.tvmaze\.com|image\.tmdb\.org|media\.kitsu\.(?:io|app))$/i.test(url.hostname);
+  const allowed = /^(?:s[1-9][0-9]*\.anilist\.co|cdn\.anilist\.co|static\.tvmaze\.com|image\.tmdb\.org|media\.kitsu\.(?:io|app)|static\.wikia\.nocookie\.net|cdn\.myanimelist\.net|images\.myanimelist\.net)$/i.test(url.hostname);
   if (url.protocol !== 'https:' || !allowed || url.username || url.password || url.port) {
     fail(400, 'invalid_avatar', 'This image source is not supported');
   }
   return url.toString();
-}
-async function upstream(url: string, init?: RequestInit): Promise<any> {
-  const reply = await fetch(url, { ...init, signal: AbortSignal.timeout(9000) });
-  if (reply.status === 429) fail(429, 'source_rate_limited', 'Image catalog is busy; try again shortly');
-  if (!reply.ok) fail(502, 'catalog_unavailable', 'Avatar catalog is temporarily unavailable');
-  return reply.json();
-}
-async function anilist(query: string, variables: Record<string, unknown>): Promise<any> {
-  const value = await upstream('https://graphql.anilist.co', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ query, variables }),
-  });
-  if (value.errors?.length) fail(502, 'catalog_unavailable', 'Anime catalog is temporarily unavailable');
-  return value.data;
-}
-function tmdbImage(path: string | null | undefined): string | null {
-  return path ? 'https://image.tmdb.org/t/p/w342' + path : null;
-}
-async function tmdb(path: string, env: Env): Promise<any> {
-  if (!env.TMDB_READ_ACCESS_TOKEN) fail(503, 'tmdb_unconfigured', 'Add TMDB_READ_ACCESS_TOKEN to the Worker to enable movie avatars');
-  return upstream('https://api.themoviedb.org/3' + path, {
-    headers: { Authorization: 'Bearer ' + env.TMDB_READ_ACCESS_TOKEN, Accept: 'application/json' },
-  });
-}
-
-
-function kitsuPicture(record: any): string | null {
-  const images = record?.attributes?.image;
-  return images?.original || images?.large || images?.medium || null;
-}
-function kitsuCharacter(record: any): CatalogEntry | null {
-  const url = kitsuPicture(record);
-  if (!url) return null;
-  return {
-    id: 'k-' + record.id,
-    title: record.attributes?.canonicalName || record.attributes?.name || 'Character',
-    subtitle: 'Anime character',
-    imageUrl: url, avatarUrl: url, kind: 'avatar',
-  };
-}
-async function kitsuSearch(term: string): Promise<CatalogEntry[]> {
-  const searchText = encodeURIComponent(term);
-  const [shows, people] = await Promise.all([
-    upstream('https://kitsu.io/api/edge/anime?filter%5Btext%5D=' + searchText + '&page%5Blimit%5D=15'),
-    upstream('https://kitsu.io/api/edge/characters?filter%5Bname%5D=' + searchText + '&page%5Blimit%5D=20'),
-  ]);
-  const titles: CatalogEntry[] = (shows.data ?? []).map((item: any) => ({
-    id: 'k-' + item.id,
-    title: item.attributes?.titles?.en || item.attributes?.canonicalTitle || 'Anime',
-    subtitle: 'Anime series', imageUrl: null, kind: 'title',
-  }));
-  const portraits: CatalogEntry[] = (people.data ?? []).map(kitsuCharacter)
-    .filter((item: CatalogEntry | null): item is CatalogEntry => Boolean(item));
-  return [...titles, ...portraits];
-}
-async function kitsuCharacters(id: string, page: number): Promise<{ items: CatalogEntry[]; hasMore: boolean }> {
-  const offset = (page - 1) * 20;
-  const result = await upstream(
-    'https://kitsu.io/api/edge/anime/' + id + '/characters?include=character&page%5Blimit%5D=20&page%5Boffset%5D=' + offset,
-  );
-  const byId = new Map<string, any>((result.included ?? []).map((record: any) => [record.id, record]));
-  const items: CatalogEntry[] = (result.data ?? [])
-    .map((entry: any) => kitsuCharacter(byId.get(entry.relationships?.character?.data?.id)))
-    .filter((entry: CatalogEntry | null): entry is CatalogEntry => Boolean(entry));
-  return { items, hasMore: Boolean(result.links?.next) };
-}
-
-async function search(source: Source, term: string, env: Env): Promise<CatalogEntry[]> {
-  if (source === 'anime') {
-    try {
-      const data = await anilist(
-        'query($term:String) { Page(page:1, perPage:20) { media(search:$term, type:ANIME, isAdult:false) { id title { english romaji } } characters(search:$term) { id name { full } image { medium large } } } }',
-        { term },
-      );
-      const titles: CatalogEntry[] = (data?.Page?.media ?? []).map((item: any) => ({
-        id: String(item.id), title: item.title?.english || item.title?.romaji || 'Anime',
-        subtitle: 'Anime series', imageUrl: null, kind: 'title',
-      }));
-      const portraits: CatalogEntry[] = (data?.Page?.characters ?? [])
-        .filter((item: any) => item.image?.large || item.image?.medium)
-        .map((item: any) => ({
-          id: String(item.id), title: item.name?.full || 'Character',
-          subtitle: 'Anime character', imageUrl: item.image.large || item.image.medium,
-          avatarUrl: item.image.large || item.image.medium, kind: 'avatar',
-        }));
-      if (titles.length || portraits.length) return [...titles, ...portraits];
-    } catch {
-      // AniList sometimes rejects Cloudflare Worker egress. Use Kitsu's public
-      // character catalog instead of displaying an unavailable error.
-    }
-    return kitsuSearch(term);
-  }
-  if (source === 'tv') {
-    const shows = await upstream('https://api.tvmaze.com/search/shows?q=' + encodeURIComponent(term));
-    return (shows as any[]).slice(0, 25).map((item: any) => ({
-      id: String(item.show.id), title: item.show.name,
-      subtitle: item.show.premiered?.slice(0, 4) || 'TV series', imageUrl: null, kind: 'title',
-    }));
-  }
-  const params = '?query=' + encodeURIComponent(term) + '&include_adult=false';
-  const [movies, people] = await Promise.all([
-    tmdb('/search/movie' + params, env),
-    tmdb('/search/person' + params, env),
-  ]);
-  // Movie posters are NOT profile pictures. Titles are navigation rows only.
-  const titles: CatalogEntry[] = (movies.results ?? []).slice(0, 20).map((item: any) => ({
-    id: String(item.id), title: item.title,
-    subtitle: item.release_date?.slice(0, 4) || 'Movie',
-    imageUrl: null, kind: 'title',
-  }));
-  const peoplePortraits: CatalogEntry[] = (people.results ?? []).slice(0, 10)
-    .filter((item: any) => item.profile_path && item.name?.toLowerCase().includes(term.toLowerCase()))
-    .map((item: any) => ({
-      id: String(item.id), title: item.name, subtitle: 'Actor portrait',
-      imageUrl: tmdbImage(item.profile_path), kind: 'avatar', avatarUrl: tmdbImage(item.profile_path)!,
-    }));
-  return [...titles, ...peoplePortraits];
-}
-async function characters(source: Source, id: string, page: number, env: Env): Promise<{ items: CatalogEntry[]; hasMore: boolean }> {
-  if (source === 'anime') {
-    if (id.startsWith('k-')) return kitsuCharacters(id.slice(2), page);
-    const data = await anilist(
-      'query($id:Int,$page:Int) { Media(id:$id, type:ANIME) { characters(page:$page, perPage:40) { pageInfo { hasNextPage } nodes { id name { full } image { large medium } } } } }',
-      { id: Number(id), page },
-    );
-    return {
-      items: (data?.Media?.characters?.nodes ?? [])
-        .filter((item: any) => item.image?.large || item.image?.medium)
-        .map((item: any) => ({
-          id: String(item.id), title: item.name?.full || 'Character', subtitle: 'Anime character',
-          imageUrl: item.image.large || item.image.medium,
-          avatarUrl: item.image.large || item.image.medium, kind: 'avatar',
-        })),
-      hasMore: data?.Media?.characters?.pageInfo?.hasNextPage === true,
-    };
-  }
-  if (source === 'tv') {
-    const cast = await upstream('https://api.tvmaze.com/shows/' + id + '/cast');
-    return {
-      items: (cast as any[])
-        .filter((item: any) => item.character?.image?.medium || item.person?.image?.medium)
-        .map((item: any) => {
-          const characterPhoto = item.character?.image?.medium;
-          const imageUrl = characterPhoto || item.person?.image?.medium;
-          return {
-            id: String(item.character?.id || item.person?.id),
-            title: item.character?.name || item.person?.name || 'Character',
-            subtitle: characterPhoto ? 'Character portrait' : 'Cast portrait · ' + (item.person?.name || ''),
-            imageUrl, avatarUrl: imageUrl, kind: 'avatar',
-          };
-        }),
-      hasMore: false,
-    };
-  }
-  const credits = await tmdb('/movie/' + id + '/credits', env);
-  return {
-    items: (credits.cast ?? [])
-      .filter((item: any) => item.profile_path)
-      .slice(0, 100)
-      .map((item: any) => ({
-        id: String(item.cast_id ?? item.id), title: item.character || item.name,
-        subtitle: 'Cast portrait · ' + item.name,
-        imageUrl: tmdbImage(item.profile_path), avatarUrl: tmdbImage(item.profile_path)!,
-        kind: 'avatar',
-      })),
-    hasMore: false,
-  };
 }
 
 export async function handleAvatars(request: Request, env: Env, path: string, url: URL): Promise<Response> {
@@ -271,22 +95,35 @@ export async function handleAvatars(request: Request, env: Env, path: string, ur
     await database(env, 'agents', { method: 'PATCH', query: { id: 'eq.' + agentId }, body: { avatar_url: avatarUrl.toString() } });
     return json({ avatarUrl: avatarUrl.toString() });
   }
+  if (path === '/api/avatars/popular' && request.method === 'GET') {
+    const source = sourceFrom(url.searchParams.get('source'));
+    if (!await requireRateLimit(env, 'avatar:popular:' + agentId, 90, 900)) fail(429,'rate_limited','Too many catalog requests');
+    return json({ items: await popular(source) });
+  }
   if (path === '/api/avatars/search' && request.method === 'GET') {
     const source = sourceFrom(url.searchParams.get('source'));
     const term = (url.searchParams.get('q') || '').trim();
     if (term.length < 2 || term.length > 80) fail(400, 'invalid_query', 'Search with 2–80 characters');
     if (!await requireRateLimit(env, 'avatar:search:' + agentId, 90, 900)) fail(429, 'rate_limited', 'Too many searches');
-    return json({ items: await search(source, term, env), movieConfigured: Boolean(env.TMDB_READ_ACCESS_TOKEN) });
+    return json(await search(source, term, env));
   }
   if (path === '/api/avatars/characters' && request.method === 'GET') {
     const source = sourceFrom(url.searchParams.get('source'));
     const id = url.searchParams.get('id') || '';
     const page = Number(url.searchParams.get('page') || '1');
-    if (!/^(?:k-)?[0-9]{1,10}$/.test(id) || !Number.isInteger(page) || page < 1 || page > 30) {
-      fail(400, 'invalid_id', 'Choose a catalog title');
-    }
-    if (!await requireRateLimit(env, 'avatar:characters:' + agentId, 90, 900)) fail(429, 'rate_limited', 'Too many catalog requests');
-    return json(await characters(source, id, page, env));
+    if (!/^(?:k-)?[0-9]{1,10}$/.test(id) || !Number.isInteger(page) || page < 1 || page > 30)
+      fail(400, 'invalid_id', 'Choose a series or movie');
+    if (!await requireRateLimit(env,'avatar:characters:'+agentId,90,900))fail(429,'rate_limited','Too many catalog requests');
+    const items = await characterList(source,id,page,env);
+    return json({ items, hasMore: items.length >= 20 && source === 'anime' });
+  }
+  if (path === '/api/avatars/variations' && request.method === 'GET') {
+    const wiki=(url.searchParams.get('wiki')||'').trim();
+    const page=(url.searchParams.get('page')||'').trim();
+    const malId=Number(url.searchParams.get('malId')||0);
+    if (!Number.isSafeInteger(malId)||malId<0||malId>10000000)fail(400,'invalid_id','Choose a character');
+    if (!await requireRateLimit(env,'avatar:variations:'+agentId,40,900))fail(429,'rate_limited','Too many image requests');
+    return json({ items: await variations(wiki,page,malId||null) });
   }
   return fail(404, 'not_found', 'Avatar route not found');
 }

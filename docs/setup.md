@@ -73,3 +73,18 @@ Anime and TV search use AniList and TVmaze. To enable movie and actor portraits,
 API Read Access Token and add `TMDB_READ_ACCESS_TOKEN` as a Cloudflare Worker secret.
 Do not commit the token. The movie tab displays a configuration message until it is set.
 Catalog images belong to their respective providers and may be subject to attribution or reuse terms.
+
+## Character avatar discovery
+
+The avatar picker loads fifteen featured or popularity-ranked character portraits on each tab.
+Search results show character portraits directly, without requiring a movie/series click.
+Anime searches are enriched with matching series characters via Kitsu; anime featured
+characters prefer AniList favourites, then Jikan top characters, then Kitsu popular anime.
+TV searches use TVmaze's actual character photos plus selected fan-wiki character portraits,
+never actor headshots. Movie searches use the TMDB movie/cast names to find in-character
+photos on mapped franchise fan wikis, never actor headshots or posters.
+Character coverage depends on the underlying public catalog; titles without character
+artwork are not backfilled with actor publicity images. Fan-wiki profile pages are cached
+by the browser's HTTP cache, and more looks are fetched only when requested.
+The third-party sites own their images, and contributors' credits/rights should be
+respected if the project becomes public or commercial.
