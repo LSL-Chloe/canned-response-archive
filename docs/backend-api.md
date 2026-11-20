@@ -50,14 +50,22 @@ server-side Supabase secret key, never exposed in frontend code.
 | GET | `/api/responses?scope=private` | Signed-in owner |
 | GET | `/api/responses?scope=all` | Signed-in: shared + own private |
 | POST | `/api/responses` | Any agent, shared or private |
-| PATCH | `/api/responses/:id` | Admin if shared, owner if private |
+| PATCH | `/api/responses/:id` | Shared: creator or admin; Private: owner only. Updates body and optional shortcut of only the selected response. |
 | DELETE | `/api/responses/:id` | Admin or creator if shared, owner if private |
 | GET | `/api/responses/export?scope=shared` | Admin only |
-| GET | `/api/responses/export?scope=private` | Owner only |
-| POST | `/api/responses/import` | Admin for shared, owner for private |
+| GET | `/api/responses/export?scope=private` | Signed-in agent, own private responses only |
+| POST | `/api/responses/import` | Admin for shared, signed-in agent for own private |
 | GET | `/api/admin/users` | Admin only; user counts but no private text |
 
 The shared library shows `Created by` names; the central shortcut search UI should not.
+
+Export is JSON `{version:1,visibility:"shared"|"private",responses:[{shortcut,body}]}`.
+Shared import/export is admin-only. Private import/export only accesses the logged-in
+agent's own private records. Imports **append**, never replace or merge; a response under
+an existing shortcut adds another independent response. Each import request accepts
+1–50 records (up to 10 requests per hour per account) and is sequential, **not atomic**.
+The frontend previews before confirming and splits uploads into appropriately sized
+requests. Always inspect the archive after a failed batch before retrying.
 
 ## Setup and limitations
 

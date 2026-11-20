@@ -7,7 +7,7 @@ import SettingsWorkspace from './SettingsWorkspace';
 import TeamWorkspace from './TeamWorkspace';
 
 type Page = 'search' | 'library' | 'team' | 'settings';
-type LoginIntent = 'private' | 'create' | null;
+type LoginIntent = 'private' | 'create' | 'transfer' | null;
 
 function LoginDialog({
   intent, onClose, onSuccess,
@@ -48,6 +48,7 @@ function LoginDialog({
         </div>
         <p>{intent === 'private' ? 'Your private responses are only available after signing in.' :
           intent === 'create' ? 'Sign in to save a new shared or private response.' :
+          intent === 'transfer' ? 'Sign in to import or export your private responses. Shared imports and exports are admin-only.' :
             'Sign in to access your own responses and account tools.'}</p>
         <form className="archive-login-form" onSubmit={submit}>
           <label htmlFor="archive-login-name">Agent name</label>
@@ -137,7 +138,7 @@ export default function ArchiveApp() {
   }, [refresh]);
 
   const responses = [...shared, ...privateRows];
-  function requireLogin(reason: 'private' | 'create') {
+  function requireLogin(reason: 'private' | 'create' | 'transfer') {
     setLoginIntent(reason);
     setPendingAction(reason);
     setLoginOpen(true);

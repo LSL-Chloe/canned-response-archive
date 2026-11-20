@@ -32,6 +32,18 @@ not the final liquid-glass design. The verified QA authentication page remains a
    remain navigable by tooltip and that Expand restores the full labels.
 10. From the profile dropdown, update your display name, PIN and verified email when you wish.
 11. As admin, confirm Team overview displays counts but **never private response text**.
+12. In the library, open **Import / Export**. As admin, check both **My Private** and
+    **Shared (Admin)** destinations; with a normal account only **My Private** appears.
+13. Export Shared as JSON; check it has `version: 1`, `visibility: "shared"`,
+    and a `responses` array of `{shortcut,body}` entries.
+14. Import a JSON export with a couple of safe test responses. Confirm that the file is
+    previewed **before** confirmation, then verify new responses are added without replacing
+    existing ones (including duplicate shortcuts).
+15. Try choosing a Shared JSON file while Private is selected: the UI must reject it.
+    Invalid JSON, empty entries, malformed shortcuts and more than 500 entries must be rejected.
+16. Verify the Worker returns 403 when a normal agent attempts Shared import or export
+    through the API, even if the UI buttons are hidden. An admin must not be able to export
+    another agent's Private responses.
 
 ## Automatic updates and limitations
 
@@ -41,7 +53,10 @@ not the final liquid-glass design. The verified QA authentication page remains a
 - Shared created-by attribution appears in the library only, not in `#` suggestions.
 - The Worker remains the sole owner of private data authorization. Never expose the
   `SUPABASE_SECRET_KEY` in React.
-- Import/export UI is planned as a next step; the backend already implements restricted routes.
+- JSON import/export UI is implemented. Imports are **append only** and **non-atomic**.
+  Each API call handles at most 50 responses, with up to 10 requests/hour/account.
+  The client previews the archive, validates up to 500 rows and sends bounded batches;
+  a failing batch may partially succeed, so check the library before retrying.
 - The archive is backed by the **development** database, not production. Do not import real
   workplace data before the visual, permissions and deployment reviews are complete.
 

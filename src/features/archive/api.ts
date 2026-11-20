@@ -1,4 +1,5 @@
 import type { Agent, ArchiveResponse, Visibility } from './model';
+import type { TransferFile, TransferRow } from './transfer';
 
 interface SharedRow {
   response_id: string;
@@ -95,4 +96,14 @@ export function logout(): Promise<{ signedOut: boolean }> {
 export async function getTeam(): Promise<TeamAgent[]> {
   const data = await api<{ users: TeamAgent[] }>('/api/admin/users');
   return data.users;
+}
+
+/** The server enforces scope: only admins may export/import Shared. */
+export function exportResponses(visibility: Visibility): Promise<TransferFile> {
+  return api<TransferFile>(`/api/responses/export?scope=${visibility}`);
+}
+export function importResponses(visibility: Visibility, responses: TransferRow[]): Promise<{ imported: number; visibility: Visibility }> {
+  return api('/api/responses/import', {
+    method: 'POST', body: JSON.stringify({ visibility, responses }),
+  });
 }
