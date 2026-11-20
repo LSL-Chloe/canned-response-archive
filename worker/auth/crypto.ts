@@ -1,5 +1,4 @@
 const encoder = new TextEncoder();
-const ITERATIONS = 310_000;
 
 function hex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -18,28 +17,32 @@ export async function hmac(input: string, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return hex(new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(input))));
 }
+/**
+ * A four-digit PIN has only 10,000 combinations. The verifier is intentionally
+ * keyed with the Worker-only PIN_PEPPER and a random per-account salt.
+ *
+ * Do not use PBKDF2 here: workerd rejects >100,000 iterations, whereas Node
+ * accepts them. Keeping the pepper secret and enforcing rate limits are
+ * essential safeguards for this low-entropy authentication mechanism.
+ */
 export async function hashPin(pin: string, pepper: string): Promise<string> {
   if (!/^\d{4}$/.test(pin) || pepper.length < 32) throw new Error('Invalid PIN or server secret');
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const input = await crypto.subtle.importKey('raw', encoder.encode(await hmac(pin, pepper)), 'PBKDF2', false, ['deriveBits']);
-  const derived = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: ITERATIONS, hash: 'SHA-256' }, input, 256);
-  return `pbkdf2-sha256$${ITERATIONS}$${hex(salt)}$${hex(new Uint8Array(derived))}`;
+  const saltHex = hex(crypto.getRandomValues(new Uint8Array(16)));
+  const macHex = await hmac(`archive:pin:v2:${saltHex}:${pin}`, pepper);
+  return `hmac-sha256$${saltHex}$${macHex}`;
 }
 export async function verifyPin(pin: string, stored: string, pepper: string): Promise<boolean> {
-  if (!/^\d{4}$/.test(pin)) return false;
-  const [algo, rawRounds, saltHex, hashHex] = stored.split('$');
-  if (algo !== 'pbkdf2-sha256' || !rawRounds || !saltHex || !hashHex) return false;
-  const rounds = Number(rawRounds);
-  if (!Number.isInteger(rounds) || rounds < 100_000 || rounds > 1_000_000) return false;
-  try {
-    const input = await crypto.subtle.importKey('raw', encoder.encode(await hmac(pin, pepper)), 'PBKDF2', false, ['deriveBits']);
-    const derived = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: unhex(saltHex), iterations: rounds, hash: 'SHA-256' }, input, 256));
-    const expected = unhex(hashHex);
-    if (derived.length !== expected.length) return false;
-    let differences = 0;
-    for (let i = 0; i < derived.length; i += 1) differences |= derived[i]! ^ expected[i]!;
-    return differences === 0;
-  } catch { return false; }
+  if (!/^\d{4}$/.test(pin) || pepper.length < 32 || typeof stored !== 'string') return false;
+  const parts = stored.split('$');
+  if (parts.length !== 3) return false;
+  const [scheme, saltHex, macHex] = parts;
+  if (scheme !== 'hmac-sha256' || !saltHex || !/^[a-f0-9]{32}$/.test(saltHex)
+    || !macHex || !/^[a-f0-9]{64}$/.test(macHex)) return false;
+  const actual = unhex(await hmac(`archive:pin:v2:${saltHex}:${pin}`, pepper));
+  const expected = unhex(macHex);
+  let differences = 0;
+  for (let i = 0; i < expected.length; i += 1) differences |= actual[i]! ^ expected[i]!;
+  return differences === 0;
 }
 
 /** Unbiased, cryptographically secure six-digit OTP, retaining leading zeros. */

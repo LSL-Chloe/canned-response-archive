@@ -10,14 +10,26 @@ import {
 
 const env = { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SECRET_KEY: 'sb_secret_test', PIN_PEPPER: '0123456789abcdef0123456789abcdef' };
 
-test('PIN is salted, hashed and verified only when correct', async () => {
+test('PIN hashes are salted, peppered, unique, and verify only with correct PIN and pepper', async () => {
   const hashed = await hashPin('1234', env.PIN_PEPPER);
-  assert.equal(hashed.startsWith('pbkdf2-sha256$'), true);
-  assert.equal(hashed.includes('$1234'), false);
+  const other = await hashPin('1234', env.PIN_PEPPER);
+  assert.match(hashed, /^hmac-sha256\\$[a-f0-9]{32}\\$[a-f0-9]{64}$/);
+  assert.notEqual(hashed, other, 'Per-account salts must differ');
+  assert.equal(hashed.includes('1234'), false);
   assert.equal(await verifyPin('1234', hashed, env.PIN_PEPPER), true);
   assert.equal(await verifyPin('1235', hashed, env.PIN_PEPPER), false);
+  assert.equal(await verifyPin('1234', hashed, 'wrong-pepper-but-at-least-32-characters'), false);
   assert.equal(await verifyPin('1234', 'bad-hash', env.PIN_PEPPER), false);
+  assert.equal(await verifyPin('1234', 'hmac-sha256$bad$bad', env.PIN_PEPPER), false);
+  assert.equal(await verifyPin('0042', await hashPin('0042', env.PIN_PEPPER), env.PIN_PEPPER), true);
   assert.equal((await sha256('x')).length, 64);
+});
+
+test('PIN hashing never uses unsupported workerd PBKDF2 rounds', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../worker/auth/crypto.ts', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /deriveBits\\s*\\(/);
+  assert.doesNotMatch(src, /310_000/);
 });
 
 test('permission matrix: own shared deletion, admin shared edit, private ownership', () => {
