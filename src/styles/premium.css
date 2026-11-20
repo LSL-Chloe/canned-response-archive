@@ -562,3 +562,9 @@
     animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;
   }
 }
+
+/* The actual displacement lens surrounds the native, keyboard-accessible button. */
+.theme-lens{display:inline-flex;border-radius:999px;vertical-align:middle}
+.theme-lens .theme-toggle-refracted{position:relative;z-index:2;background:transparent}
+.theme-lens:focus-within{outline:2px solid var(--a-accent);outline-offset:2px}
+.auth-experience .theme-lens,.archive-app .theme-lens{flex:0 0 auto}

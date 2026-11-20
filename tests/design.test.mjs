@@ -14,7 +14,7 @@ test('proper login, signup and recovery UI uses the existing backend and keeps Q
     '/api/otp/recovery/start','/api/otp/recovery/verify']) {
     assert.ok(auth.includes(path), `Missing endpoint ${path}`);
   }
-  assert.match(auth, /[0-9]\{6\}/);
+  assert.ok(auth.includes('pattern="[0-9]{6}"'), 'OTP must use a six-digit pattern');
   assert.match(auth, /autoComplete="one-time-code"/);
   assert.match(auth, /OTP_SECONDS = 10 \* 60/);
   assert.doesNotMatch(auth, /console\.log|SUPABASE_SECRET_KEY|PIN_PEPPER|OTP_MAILER_SECRET/);

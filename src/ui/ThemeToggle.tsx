@@ -18,7 +18,7 @@ export default function ThemeToggle({ theme, onToggle, compact = false }: {
       }}
       optics={{ strength: 0.32, depth: 0.48, dispersion: 0.15, sheen: 0.75, frost: 7 }}
     >
-      <button className={'theme-toggle theme-toggle-refracted' + (compact ? ' theme-toggle-compact' : '')}
+      <button style={{ background: 'transparent', boxShadow: 'none', border: 0, backdropFilter: 'none' }} className={'theme-toggle theme-toggle-refracted' + (compact ? ' theme-toggle-compact' : '')}
         type="button" onClick={onToggle} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
         title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
         <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={17} />

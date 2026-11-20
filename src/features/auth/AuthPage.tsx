@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { api } from '../archive/api';
 import type { Agent } from '../archive/model';
 import Icon from '../../ui/Icon';
@@ -92,7 +92,7 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
         });
         setPin('');
         if (data.verificationRequired && data.challengeId) {
-          setChallenge(data.challengeId); setCode(''); setStage('otp');
+          setChallenge(data.challengeId); setCode(''); setSecondsLeft(OTP_SECONDS); setStage('otp');
           setNotice('Verification code sent. Check your email inbox.');
         } else if (data.user) {
           setUser(data.user); setStage('success');
@@ -104,7 +104,7 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
         method: 'POST', body: JSON.stringify({ email: email.trim() }),
       });
       if (!data.challengeId) throw new Error('Unable to start PIN recovery.');
-      setChallenge(data.challengeId); setCode(''); setStage('otp');
+      setChallenge(data.challengeId); setCode(''); setSecondsLeft(OTP_SECONDS); setStage('otp');
       setNotice(data.message || 'If this address belongs to a verified account, a code has been sent.');
     });
   }
@@ -133,7 +133,10 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
   async function signOut() {
     await run(async () => {
       await api('/api/auth/logout', { method: 'POST', body: JSON.stringify({}) });
-      setUser(null); selectMode('login');
+      setUser(null);setMode('login');setStage('form');setProblem('');
+      setChallenge('');setCode('');setPin('');setNewPin('');
+      window.history.replaceState(null, '', '/auth?mode=login');
+      setNotice('You have signed out.');
     });
   }
 
@@ -189,7 +192,7 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
             ) : stage === 'otp' ? (
               <form className="auth-otp-form" onSubmit={verify}>
                 <div className="auth-card-kicker"><Icon name="lock" size={15}/> ONE LAST STEP</div>
-                <div className="otp-orbit" style={{'--otp-progress': otpProgress} as React.CSSProperties} aria-hidden="true">
+                <div className="otp-orbit" style={{'--otp-progress': otpProgress} as CSSProperties} aria-hidden="true">
                   <svg className="otp-progress" viewBox="0 0 140 140">
                     <circle cx="70" cy="70" r="60" className="otp-progress-track"/>
                     <circle cx="70" cy="70" r="60" className="otp-progress-value"/>
