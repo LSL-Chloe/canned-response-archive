@@ -24,6 +24,7 @@ export default function TransferWorkspace({ agent, onClose, reload, onNotice, on
   const canShared = agent.role === 'admin';
   const rows = preview?.responses ?? [];
   const batches = preview ? batchTransferRows(rows, scope) : [];
+  const exceedsHourlyBatchLimit = batches.length > 10;
 
   function chooseScope(next: Visibility) {
     if (busy || (next === 'shared' && !canShared)) return;
@@ -84,7 +85,7 @@ export default function TransferWorkspace({ agent, onClose, reload, onNotice, on
   }
 
   async function handleImport() {
-    if (!preview || !rows.length || busy || (scope === 'shared' && !canShared)) return;
+    if (!preview || !rows.length || busy || exceedsHourlyBatchLimit || (scope === 'shared' && !canShared)) return;
     if (!window.confirm(
       `Import ${rows.length} NEW ${scope} responses from ${selectedName}?\n\n` +
       'Existing responses will not be overwritten. Duplicate shortcuts or text will be added as additional responses. ' +
@@ -175,14 +176,18 @@ export default function TransferWorkspace({ agent, onClose, reload, onNotice, on
             ))}
           </div>
           {rows.length > 8 && <p className="archive-hint">Showing 8 of {rows.length} responses.</p>}
+          {exceedsHourlyBatchLimit && <p className="archive-transfer-error" role="alert">
+            This file needs {batches.length} import requests. The server allows at most 10 per hour per account.
+            Split this archive into smaller JSON files before importing.
+          </p>}
           <p className="archive-transfer-warning">
             Import only adds responses; it never replaces or merges existing text. Duplicate entries may be created.
             Imports run in batches of at most 50 and are <strong>not atomic</strong>. A failed batch may leave some responses saved.
             The backend currently permits up to 10 import requests per hour per account.
           </p>
           <div className="archive-transfer-preview-actions">
-            <button type="button" className="archive-button archive-button-primary" disabled={busy}
-              onClick={() => void handleImport()}>{busy ? `Importing… ${completed}/${rows.length}` : `Confirm import ${rows.length} responses`}</button>
+            <button type="button" className="archive-button archive-button-primary" disabled={busy || exceedsHourlyBatchLimit}
+              onClick={() => void handleImport()>{busy ? `Importing… ${completed}/${rows.length}` : `Confirm import ${rows.length} responses`}</button>
             <button type="button" className="archive-button archive-button-quiet" disabled={busy}
               onClick={() => { setPreview(null); setSelectedName(''); setValidationError(''); }}>Cancel</button>
           </div>
