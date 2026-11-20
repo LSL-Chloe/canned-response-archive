@@ -146,6 +146,8 @@ test('avatar chooser loads popular characters immediately and searches without t
   assert.match(picker, /More looks/);
   assert.match(catalog, /POPULAR_TV/);
   assert.match(catalog, /POPULAR_MOVIES/);
+  assert.match(catalog, /FEATURED_IMAGES/);
+  assert.match(catalog, /cachedWiki/);
   assert.match(catalog, /wikiPortraits/);
   assert.match(catalog, /kitsuSearch/);
   assert.match(catalog, /variations/);
