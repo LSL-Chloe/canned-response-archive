@@ -2,6 +2,7 @@ import { database, queryTable, callRpc, type Env } from '../services/db.ts';
 import { hashPin, verifyPin } from '../auth/crypto.ts';
 import { cookieHeader, createSession, getSession, ipOf, requireRateLimit, revokeSession } from '../auth/session.ts';
 import { fail, json, nameInput, pinInput, readJson } from './shared.ts';
+import { beginEmailSignup } from './otp.ts';
 
 type Agent = { id: string; agent_name: string; role: 'admin' | 'agent'; disabled_at?: string | null };
 type Credential = { pin_hash: string };
@@ -18,9 +19,7 @@ export async function handleAuth(request: Request, env: Env, path: string): Prom
     const agentName = nameInput(data.agentName);
     const pin = pinInput(data.pin);
     if (data.email !== null && data.email !== undefined && data.email !== '') {
-      // Email-backed signup must verify the address BEFORE creating an agent.
-      // Deliberately unavailable until Google Apps Script OTP transport is configured.
-      return fail(501, 'email_not_configured', 'Verified-email signup is being implemented; do not create an unverified email account');
+      return beginEmailSignup(request, env, agentName, pin, data.email);
     }
     const ip = ipOf(request);
     if (!await requireRateLimit(env, `signup:ip:${ip}`, 12, 3600) ||

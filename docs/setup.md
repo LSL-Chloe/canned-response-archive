@@ -20,7 +20,7 @@ are present. The page is deliberately a placeholder awaiting approved design ref
 
 ## Connecting the development Worker
 
-The backend source implements agent-name/PIN login and response operations. It has **not**
+The backend source implements agent-name/PIN login, response operations, and optional-email OTP flows. It has **not**
 yet been tested end to end against the live development database because no credentials
 have been supplied to the Worker.
 
@@ -33,8 +33,10 @@ have been supplied to the Worker.
 For an eventual development deployment, use **Cloudflare Worker Secrets**. Do not paste
 real keys into GitHub or ChatGPT messages. The published Worker is not yet configured.
 
-**Email-backed signup deliberately returns HTTP 501 until Gmail OTP verification is built.**
-Do not launch signup to teammates before the email and recovery flows are complete.
+**Email-backed signup uses the optional Gmail OTP relay only once it is configured.**
+Read [Gmail OTP setup](gmail-otp-setup.md), authorize the Gmail Apps Script,
+and set \`OTP_MAILER_URL\` and \`OTP_MAILER_SECRET\` in local/dev Worker secrets.
+Do not launch signup to teammates before a real delivery/recovery test passes.
 
 ## GitHub workflow
 

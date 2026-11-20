@@ -1,77 +1,64 @@
-# Phase 2 development backend (not deployed)
+# Backend API — development-only
 
-These endpoints are implemented in `worker/` and need a configured Cloudflare Worker to operate.
-They are **not** a finished production login system until OTP recovery, end-to-end integration
-with Supabase and a live Worker deployment have been verified.
+The backend implements secure agent-name/PIN signup and login and optional-email OTP.
+The mailer cannot send real messages until the owner configures Google Apps Script and
+Cloudflare Worker secrets. There is **no live deployment** yet.
 
-## Current endpoints
+## Authentication and profile API
 
-| Method | Route | Access | Description |
+| Method | Endpoint | Who | Function |
 |---|---|---|---|
-| GET | `/api/health` | Everyone | Health/configured status; no secrets |
-| POST | `/api/auth/signup` | Guest | Register agent name + 4-digit PIN **without email**; first registered account is admin |
-| POST | `/api/auth/login` | Guest | Login with agent name + 4-digit PIN |
-| POST | `/api/auth/logout` | Signed in | Revoke current session, clear cookie |
-| GET | `/api/auth/me` | Everyone | Current user or null |
-| PATCH | `/api/account/name` | Signed in | Rename own account (unique) |
-| POST | `/api/account/pin` | Signed in | Current PIN + new PIN; revokes other sessions |
-| GET | `/api/responses?scope=shared` | Everyone | Shared-only list and library creator labels |
-| GET | `/api/responses?scope=private` | Signed in | Own private response list |
-| GET | `/api/responses?scope=all` | Signed in | Shared + own private list |
-| POST | `/api/responses` | Signed in | Create shared or private response |
-| PATCH | `/api/responses/:id` | Admin for shared; owner for private | Edit body, never owner/visibility |
-| DELETE | `/api/responses/:id` | Admin/creator for shared; owner for private | Delete response |
-| GET | `/api/responses/export?scope=private` | Signed in | Export own private responses (JSON v1) |
-| GET | `/api/responses/export?scope=shared` | Admin | Export shared library (JSON v1) |
-| POST | `/api/responses/import` | Admin for shared; signed-in user for private | Import JSON, max 50 entries/request |
-| GET | `/api/admin/users` | Admin | Name, role, join date, shared/private counts; no private text |
+| POST | `/api/auth/signup` | Guest | Signup with agent name, 4-digit PIN, optional email. No email = immediate account; email = pending verification. |
+| POST | `/api/otp/signup/verify` | Pending signup | `{challengeId,code}` completes signup, issues session. |
+| POST | `/api/auth/login` | Guest | Agent name and PIN. |
+| POST | `/api/auth/logout` | Signed in | Revoke session. |
+| GET | `/api/auth/me` | Everyone | Current user or null. |
+| PATCH | `/api/account/name` | Signed in | Rename own account. |
+| POST | `/api/account/pin` | Signed in | Current PIN and new PIN. |
+| GET | `/api/account/email` | Signed in | Own email and verification status. |
+| POST | `/api/otp/email/start` | Signed in | `{email}` sends verification to new email; does not change existing email yet. |
+| POST | `/api/otp/email/verify` | Signed in | `{challengeId,code}` atomically updates verified email. |
+| POST | `/api/otp/recovery/start` | Guest | `{email}` requests OTP; always returns same generic message and a challengeId, even for unknown accounts. |
+| POST | `/api/otp/recovery/verify` | Guest | `{challengeId,code,newPin}` resets PIN and revokes all sessions. |
 
-All write requests require `Content-Type: application/json` and a same-origin `Origin` header.
-Sessions are opaque, random, hashed server-side and sent using HttpOnly SameSite=Strict cookies.
-HTTPS gets a Secure `__Host-` cookie. The Worker enforces authorization independently of the UI.
+Challenge responses return `{verificationRequired:true,challengeId,expiresInSeconds:600}`.
+OTP codes are six digits, expire after ten minutes and allow five incorrect attempts.
+Code hashes are HMAC-bound to challenge IDs and stored in Supabase without plaintext OTPs.
+Signup with email creates an account **only** after verified email confirmation.
+No-email signup still works but cannot self-recover a forgotten PIN.
 
-### Example payloads
+The very first *completed* signup receives admin. Email verification for a pending
+signup must be completed before it can claim admin.
 
-```json
-{"agentName":"Agent Alice","pin":"1234"}
-```
+All modifying API routes require a same-origin `Origin` header and JSON bodies.
+Session cookies are HttpOnly, SameSite=Strict and Secure on HTTPS. The worker uses a
+server-side Supabase secret key, never exposed in frontend code.
 
-For `POST /api/responses`:
+## Responses and admin API
 
-```json
-{"shortcut":"#followup","body":"We will follow up shortly.","visibility":"shared"}
-```
+| Method | Endpoint | Access |
+|---|---|---|
+| GET | `/api/responses?scope=shared` | Everyone |
+| GET | `/api/responses?scope=private` | Signed-in owner |
+| GET | `/api/responses?scope=all` | Signed-in: shared + own private |
+| POST | `/api/responses` | Any agent, shared or private |
+| PATCH | `/api/responses/:id` | Admin if shared, owner if private |
+| DELETE | `/api/responses/:id` | Admin or creator if shared, owner if private |
+| GET | `/api/responses/export?scope=shared` | Admin only |
+| GET | `/api/responses/export?scope=private` | Owner only |
+| POST | `/api/responses/import` | Admin for shared, owner for private |
+| GET | `/api/admin/users` | Admin only; user counts but no private text |
 
-For `POST /api/responses/import`:
+The shared library shows `Created by` names; the central shortcut search UI should not.
 
-```json
-{"visibility":"private","responses":[{"shortcut":"followup","body":"Thanks!"}]}
-```
+## Setup and limitations
 
-**Important:** Imported rows are added one at a time. This first version does not roll back an
-already-added item if a later item fails; the import UI must show a preview and explain this.
-JSON exports do not include private response content belonging to other users. The shared
-export writes `shortcut` and `body`; imported shared responses are attributed to the importing admin.
+See [Gmail OTP setup](gmail-otp-setup.md). Do not put `OTP_MAILER_SECRET`,
+`PIN_PEPPER`, or `SUPABASE_SECRET_KEY` in public GitHub files.
 
-## Requirements not yet implemented
+Schema migrations in `supabase/migrations` have already been applied to the development
+database; they must not be rerun there. A production database has not been created.
 
-- Signup with an optional email is deliberately rejected with HTTP 501 until the email OTP
-  flow is complete. **Do not direct real team members to sign up until this is finished.**
-- Email verification, add/change email, forgotten-PIN recovery via email.
-- Automatic PIN-guessing/abuse monitoring beyond initial server-side limits and audit logging.
-- Frontend pages, realtime browser subscription, full browser end-to-end tests.
-- Backup/restore drill, deployment, and final production security review.
-- Import transactionality, archive pagination, and CSV import/export (JSON v1 only).
-
-## Development setup
-
-1. Populate a **local-only** `.dev.vars` from `.dev.vars.example` with your DEV project URL,
-   DEV server-only Supabase secret API key, and 32+-character `PIN_PEPPER` (never Git-commit secrets).
-2. Run `npm install`, `npm run check`, then `npm run dev`.
-3. Test locally first. The Worker uses the **dev** project only; no production configuration exists.
-4. For the deployed dev Worker, set the same values using Cloudflare encrypted Worker secrets.
-5. Login and database integration are not verified remotely until you configure these secrets.
-
-The first signup becomes admin. In a public site, anyone who reaches signup first could claim
-this role. The owner has chosen open signup; enable signup only when ready for real deployment.
-No credentials or sensitive user data should ever be committed to the public GitHub repository.
+Still outstanding: real Gmail authorization and send test, deployment and live Worker
+integration tests, frontend/animations, robust backup and restore procedures, import
+transactionality and more thorough security tests.
