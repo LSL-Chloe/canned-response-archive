@@ -1,7 +1,7 @@
 # Canned Response Archive
 
 A browser-based canned-response archive for a workplace team. This repository currently
-contains a **Phase 3 functional archive preview**, not the finished visual design.
+contains the **Phase 4 Frosted Instrument UI** on top of the working development API. It is not a production release.
 
 ## Stack
 
@@ -20,7 +20,8 @@ npm run dev
 ```
 
 Visit the URL shown in the terminal. The homepage provides shortcut search, a response
-library and creation forms; the QA auth screen remains at `/dev/auth-test`.
+library and creation forms. Sign in, sign up and PIN recovery live at `/auth`;
+legacy authentication QA remains at `/dev/auth-test`.
 
 ```bash
 npm run test       # dependency-free source/config tests
@@ -46,14 +47,15 @@ This is **not** the final login or signup interface.
 
 **Verified during development:** Gmail OTP signup, admin account, login and PIN recovery, backend and
 Supabase connectivity. **Still needed:** true push-based realtime subscription (the browser
-currently polls approximately every 5 seconds), import/export interface, final visual design,
-permission regression testing and separate production deployment.
+currently polls approximately every 5 seconds), authenticated UI browser testing in both themes,
+permission regression testing, security review and a separate production deployment.
 
-Design and animation decisions remain intentionally open until the user supplies references.
+Design decisions are documented in [DESIGN.md](DESIGN.md). The first implemented visual
+pass includes responsive light/dark themes, layered glass navigation and OTP verification motion.
 See [requirements](docs/requirements.md), [architecture](docs/architecture.md) and
 [setup](docs/setup.md).
 
 ## Security
 
 Never commit `.dev.vars`, `.env`, credentials, API secrets, agent PINs, or OTP codes.
-Do not use this Phase 2 prototype as a production workplace archive.
+Do not use this development prototype as a production workplace archive.

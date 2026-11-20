@@ -5,6 +5,9 @@ import SearchWorkspace from './SearchWorkspace';
 import LibraryWorkspace from './LibraryWorkspace';
 import SettingsWorkspace from './SettingsWorkspace';
 import TeamWorkspace from './TeamWorkspace';
+import Icon from '../../ui/Icon';
+import ThemeToggle from '../../ui/ThemeToggle';
+import type { Theme } from '../../ui/theme';
 
 type Page = 'search' | 'library' | 'team' | 'settings';
 type LoginIntent = 'private' | 'create' | 'transfer' | null;
@@ -64,16 +67,19 @@ function LoginDialog({
           </button>
         </form>
         <div className="archive-dialog-links">
-          <a href="/dev/auth-test">Create an account</a>
-          <a href="/dev/auth-test">Forgot PIN?</a>
+          <a href="/auth?mode=signup">Create an account</a>
+          <a href="/auth?mode=recover">Forgot PIN?</a>
         </div>
-        <p className="archive-hint">Signup and PIN recovery use our verified development authentication screen until final UI design is approved.</p>
+        <p className="archive-hint">Your agent session is kept securely in a browser cookie.</p>
       </section>
     </div>
   );
 }
 
-export default function ArchiveApp() {
+export default function ArchiveApp({ theme, onThemeToggle }: {
+  theme: Theme;
+  onThemeToggle: () => void;
+}) {
   const [page, setPage] = useState<Page>('search');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [agent, setAgent] = useState<Agent | null>(null);
@@ -175,26 +181,26 @@ export default function ArchiveApp() {
   }
 
   return (
-    <div className={`archive-app ${sidebarCollapsed ? 'is-sidebar-collapsed' : ''}`}>
+    <div className={`archive-app ${sidebarCollapsed ? 'is-sidebar-collapsed' : ''}`} data-theme={theme}>
       <aside className="archive-sidebar">
         <div className="archive-sidebar-header">
-          <div className="archive-brand"><span className="archive-brand-mark">#</span><span className="archive-brand-text">Response Archive<small>Development workspace</small></span></div>
+          <div className="archive-brand"><span className="archive-brand-mark glass-control">#</span><span className="archive-brand-text">response<span className="archive-brand-muted">/archive</span><small>YOUR WORDS, AT HAND</small></span></div>
           <button type="button" className="archive-collapse-toggle"
             title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-expanded={!sidebarCollapsed}
             onClick={() => setSidebarCollapsed(value => !value)}>
-            <span aria-hidden="true">{sidebarCollapsed ? '»' : '«'}</span>
+            <Icon name="panel" size={17}/>
           </button>
         </div>
         <nav aria-label="Main navigation" className="archive-nav">
           <button type="button" className={page === 'search' ? 'active' : ''} aria-current={page === 'search' ? 'page' : undefined}
-            onClick={() => navigate('search')} title="Search workspace"><span className="archive-nav-icon" aria-hidden="true">⌕</span><span className="archive-nav-label">Search workspace</span></button>
+            onClick={() => navigate('search')} title="Search workspace"><span className="archive-nav-icon"><Icon name="search" size={19}/></span><span className="archive-nav-label">Search workspace</span></button>
           <button type="button" className={page === 'library' ? 'active' : ''} aria-current={page === 'library' ? 'page' : undefined}
-            onClick={() => navigate('library')} title="Canned responses"><span className="archive-nav-icon" aria-hidden="true">▤</span><span className="archive-nav-label">Canned responses</span></button>
+            onClick={() => navigate('library')} title="Canned responses"><span className="archive-nav-icon"><Icon name="library" size={19}/></span><span className="archive-nav-label">Canned responses</span></button>
           {agent?.role === 'admin' && (
             <button type="button" className={page === 'team' ? 'active' : ''} aria-current={page === 'team' ? 'page' : undefined}
-              onClick={() => navigate('team')} title="Team overview"><span className="archive-nav-icon" aria-hidden="true">♙</span><span className="archive-nav-label">Team overview</span></button>
+              onClick={() => navigate('team')} title="Team overview"><span className="archive-nav-icon"><Icon name="team" size={19}/></span><span className="archive-nav-label">Team overview</span></button>
           )}
         </nav>
         <div className="archive-sidebar-foot">
@@ -205,11 +211,12 @@ export default function ArchiveApp() {
       <div className="archive-main">
         <header className="archive-topbar">
           <div className="archive-topbar-title">
-            <span className="archive-topbar-eyebrow">WORKSPACE</span>
+            <span className="archive-topbar-eyebrow">ARCHIVE <span className="archive-crumb-separator">/</span> WORKSPACE</span>
             <strong>{page === 'search' ? 'Search' : page === 'library' ? 'Canned responses' : page === 'team' ? 'Team' : 'Settings'}</strong>
           </div>
           <div className="archive-topbar-right">
-            <span className="archive-dev-label">Development</span>
+            <span className="archive-dev-label"><span className="archive-dev-indicator"/> Development</span>
+            <ThemeToggle theme={theme} onToggle={onThemeToggle} compact/>
             {sessionLoading ? (
               <span className="archive-faint">Checking session…</span>
             ) : agent ? (
@@ -218,12 +225,12 @@ export default function ArchiveApp() {
                   aria-expanded={accountMenuOpen} onClick={() => setAccountMenuOpen(open => !open)}>
                   <span className="archive-avatar">{agent.agent_name.charAt(0).toUpperCase()}</span>
                   <span>{agent.agent_name}</span>
-                  <span aria-hidden="true">⌄</span>
+                  <Icon name="chevron" size={14}/>
                 </button>
                 {accountMenuOpen && (
                   <div className="archive-account-menu" role="menu">
-                    <button role="menuitem" type="button" onClick={() => navigate('settings')}>Settings</button>
-                    <button role="menuitem" type="button" onClick={() => void signOut()}>Sign out</button>
+                    <button role="menuitem" type="button" onClick={() => navigate('settings')}><Icon name="settings" size={15}/> Settings</button>
+                    <button role="menuitem" type="button" onClick={() => void signOut()}><Icon name="logout" size={15}/> Sign out</button>
                   </div>
                 )}
               </div>

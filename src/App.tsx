@@ -1,8 +1,14 @@
 import DevAuthTest from './features/auth/DevAuthTest';
+import AuthPage from './features/auth/AuthPage';
 import ArchiveApp from './features/archive/ArchiveApp';
+import { useTheme } from './ui/theme';
 import './features/archive/archive.css';
+import './styles/premium.css';
 
-/** Keep the functional authentication QA page separate from the new archive UI. */
 export default function App() {
-  return window.location.pathname === '/dev/auth-test' ? <DevAuthTest /> : <ArchiveApp />;
+  const [theme, onThemeToggle] = useTheme();
+  const path = window.location.pathname;
+  if (path === '/dev/auth-test') return <DevAuthTest />;
+  if (path === '/auth') return <AuthPage theme={theme} onThemeToggle={onThemeToggle} />;
+  return <ArchiveApp theme={theme} onThemeToggle={onThemeToggle} />;
 }
