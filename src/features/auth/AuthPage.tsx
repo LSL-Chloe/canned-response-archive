@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { api } from '../archive/api';
 import type { Agent } from '../archive/model';
 import Icon from '../../ui/Icon';
 import ThemeToggle from '../../ui/ThemeToggle';
+import { OtpCells, OtpRing } from './OtpVisual';
 import type { Theme } from '../../ui/theme';
 
 type Mode = 'login' | 'signup' | 'recover';
@@ -168,9 +169,7 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
               <div className="auth-loading" role="status">Checking your session…</div>
             ) : stage === 'success' && user ? (
               <div className="auth-result auth-result-success">
-                <div className="otp-orbit otp-orbit-success" aria-hidden="true">
-                  <div className="otp-orbit-light"/><span className="otp-core"><Icon name="check" size={36}/></span>
-                </div>
+                <OtpRing progress={1} verified/>
                 <span className="auth-eyebrow">ACCESS GRANTED</span>
                 <h2>{mode === 'signup' ? 'You’re verified.' : 'Welcome back.'}</h2>
                 <p>Signed in as <strong>{user.agent_name}</strong>. Your response workspace is ready.</p>
@@ -181,9 +180,7 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
               </div>
             ) : stage === 'reset' ? (
               <div className="auth-result auth-result-success">
-                <div className="otp-orbit otp-orbit-success" aria-hidden="true">
-                  <div className="otp-orbit-light"/><span className="otp-core"><Icon name="check" size={36}/></span>
-                </div>
+                <OtpRing progress={1} verified/>
                 <span className="auth-eyebrow">PIN UPDATED</span>
                 <h2>Back in control.</h2>
                 <p>Your PIN has been reset. Sign in using your new four-digit PIN.</p>
@@ -192,31 +189,15 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
             ) : stage === 'otp' ? (
               <form className="auth-otp-form" onSubmit={verify}>
                 <div className="auth-card-kicker"><Icon name="lock" size={15}/> ONE LAST STEP</div>
-                <div className="otp-orbit" style={{'--otp-progress': otpProgress} as CSSProperties} aria-hidden="true">
-                  <svg className="otp-progress" viewBox="0 0 140 140">
-                    <circle cx="70" cy="70" r="60" className="otp-progress-track"/>
-                    <circle cx="70" cy="70" r="60" className="otp-progress-value"/>
-                  </svg>
-                  <span className="otp-core"><Icon name="shield" size={30}/></span>
-                </div>
+                <OtpRing progress={otpProgress}/>
                 <div className="auth-otp-title">
                   <span className="auth-eyebrow">VERIFY YOUR EMAIL</span>
                   <h2>Enter your code.</h2>
                   <p>We sent a six-digit security code to your email. It expires in ten minutes.</p>
                 </div>
                 <label htmlFor="auth-code" className="auth-field-label">Verification code</label>
-                <div className="auth-code-row" onClick={() => codeInput.current?.focus()}>
-                  {Array.from({ length: 6 }, (_, index) => (
-                    <span key={index} className={'auth-code-cell' + (code.length === index ? ' is-next' : '') + (code[index] ? ' is-filled' : '')}>
-                      {code[index] ?? ''}
-                    </span>
-                  ))}
-                  <input ref={codeInput} id="auth-code" className="auth-code-input"
-                    type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}"
-                    maxLength={6} required aria-label="Six digit verification code" value={code}
-                    onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                    disabled={busy || secondsLeft === 0}/>
-                </div>
+                <OtpCells id="auth-code" value={code} onChange={setCode} inputRef={codeInput}
+                  disabled={busy || secondsLeft === 0}/>
                 {mode === 'recover' && (
                   <div className="auth-field">
                     <label htmlFor="auth-reset-pin">Choose a new four-digit PIN</label>

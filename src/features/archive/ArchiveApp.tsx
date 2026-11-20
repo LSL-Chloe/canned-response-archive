@@ -8,9 +8,26 @@ import TeamWorkspace from './TeamWorkspace';
 import Icon from '../../ui/Icon';
 import ThemeToggle from '../../ui/ThemeToggle';
 import type { Theme } from '../../ui/theme';
+import { Glass } from '@samasante/liquid-glass';
+import type { ReactNode } from 'react';
 
 type Page = 'search' | 'library' | 'team' | 'settings';
 type LoginIntent = 'private' | 'create' | 'transfer' | null;
+
+/** A real bounded refractive lens for the currently selected navigation item. */
+function NavLens({ active, children }: { active: boolean; children: ReactNode }) {
+  if (!active) return <>{children}</>;
+  return (
+    <Glass
+      className="archive-nav-lens"
+      radius={12}
+      style={{ width: '100%', borderRadius: 12, background: 'rgba(165,205,246,.07)' }}
+      optics={{ strength: .22, depth: .4, dispersion: .09, sheen: .68, frost: 5 }}
+    >
+      {children}
+    </Glass>
+  );
+}
 
 function LoginDialog({
   intent, onClose, onSuccess,
@@ -94,6 +111,11 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   const [notice, setNotice] = useState('');
   const [problem, setProblem] = useState('');
   const requestSerial = useRef(0);
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => setNotice(''), 5500);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
   const onNotice = useCallback((message: string) => { setNotice(message); setProblem(''); }, []);
   const onError = useCallback((message: string) => { setProblem(message); setNotice(''); }, []);
 
@@ -194,13 +216,19 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
           </button>
         </div>
         <nav aria-label="Main navigation" className="archive-nav">
-          <button type="button" className={page === 'search' ? 'active' : ''} aria-current={page === 'search' ? 'page' : undefined}
-            onClick={() => navigate('search')} title="Search workspace"><span className="archive-nav-icon"><Icon name="search" size={19}/></span><span className="archive-nav-label">Search workspace</span></button>
-          <button type="button" className={page === 'library' ? 'active' : ''} aria-current={page === 'library' ? 'page' : undefined}
-            onClick={() => navigate('library')} title="Canned responses"><span className="archive-nav-icon"><Icon name="library" size={19}/></span><span className="archive-nav-label">Canned responses</span></button>
+          <NavLens active={page === 'search'}>
+            <button type="button" className={page === 'search' ? 'active' : ''} aria-current={page === 'search' ? 'page' : undefined}
+              onClick={() => navigate('search')} title="Search workspace"><span className="archive-nav-icon"><Icon name="search" size={19}/></span><span className="archive-nav-label">Search workspace</span></button>
+          </NavLens>
+          <NavLens active={page === 'library'}>
+            <button type="button" className={page === 'library' ? 'active' : ''} aria-current={page === 'library' ? 'page' : undefined}
+              onClick={() => navigate('library')} title="Canned responses"><span className="archive-nav-icon"><Icon name="library" size={19}/></span><span className="archive-nav-label">Canned responses</span></button>
+          </NavLens>
           {agent?.role === 'admin' && (
-            <button type="button" className={page === 'team' ? 'active' : ''} aria-current={page === 'team' ? 'page' : undefined}
-              onClick={() => navigate('team')} title="Team overview"><span className="archive-nav-icon"><Icon name="team" size={19}/></span><span className="archive-nav-label">Team overview</span></button>
+            <NavLens active={page === 'team'}>
+              <button type="button" className={page === 'team' ? 'active' : ''} aria-current={page === 'team' ? 'page' : undefined}
+                onClick={() => navigate('team')} title="Team overview"><span className="archive-nav-icon"><Icon name="team" size={19}/></span><span className="archive-nav-label">Team overview</span></button>
+            </NavLens>
           )}
         </nav>
         <div className="archive-sidebar-foot">
@@ -235,16 +263,16 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
                 )}
               </div>
             ) : (
-              <button className="archive-button archive-button-primary" type="button"
-                onClick={() => { setLoginIntent(null); setPendingAction(null); setLoginOpen(true); }}>Sign in</button>
+              <a href="/auth?mode=login" className="archive-button archive-button-primary archive-sign-in-link">Sign in</a>
             )}
           </div>
         </header>
         <main className="archive-stage">
           {(notice || problem) && (
             <div className={`archive-message ${problem ? 'archive-message-error' : 'archive-message-ok'}`} role={problem ? 'alert' : 'status'}>
-              <span>{problem || notice}</span>
-              <button type="button" aria-label="Dismiss notification" onClick={() => { setProblem(''); setNotice(''); }}>✕</button>
+              <span className="archive-message-symbol"><Icon name={problem ? 'shield' : 'check'} size={17}/></span>
+              <span className="archive-message-copy">{problem || notice}</span>
+              <button type="button" aria-label="Dismiss notification" onClick={() => { setProblem(''); setNotice(''); }}><Icon name="close" size={15}/></button>
             </div>
           )}
           {page === 'search' && <SearchWorkspace responses={responses} loading={loading} onNotice={onNotice} onError={onError}/>}
