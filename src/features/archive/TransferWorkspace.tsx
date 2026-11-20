@@ -1,3 +1,4 @@
+import LiquidButton from '../../ui/LiquidButton';
 import { useState, type ChangeEvent } from 'react';
 import { exportResponses, importResponses } from './api';
 import {
@@ -147,8 +148,8 @@ export default function TransferWorkspace({ agent, onClose, reload, onNotice, on
         <div className="archive-transfer-column">
           <h3>Export {scope === 'shared' ? 'shared' : 'my private'} responses</h3>
           <p>Download all responses in this location, including their shortcuts, as a JSON backup.</p>
-          <button type="button" className="archive-button archive-button-primary" disabled={busy}
-            onClick={() => void handleExport()}>{busy ? 'Working…' : 'Download JSON'}</button>
+          <LiquidButton type="button" className="archive-button archive-button-primary" disabled={busy}
+            onClick={() => void handleExport()}>{busy ? 'Working…' : 'Download JSON'}</LiquidButton>
         </div>
         <div className="archive-transfer-column">
           <h3>Import {scope === 'shared' ? 'shared' : 'private'} responses</h3>
@@ -186,8 +187,8 @@ export default function TransferWorkspace({ agent, onClose, reload, onNotice, on
             The backend currently permits up to 10 import requests per hour per account.
           </p>
           <div className="archive-transfer-preview-actions">
-            <button type="button" className="archive-button archive-button-primary" disabled={busy || exceedsHourlyBatchLimit}
-              onClick={() => void handleImport()}>{busy ? `Importing… ${completed}/${rows.length}` : `Confirm import ${rows.length} responses`}</button>
+            <LiquidButton type="button" className="archive-button archive-button-primary" disabled={busy || exceedsHourlyBatchLimit}
+              onClick={() => void handleImport()}>{busy ? `Importing… ${completed}/${rows.length}` : `Confirm import ${rows.length} responses`}</LiquidButton>
             <button type="button" className="archive-button archive-button-quiet" disabled={busy}
               onClick={() => { setPreview(null); setSelectedName(''); setValidationError(''); }}>Cancel</button>
           </div>

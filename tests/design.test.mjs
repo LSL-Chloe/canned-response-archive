@@ -51,3 +51,22 @@ test('premium UI preserves the search, library and admin functionality', () => {
   const pkg = JSON.parse(read('package.json'));
   assert.equal(pkg.dependencies['@samasante/liquid-glass'], '0.1.1');
 });
+
+test('real glass controls are interactive and sidebar state remains mounted for animation', () => {
+  const theme = read('src/ui/ThemeToggle.tsx');
+  const app = read('src/features/archive/ArchiveApp.tsx');
+  const library = read('src/features/archive/LibraryWorkspace.tsx');
+  const ui = read('src/styles/premium.css');
+  assert.match(theme, /role="switch"/);
+  assert.match(theme, /aria-checked/);
+  assert.match(theme, /<Glass/);
+  assert.match(app, /archive-nav-selection/);
+  assert.match(app, /--active-tab/);
+  assert.match(app, /archive-sidebar-scrim/);
+  assert.match(library, /archive-tabs-lens/);
+  assert.match(ui, /transition:width \.42s/);
+  assert.match(ui, /\.liquid-theme-switch\[data-appearance="dark"\] \.liquid-switch-thumb/);
+  assert.match(ui, /prefers-reduced-motion:reduce/);
+  assert.match(read('src/features/archive/SearchWorkspace.tsx'), /<LiquidButton/);
+  assert.match(read('src/features/auth/AuthPage.tsx'), /<LiquidButton/);
+});

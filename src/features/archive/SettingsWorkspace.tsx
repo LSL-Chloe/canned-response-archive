@@ -1,3 +1,4 @@
+import LiquidButton from '../../ui/LiquidButton';
 import { useEffect, useState, type FormEvent } from 'react';
 import { api } from './api';
 import { OtpCells, OtpRing } from '../auth/OtpVisual';
@@ -91,7 +92,7 @@ export default function SettingsWorkspace({ agent, onAgentChange, onNotice, onEr
           <label htmlFor="archive-setting-name">Display name</label>
           <input id="archive-setting-name" value={name} onChange={event => setName(event.target.value)}
             minLength={2} maxLength={48} required />
-          <button type="submit" className="archive-button archive-button-primary" disabled={busy || name === agent.agent_name}>Save name</button>
+          <LiquidButton type="submit" className="archive-button archive-button-primary" disabled={busy || name === agent.agent_name}>Save name</LiquidButton>
         </form>
         <form className="archive-card archive-settings-form" onSubmit={changePin}>
           <h2>Change PIN</h2>
@@ -101,7 +102,7 @@ export default function SettingsWorkspace({ agent, onAgentChange, onNotice, onEr
           <label htmlFor="archive-setting-new-pin">New four-digit PIN</label>
           <input id="archive-setting-new-pin" type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4}
             autoComplete="new-password" value={newPin} onChange={event => setNewPin(event.target.value)} required />
-          <button type="submit" className="archive-button archive-button-primary" disabled={busy}>Change PIN</button>
+          <LiquidButton type="submit" className="archive-button archive-button-primary" disabled={busy}>Change PIN</LiquidButton>
           <p className="archive-hint">Forgot your current PIN? Sign out and use Recover PIN on the authentication test page.</p>
         </form>
         <div className="archive-card archive-settings-form">
@@ -113,7 +114,7 @@ export default function SettingsWorkspace({ agent, onAgentChange, onNotice, onEr
               <OtpRing progress={code.length / 6} />
               <label htmlFor="archive-setting-otp">Six-digit email code</label>
               <OtpCells id="archive-setting-otp" value={code} onChange={setCode} disabled={busy}/>
-              <button type="submit" className="archive-button archive-button-primary" disabled={busy}>Verify email</button>
+              <LiquidButton type="submit" className="archive-button archive-button-primary" disabled={busy}>Verify email</LiquidButton>
               <button type="button" className="archive-button archive-button-quiet" onClick={() => { setChallenge(''); setCode(''); }}>Cancel</button>
             </form>
           ) : (
@@ -121,7 +122,7 @@ export default function SettingsWorkspace({ agent, onAgentChange, onNotice, onEr
               <label htmlFor="archive-setting-email">New email address</label>
               <input id="archive-setting-email" type="email" autoComplete="email" value={newEmail}
                 onChange={event => setNewEmail(event.target.value)} required />
-              <button type="submit" className="archive-button archive-button-primary" disabled={busy}>Send verification code</button>
+              <LiquidButton type="submit" className="archive-button archive-button-primary" disabled={busy}>Send verification code</LiquidButton>
             </form>
           )}
         </div>
