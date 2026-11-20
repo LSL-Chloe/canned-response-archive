@@ -187,7 +187,7 @@ export default function TransferWorkspace({ agent, onClose, reload, onNotice, on
           </p>
           <div className="archive-transfer-preview-actions">
             <button type="button" className="archive-button archive-button-primary" disabled={busy || exceedsHourlyBatchLimit}
-              onClick={() => void handleImport()>{busy ? `Importing… ${completed}/${rows.length}` : `Confirm import ${rows.length} responses`}</button>
+              onClick={() => void handleImport()}>{busy ? `Importing… ${completed}/${rows.length}` : `Confirm import ${rows.length} responses`}</button>
             <button type="button" className="archive-button archive-button-quiet" disabled={busy}
               onClick={() => { setPreview(null); setSelectedName(''); setValidationError(''); }}>Cancel</button>
           </div>
