@@ -1,0 +1,7 @@
+# DO NOT enter real secrets in this file or commit a filled copy.
+# Copy to .dev.vars only when backend integrations are implemented.
+# The following are reserved names, NOT currently used by the Worker.
+# SUPABASE_URL=https://your-project.supabase.co
+# SUPABASE_SECRET_KEY=YOUR_SERVER_ONLY_KEY
+# OTP_MAILER_URL=https://your-authorized-apps-script-endpoint
+# OTP_MAILER_SECRET=REPLACE_WITH_LONG_RANDOM_SECRET
