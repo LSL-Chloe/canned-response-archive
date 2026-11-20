@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { api } from './api';
 import LiquidButton from '../../ui/LiquidButton';
+import { avatarImageSrc } from './avatarImages';
 
 type Source = 'anime' | 'tv' | 'movie';
 type Entry = {
@@ -21,6 +22,13 @@ type Props = {
 const sources: { id: Source; label: string }[] = [
   { id: 'anime', label: 'Anime' }, { id: 'tv', label: 'TV series' }, { id: 'movie', label: 'Movies' },
 ];
+
+function PortraitImage({ url, label }: { url: string; label: string }) {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => setBroken(false), [url]);
+  return broken ? <span className="archive-avatar-image-fallback" aria-label={label + ' portrait unavailable'}>◯</span> :
+    <img src={avatarImageSrc(url)} loading="lazy" alt="" onError={() => setBroken(true)}/>;
+}
 
 async function compressAvatar(file: File): Promise<string> {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
@@ -161,6 +169,8 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
     setHasMore(false);
     setSearchError('');
   }
+  const titles = items.filter(item => item.kind === 'title');
+  const portraits = items.filter(item => item.kind === 'avatar' && item.avatarUrl);
   return (
     <section className="archive-card archive-avatar-picker" aria-label="Choose profile picture">
       <div className="archive-avatar-heading">
@@ -172,8 +182,8 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
       </div>
       <div className="archive-avatar-current">
         <span className="archive-avatar-preview">
-          {avatarUrl ? <img src={avatarUrl} alt="Current profile picture" referrerPolicy="no-referrer"/> :
-            <span aria-label="No profile picture" className="archive-avatar-placeholder">+</span>}
+          {avatarUrl ? <PortraitImage url={avatarUrl} label="Current profile"/> :
+            <span aria-label="No profile picture" className="archive-avatar-placeholder">◯</span>}
         </span>
         <span className="archive-faint">{avatarUrl ? 'Current picture' : 'No picture selected'}</span>
       </div>
@@ -195,6 +205,22 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
           <span aria-hidden="true">‹</span> {selectedTitle.title} — back to search
         </button>
       )}
+      {!selectedTitle && titles.length > 0 && (
+        <div className="archive-avatar-title-results" aria-label="Matching series and movies">
+          <span className="archive-faint">Select a title to browse character portraits</span>
+          <div className="archive-avatar-title-list">
+            {titles.map(item => (
+              <button type="button" key={item.id} disabled={busy || loading}
+                className="archive-avatar-title-choice"
+                onClick={() => void openTitle(item)}>
+                <span className="archive-avatar-title-name">{item.title}</span>
+                <span className="archive-avatar-title-kind">{item.subtitle}</span>
+                <span aria-hidden="true">›</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="archive-avatar-gallery" aria-label="Available profile pictures">
         <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp"
           className="archive-avatar-file" aria-label="Choose picture from your computer" onChange={event => void upload(event)}/>
@@ -203,16 +229,16 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
           <span className="archive-avatar-upload-circle"><span aria-hidden="true">+</span></span>
           <span className="archive-avatar-tile-name">Custom PFP</span>
         </button>
-        {items.map((item, index) => (
+        {portraits.map((item, index) => (
           <button type="button" key={item.kind + ':' + item.id + ':' + index} disabled={busy || loading}
             className="archive-avatar-tile" title={item.title}
-            onClick={() => item.kind === 'title' ? void openTitle(item) : item.avatarUrl && void selectAvatar(item.avatarUrl)}>
+            onClick={() => item.avatarUrl && void selectAvatar(item.avatarUrl)}>
             <span className="archive-avatar-tile-image">
-              {item.imageUrl ? <img src={item.imageUrl} loading="lazy" alt="" referrerPolicy="no-referrer"/> :
-                <span aria-hidden="true">?</span>}
+              {item.imageUrl ? <PortraitImage url={item.imageUrl} label={item.title}/> :
+                <span className="archive-avatar-image-fallback" aria-hidden="true">◯</span>}
             </span>
             <span className="archive-avatar-tile-name">{item.title}</span>
-            <span className="archive-avatar-tile-subtitle">{item.subtitle || (item.kind === 'title' ? 'View cast' : 'Choose')}</span>
+            <span className="archive-avatar-tile-subtitle">{item.subtitle || 'Character'}</span>
           </button>
         ))}
       </div>
@@ -222,12 +248,12 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
         <LiquidButton type="button" tone="neutral" disabled={busy} className="archive-button"
           onClick={() => void openTitle(selectedTitle, page + 1)}>Load more characters</LiquidButton>
       )}
-      {!loading && !searchError && !items.length && (
+      {!loading && !searchError && !portraits.length && (!titles.length || selectedTitle) && (
         <p className="archive-hint">{selectedTitle ? 'No character portraits available for this title.' :
           query.trim().length < 2 ? 'Search a show, movie or character, or use the first circle to upload from your PC.' :
-            'No matching portraits found.'}</p>
+            'No matches found. Try searching a series or character name.'}</p>
       )}
-      <p className="archive-avatar-attribution">Images from AniList, TVmaze and TMDB. Movie portraits use actor photos when character images are unavailable.</p>
+      <p className="archive-avatar-attribution">Portraits from AniList, Kitsu, TVmaze and TMDB. Cast headshots are used when character pictures are unavailable; movie posters are not selectable.</p>
     </section>
   );
 }

@@ -1477,3 +1477,32 @@
  .archive-app .archive-avatar-heading{flex-wrap:wrap}
 }
 @media(prefers-reduced-motion:reduce){.archive-app .archive-avatar-tile,.archive-app .archive-avatar-source-tabs button{transition:none}}
+
+/* Portrait-first picker: movie and series titles open cast, never appear as PFP artwork. */
+.archive-app .archive-avatar-title-results{display:flex;flex-direction:column;gap:8px}
+.archive-app .archive-avatar-title-list{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;padding:2px 2px 7px;scrollbar-width:thin}
+.archive-app .archive-avatar-title-choice{
+ min-width:150px;max-width:230px;min-height:52px;flex:0 0 auto;
+ display:flex;align-items:center;gap:7px;padding:9px 11px;
+ background:var(--field);color:var(--a-text);text-align:left;
+ border:1px solid var(--glass-line);border-radius:14px;cursor:pointer;
+ box-shadow:inset 0 1px 0 var(--glass-highlight);
+ transition:background-color .16s ease,transform .16s ease;
+}
+.archive-app .archive-avatar-title-choice:hover:not(:disabled){background:var(--liquid-selection-fill);transform:translateY(-1px)}
+.archive-app .archive-avatar-title-name{font-weight:675;font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;min-width:0;flex:1}
+.archive-app .archive-avatar-title-kind{font-size:10px;color:var(--a-muted);white-space:nowrap}
+.archive-app .archive-avatar-title-choice>span:last-child{font-size:18px;line-height:1}
+.archive-app .archive-avatar-gallery{grid-template-columns:repeat(auto-fill,minmax(106px,1fr));max-height:396px}
+.archive-app .archive-avatar-tile-image,.archive-app .archive-avatar-upload-circle{width:84px;height:84px}
+.archive-app .archive-avatar-image-fallback{
+ width:100%;height:100%;display:grid;place-items:center;color:var(--a-muted);font-size:22px;background:var(--field);
+}
+.archive-app .archive-avatar-preview{background:var(--field)}
+.archive-app .archive-avatar-preview .archive-avatar-placeholder{font-size:20px;opacity:.55}
+@media(max-width:530px){
+ .archive-app .archive-avatar-gallery{grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px}
+ .archive-app .archive-avatar-tile-image,.archive-app .archive-avatar-upload-circle{width:67px;height:67px}
+ .archive-app .archive-avatar-title-choice{min-width:128px;max-width:180px}
+}
+@media(prefers-reduced-motion:reduce){.archive-app .archive-avatar-title-choice{transition:none}}

@@ -9,6 +9,7 @@ import Icon from '../../ui/Icon';
 import ThemeToggle from '../../ui/ThemeToggle';
 import OpticalBackdrop from '../../ui/OpticalBackdrop';
 import LiquidUnderlay from '../../ui/LiquidUnderlay';
+import { avatarImageSrc } from './avatarImages';
 import type { Theme } from '../../ui/theme';
 import { Glass } from '@samasante/liquid-glass';
 
@@ -261,7 +262,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
               <div className="archive-account-wrap">
                 <button className="archive-account-button" type="button" aria-haspopup="menu"
                   aria-expanded={accountMenuOpen} onClick={() => setAccountMenuOpen(open => !open)}>
-                  <span className="archive-avatar">{avatarUrl ? <img src={avatarUrl} alt="" referrerPolicy="no-referrer"/> : agent.agent_name.charAt(0).toUpperCase()}</span>
+                  <span className="archive-avatar">{avatarUrl ? <img src={avatarImageSrc(avatarUrl)} alt=""/> : agent.agent_name.charAt(0).toUpperCase()}</span>
                   <span>{agent.agent_name}</span>
                   <Icon name="chevron" size={14}/>
                 </button>
