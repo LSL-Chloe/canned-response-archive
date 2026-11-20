@@ -7,10 +7,10 @@ import {
 
 const shared = (id, shortcut, body, createdBy = 'Chloe') => ({
   id, shortcut, body, visibility: 'shared', createdAt: '2026-11-21T03:00:00Z',
-  updatedAt: '2026-11-21T03:00:00Z', createdBy,
+  updatedAt: '2026-11-21T03:00:00Z', createdBy, ownedByMe: createdBy === 'Chloe',
 });
 const priv = (id, shortcut, body) => ({
-  ...shared(id, shortcut, body), visibility: 'private', createdBy: undefined,
+  ...shared(id, shortcut, body), visibility: 'private', createdBy: undefined, ownedByMe: true,
 });
 const records = [
   shared('a', 'appointment', 'Your appointment has been scheduled.'),
@@ -34,9 +34,15 @@ test('search returns each matching response, including duplicates under one shor
   const matches = findSuggestions(records, 'app');
   assert.deepEqual(matches.map(x => x.id), ['a','b','d']);
   assert.deepEqual(findSuggestions(records, '#followup').map(x => x.id), ['c']);
-  assert.deepEqual(findSuggestions(records, 'scheduled').map(x => x.id), ['a']);
+  assert.deepEqual(findSuggestions(records, 'scheduled'), []);
+  assert.deepEqual(findSuggestions(records, 'in'), []);
+  assert.deepEqual(findSuggestions([...records, shared('e', 'inactive', 'Are you there?')], 'in')
+    .map(x => x.id), ['e']);
   assert.deepEqual(findSuggestions(records, 'unknown').map(x => x.id), []);
   assert.equal(findSuggestions(records, '').length, 4);
+  const many = Array.from({ length: 60 }, (_, i) => shared(String(i), 'bulk', 'Text ' + i));
+  assert.equal(findSuggestions(many, '').length, 60, 'A bare # must show all responses, not first nine');
+  assert.equal(findSuggestions(many, 'bul').length, 60);
 });
 
 test('inserting a selected response replaces only the current hash token', () => {
@@ -59,10 +65,11 @@ test('permission display respects agreed shared/private rules', () => {
   const owner = { id: 'u1', agent_name: 'Chloe', role: 'agent' };
   const outsider = { id: 'u2', agent_name: 'Alex', role: 'agent' };
   const admin = { id: 'u3', agent_name: 'Admin', role: 'admin' };
-  assert.deepEqual(canManageResponse(owner, records[0]), { edit: false, delete: true });
+  assert.deepEqual(canManageResponse(owner, records[0]), { edit: true, delete: true });
   assert.deepEqual(canManageResponse(outsider, records[0]), { edit: false, delete: false });
   assert.deepEqual(canManageResponse(admin, records[0]), { edit: true, delete: true });
   assert.deepEqual(canManageResponse(owner, records[3]), { edit: true, delete: true });
+  assert.deepEqual(canManageResponse(admin, records[3]), { edit: true, delete: true }); // Own-private feed only.
   assert.deepEqual(canManageResponse(null, records[0]), { edit: false, delete: false });
 });
 
@@ -80,6 +87,12 @@ test('archive wires UI to same-origin APIs and separates private from public fee
   assert.match(search, /ArrowUp/);
   assert.match(search, /Escape/);
   assert.match(search, /Ctrl/);
+  assert.match(search, /caret: found\.end/);
+  assert.match(search, /setHighlight\(previous\.highlight\)/);
+  assert.match(app, /sidebarCollapsed/);
+  assert.match(app, /Collapse sidebar/);
+  assert.match(library, /archive-edit-shortcut/);
+  assert.match(library, /updateResponse\(editing\.id, editBody, editShortcut\.trim\(\)\)/);
   assert.match(library, /Created by/);
   assert.doesNotMatch(search, /createdBy/);
   assert.match(library, /onRequireLogin\('private'\)/);

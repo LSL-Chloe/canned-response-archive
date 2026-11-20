@@ -75,7 +75,20 @@ export async function handleResponses(request: Request, env: Env, path: string):
         select: 'response_id,shortcut_name,body,created_by_name,created_at,updated_at',
         order: 'created_at.desc', limit: '1000',
       }) : [];
-    if (scope === 'shared') return json({ responses: shared });
+    // Return a viewer-specific ownership flag for action buttons. Never expose private rows.
+    // Use immutable agent IDs, not creator display names (which users may later change).
+    const ownedShared = new Set<string>();
+    if (signed && shared.length) {
+      const mine = await queryTable<{ id: string }>(env, 'canned_responses', {
+        select: 'id', id: `in.(${shared.map(row => row.response_id).join(',')})`,
+        visibility: 'eq.shared', owner_id: `eq.${signed.agent.id}`, limit: '1000',
+      });
+      mine.forEach(row => ownedShared.add(row.id));
+    }
+    const withOwnership = shared.map(row => ({
+      ...row, owned_by_viewer: ownedShared.has(row.response_id),
+    }));
+    if (scope === 'shared') return json({ responses: withOwnership });
     if (!signed) return fail(401, 'login_required', 'Sign in to view private responses');
     const privateRows = await queryTable<CanonicalResponse>(env, 'canned_responses', {
       select: 'id,shortcut_id,visibility,owner_id,body,created_at,updated_at',
@@ -90,8 +103,9 @@ export async function handleResponses(request: Request, env: Env, path: string):
     const ownPrivate = privateRows.map((r) => ({
       response_id: r.id, shortcut_name: names.get(r.shortcut_id) ?? '', body: r.body,
       created_at: r.created_at, updated_at: r.updated_at, visibility: 'private',
+      owned_by_viewer: true,
     }));
-    return json({ responses: scope === 'private' ? ownPrivate : [...shared, ...ownPrivate] });
+    return json({ responses: scope === 'private' ? ownPrivate : [...withOwnership, ...ownPrivate] });
   }
 
   if (path === '/api/responses' && request.method === 'POST') {
@@ -121,12 +135,33 @@ export async function handleResponses(request: Request, env: Env, path: string):
       return json({ deleted: true });
     }
     if (!canEditResponse(signed.agent.role, signed.agent.id, item)) {
-      return fail(403, 'forbidden', 'Only the administrator may edit shared responses');
+      return fail(403, 'forbidden', 'You can only edit your own responses, except that admins can edit shared ones.');
     }
     const data = await readJson(request);
+    // Validate all fields before any DB modifications. Renaming only this response's
+    // shortcut means reassignment, NEVER updating the shortcut row (which is shared
+    // by any number of other responses).
+    const body = bodyInput(data.body);
+    const requestedShortcut = data.shortcut === undefined ? undefined : shortcutInput(data.shortcut);
+    let nextShortcutId = item.shortcut_id;
+    if (requestedShortcut !== undefined) {
+      const previous = (await queryTable<Shortcut>(env, 'shortcuts', {
+        select: 'id,name', id: `eq.${item.shortcut_id}`, limit: '1',
+      }))[0];
+      if (!previous) return fail(409, 'shortcut_missing', 'The original shortcut was removed. Refresh the library.');
+      if (previous.name.toLowerCase() !== requestedShortcut.toLowerCase()) {
+        nextShortcutId = await shortcutFor(env, requestedShortcut, item.visibility, signed.agent.id);
+      }
+    }
+    // Re-check scope and ownership in the update filter as defense in depth.
+    const guardedQuery = signed.agent.role === 'admin' && item.visibility === 'shared'
+      ? { id: `eq.${id}`, visibility: 'eq.shared' }
+      : { id: `eq.${id}`, owner_id: `eq.${signed.agent.id}`, visibility: `eq.${item.visibility}` };
     const updated = await database<CanonicalResponse[]>(env, 'canned_responses', {
-      method: 'PATCH', query: { id: `eq.${id}` }, body: { body: bodyInput(data.body) },
+      method: 'PATCH', query: guardedQuery,
+      body: { body, shortcut_id: nextShortcutId },
     });
+    if (!updated[0]) return fail(409, 'response_changed', 'The response changed before saving. Refresh and try again.');
     return json({ response: updated[0] });
   }
 

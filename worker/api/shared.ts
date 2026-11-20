@@ -63,5 +63,7 @@ export function canDeleteResponse(role: 'agent' | 'admin', actorId: string, resp
   return (response.visibility === 'shared' && role === 'admin') || response.owner_id === actorId;
 }
 export function canEditResponse(role: 'agent' | 'admin', actorId: string, response: { visibility: string; owner_id: string }): boolean {
-  return response.visibility === 'shared' ? role === 'admin' : response.owner_id === actorId;
+  return response.visibility === 'shared'
+    ? role === 'admin' || response.owner_id === actorId
+    : response.owner_id === actorId;
 }

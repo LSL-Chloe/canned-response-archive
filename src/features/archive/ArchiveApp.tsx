@@ -74,6 +74,7 @@ function LoginDialog({
 
 export default function ArchiveApp() {
   const [page, setPage] = useState<Page>('search');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [shared, setShared] = useState<ArchiveResponse[]>([]);
@@ -173,22 +174,31 @@ export default function ArchiveApp() {
   }
 
   return (
-    <div className="archive-app">
+    <div className={`archive-app ${sidebarCollapsed ? 'is-sidebar-collapsed' : ''}`}>
       <aside className="archive-sidebar">
-        <div className="archive-brand"><span className="archive-brand-mark">#</span><span>Response Archive<small>Development workspace</small></span></div>
+        <div className="archive-sidebar-header">
+          <div className="archive-brand"><span className="archive-brand-mark">#</span><span className="archive-brand-text">Response Archive<small>Development workspace</small></span></div>
+          <button type="button" className="archive-collapse-toggle"
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!sidebarCollapsed}
+            onClick={() => setSidebarCollapsed(value => !value)}>
+            <span aria-hidden="true">{sidebarCollapsed ? '»' : '«'}</span>
+          </button>
+        </div>
         <nav aria-label="Main navigation" className="archive-nav">
           <button type="button" className={page === 'search' ? 'active' : ''} aria-current={page === 'search' ? 'page' : undefined}
-            onClick={() => navigate('search')}><span aria-hidden="true">⌕</span> Search workspace</button>
+            onClick={() => navigate('search')} title="Search workspace"><span className="archive-nav-icon" aria-hidden="true">⌕</span><span className="archive-nav-label">Search workspace</span></button>
           <button type="button" className={page === 'library' ? 'active' : ''} aria-current={page === 'library' ? 'page' : undefined}
-            onClick={() => navigate('library')}><span aria-hidden="true">▤</span> Canned responses</button>
+            onClick={() => navigate('library')} title="Canned responses"><span className="archive-nav-icon" aria-hidden="true">▤</span><span className="archive-nav-label">Canned responses</span></button>
           {agent?.role === 'admin' && (
             <button type="button" className={page === 'team' ? 'active' : ''} aria-current={page === 'team' ? 'page' : undefined}
-              onClick={() => navigate('team')}><span aria-hidden="true">♙</span> Team overview</button>
+              onClick={() => navigate('team')} title="Team overview"><span className="archive-nav-icon" aria-hidden="true">♙</span><span className="archive-nav-label">Team overview</span></button>
           )}
         </nav>
         <div className="archive-sidebar-foot">
           <span className="archive-online-dot" aria-hidden="true" />
-          {loading ? 'Updating archive' : 'Connected to development'}
+          <span className="archive-sidebar-status">{loading ? 'Updating archive' : 'Connected to development'}</span>
         </div>
       </aside>
       <div className="archive-main">

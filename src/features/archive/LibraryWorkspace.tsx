@@ -30,6 +30,8 @@ export default function LibraryWorkspace({
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<ArchiveResponse | null>(null);
   const [editBody, setEditBody] = useState('');
+  const [editShortcut, setEditShortcut] = useState('');
+  const [showEditExisting, setShowEditExisting] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,6 +55,10 @@ export default function LibraryWorkspace({
   const existing = useMemo(
     () => shortcutOptions(records, visibility, shortcut),
     [records, visibility, shortcut],
+  );
+  const editExisting = useMemo(
+    () => editing ? shortcutOptions(records, editing.visibility, editShortcut) : [],
+    [records, editing, editShortcut],
   );
 
   function chooseScope(next: LibraryScope) {
@@ -96,9 +102,9 @@ export default function LibraryWorkspace({
     if (!editing || saving) return;
     setSaving(true);
     try {
-      await updateResponse(editing.id, editBody);
+      await updateResponse(editing.id, editBody, editShortcut.trim());
       setEditing(null);
-      onNotice('Response updated.');
+      onNotice('Response text and shortcut saved. Other responses under the original shortcut are unchanged.');
       void reload().catch(err => onError(err instanceof Error ? err.message : 'Could not refresh responses'));
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Could not update response');
@@ -215,18 +221,45 @@ export default function LibraryWorkspace({
                   <div className="archive-row-actions">
                     <button className="archive-button archive-button-quiet" type="button" onClick={() => void copy(item)}>Copy</button>
                     {permission.edit && <button className="archive-button archive-button-quiet" type="button"
-                      onClick={() => { setEditing(item); setEditBody(item.body); }}>Edit</button>}
+                      onClick={() => {
+                        setEditing(item);
+                        setEditBody(item.body);
+                        setEditShortcut(item.shortcut);
+                        setShowEditExisting(false);
+                      }}>Edit</button>}
                     {permission.delete && <button className="archive-button archive-button-quiet archive-danger" type="button"
                       disabled={processingId === item.id} onClick={() => void remove(item)}>Delete</button>}
                   </div>
                 </div>
                 {editing?.id === item.id ? (
                   <form onSubmit={event => void saveEdit(event)} className="archive-edit-form">
-                    <label htmlFor="archive-edit-body">Edit response</label>
+                    <label htmlFor="archive-edit-body">Edit response text</label>
                     <textarea id="archive-edit-body" rows={4} value={editBody} onChange={event => setEditBody(event.target.value)}
                       maxLength={10000} required />
+                    <label htmlFor="archive-edit-shortcut">Edit shortcut</label>
+                    <div className="archive-shortcut-pick">
+                      <span aria-hidden="true" className="archive-hash-symbol">#</span>
+                      <input id="archive-edit-shortcut" autoComplete="off"
+                        value={editShortcut} maxLength={65} required
+                        pattern="#?[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}"
+                        onFocus={() => setShowEditExisting(true)}
+                        onChange={event => { setEditShortcut(event.target.value); setShowEditExisting(true); }}
+                        placeholder="New or existing shortcut" />
+                      {showEditExisting && editExisting.length > 0 && (
+                        <div className="archive-shortcut-menu" role="listbox" aria-label="Existing shortcuts for editing">
+                          {editExisting.map(option => (
+                            <button key={option.name.toLowerCase()} type="button" role="option" aria-selected={false}
+                              onClick={() => { setEditShortcut(option.name); setShowEditExisting(false); }}>
+                              <span>#{option.name}</span>
+                              <span className="archive-faint">{formatCount(option.count, 'response')}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <p className="archive-hint">Changing this shortcut moves only this response, not other responses sharing the old shortcut.</p>
                     <div>
-                      <button className="archive-button archive-button-primary" type="submit" disabled={saving || !editBody.trim()}>
+                      <button className="archive-button archive-button-primary" type="submit" disabled={saving || !editBody.trim() || !editShortcut.trim()}>
                         {saving ? 'Saving…' : 'Save changes'}
                       </button>
                       <button className="archive-button archive-button-quiet" type="button" onClick={() => setEditing(null)}>Cancel</button>
