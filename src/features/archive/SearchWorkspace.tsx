@@ -1,5 +1,5 @@
 import LiquidButton from '../../ui/LiquidButton';
-import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { findHashQuery, findSuggestions, insertSuggestion, type ArchiveResponse } from './model';
 import LiquidUnderlay from '../../ui/LiquidUnderlay';
 
@@ -19,6 +19,15 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
   const [highlight, setHighlight] = useState(0);
   const input = useRef<HTMLTextAreaElement>(null);
   const lastInsert = useRef<LastInsert | null>(null);
+  // Expand only as the message grows; don't start users in a seven-row editor.
+  useLayoutEffect(() => {
+    const field = input.current;
+    if (!field) return;
+    field.style.height = 'auto';
+    const fullHeight = field.scrollHeight;
+    field.style.height = `${Math.min(Math.max(fullHeight, 56), 216)}px`;
+    field.style.overflowY = fullHeight > 216 ? 'auto' : 'hidden';
+  }, [draft]);
   const token = findHashQuery(draft, caret);
   const suggestions = useMemo(
     () => token ? findSuggestions(responses, token.query) : [],
@@ -92,10 +101,6 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
       </div>
       <div className="archive-composer">
         <LiquidUnderlay radius={18}/>
-        <div className="archive-composer-top">
-          <span className="archive-composer-label">MESSAGE DRAFT</span>
-          <span className="archive-faint">{loading ? 'Updating responses…' : `${responses.length} available`}</span>
-        </div>
         <textarea
           ref={input}
           aria-label="Message draft with hashtag shortcuts"
@@ -103,9 +108,9 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
           aria-controls="archive-suggestions"
           aria-activedescendant={open && activeIndex >= 0 ? `archive-option-${activeIndex}` : undefined}
           value={draft}
-          placeholder="Start typing your message, or type # to explore shortcuts…"
+          placeholder={loading ? 'Loading responses…' : 'Write a message, or type # to find a response…'}
           spellCheck
-          rows={7}
+          rows={2}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           onClick={event => { setCaret(event.currentTarget.selectionStart); setDismissed(false); }}
@@ -150,7 +155,7 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
           </div>
         )}
         <div className="archive-composer-bottom">
-          <span><kbd>#</kbd> Search <span aria-hidden="true">·</span> <kbd>Enter</kbd> Insert <span aria-hidden="true">·</span> <kbd>Ctrl</kbd> + <kbd>Z</kbd> Undo</span>
+          <span className="archive-composer-hint"><kbd>#</kbd> Shortcuts<span className="archive-hint-desktop"> · <kbd>Enter</kbd> insert · <kbd>Ctrl</kbd> + <kbd>Z</kbd> undo</span></span>
           <LiquidButton className="archive-button archive-button-primary" type="button" disabled={!draft} onClick={() => void copyDraft()}>
             Copy draft
           </LiquidButton>

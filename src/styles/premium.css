@@ -775,7 +775,7 @@
   --dock-track:rgba(8,9,12,.64);--rail:rgba(11,12,16,.63);
   --weave-line:rgba(229,234,241,.19);--weave-line-2:rgba(232,237,245,.11);
   --caustic:rgba(223,231,244,.27);--caustic-edge:rgba(168,180,195,.10);
-  --liquid-panel-tint:rgba(15,17,22,.79);--liquid-selection-fill:rgba(218,226,236,.17);
+  --liquid-panel-tint:rgba(15,17,22,.61);--liquid-selection-fill:rgba(218,226,236,.17);
   --liquid-button-tint:rgba(185,196,208,.19);--liquid-button-fg:#f2f4f7;
   --ui-success:#a4e5c8;--field:rgba(18,20,26,.74);--field-line:rgba(239,243,248,.18);
 }
@@ -785,7 +785,7 @@
   --dock-track:rgba(220,225,231,.55);--rail:rgba(247,249,251,.58);
   --weave-line:rgba(49,59,72,.17);--weave-line-2:rgba(31,41,53,.08);
   --caustic:rgba(255,255,255,.85);--caustic-edge:rgba(111,121,138,.20);
-  --liquid-panel-tint:rgba(254,255,255,.77);--liquid-selection-fill:rgba(255,255,255,.55);
+  --liquid-panel-tint:rgba(254,255,255,.61);--liquid-selection-fill:rgba(255,255,255,.55);
   --liquid-button-tint:rgba(251,253,255,.66);--liquid-button-fg:#17212b;
   --field:rgba(249,251,253,.84);--field-line:rgba(34,45,58,.20);
 }
@@ -797,7 +797,7 @@
   background:var(--a-bg);
 }
 .optical-weave{
-  position:absolute;inset:-12%;opacity:.68;will-change:transform;
+  position:absolute;inset:-12%;opacity:.29;will-change:transform;
   background-image:
     repeating-linear-gradient(0deg,transparent 0 7px,var(--weave-line) 8px 9px,transparent 10px 14px),
     repeating-linear-gradient(90deg,transparent 0 7px,var(--weave-line-2) 8px 9px,transparent 10px 14px);
@@ -807,13 +807,13 @@
   animation:optical-weave-drift 42s ease-in-out infinite alternate;
 }
 .optical-caustic{
-  position:absolute;pointer-events:none;opacity:.58;
+  position:absolute;pointer-events:none;opacity:.32;
   width:80vw;height:23vw;min-width:580px;min-height:120px;
   transform-origin:center;will-change:transform;
   background:linear-gradient(180deg,
     transparent 0%,var(--caustic-edge) 35%,
     var(--caustic) 49%,var(--caustic-edge) 55%,transparent 100%);
-  filter:blur(20px);mix-blend-mode:screen;
+  filter:blur(8px);mix-blend-mode:screen;
 }
 .archive-app[data-theme="light"] .optical-caustic,
 .auth-experience[data-theme="light"] .optical-caustic{mix-blend-mode:multiply;opacity:.20}
@@ -1099,4 +1099,249 @@
   .archive-app .archive-composer,.archive-app .archive-card,
   .auth-experience .auth-card{background:var(--a-surface)!important}
   .liquid-underlay{display:none!important}
+}
+
+
+/* FUNCTIONAL GLASS AND MOTION: quick interaction, optical edges, quiet content. */
+.archive-app .archive-sidebar{
+  transition:width .27s cubic-bezier(.16,1,.3,1),flex-basis .27s cubic-bezier(.16,1,.3,1),
+    padding .27s cubic-bezier(.16,1,.3,1);
+}
+.archive-app .archive-brand-text,.archive-app .archive-nav .archive-nav-label{
+  transition:max-width .27s cubic-bezier(.16,1,.3,1),opacity .14s ease,transform .22s ease;
+}
+.archive-app .archive-nav .archive-nav-selection{
+  transition:transform .27s cubic-bezier(.16,1,.3,1),opacity .14s ease;
+}
+.archive-app .archive-tabs .archive-tabs-lens,
+.auth-experience .auth-mode-tabs .auth-tabs-lens,
+.archive-app .archive-visibility-lens{
+  transition:transform .24s cubic-bezier(.16,1,.3,1),opacity .14s ease;
+}
+.liquid-theme-switch .liquid-switch-thumb{
+  transition:transform .27s cubic-bezier(.16,1,.3,1),box-shadow .18s ease;
+}
+.liquid-action{transition:transform .17s cubic-bezier(.16,1,.3,1),box-shadow .17s ease}
+.archive-app .archive-nav button{transition:color .12s ease}
+.archive-app .archive-response-row{transition:background-color .14s ease}
+.archive-app .archive-composer{
+  border-radius:20px;background:transparent;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.19),0 12px 28px rgba(0,0,0,.10);
+  transition:border-color .17s ease,box-shadow .17s ease;
+}
+.archive-app .archive-search-view{max-width:min(780px,100%);margin-top:26px}
+.archive-app .archive-search-intro{margin-bottom:17px}
+.archive-app .archive-search-intro h1{margin-bottom:4px}
+.archive-app .archive-composer textarea{
+  box-sizing:border-box;display:block;width:100%;min-width:0;min-height:56px!important;
+  max-height:216px;padding:16px 18px!important;margin:0;
+  resize:none;overflow-y:hidden;border:0;outline:0;
+  font-size:14px;line-height:1.52;
+  font-family:inherit;background:transparent;
+  transition:none;scrollbar-width:thin;
+}
+.archive-app .archive-composer textarea:focus{outline:none}
+.archive-app .archive-composer .archive-composer-bottom{
+  padding:7px 10px 8px 16px;gap:10px;
+  border-top:0;background:transparent;min-height:50px;
+}
+.archive-app .archive-composer-hint{
+  display:flex;align-items:center;gap:5px;color:var(--a-muted);
+  font-size:11px;white-space:nowrap;
+}
+.archive-app .archive-hint-desktop{display:inline}
+.archive-app .archive-composer kbd{font-size:10px;padding:2px 5px;border-radius:6px}
+.archive-app .archive-composer-bottom .liquid-action .liquid-action-button{
+  min-height:34px;padding:6px 13px!important;font-size:12px;
+}
+.archive-app .archive-suggestion-popover{
+  border-top:1px solid var(--a-line);
+  background:color-mix(in srgb,var(--a-surface) 80%,transparent);
+  border-radius:0;box-shadow:none;padding:8px 9px 10px;
+}
+.archive-app .archive-suggestion-heading{align-items:center;line-height:1.4}
+.archive-app .archive-suggestion-list{max-height:min(300px,42vh)}
+.archive-app .archive-suggestion{transition:background-color .12s ease}
+.archive-app .archive-card,.archive-app .archive-response-list{
+  border:1px solid var(--a-line);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.19),0 12px 30px rgba(0,0,0,.09);
+}
+.archive-app[data-theme="light"] .archive-card,
+.archive-app[data-theme="light"] .archive-response-list{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.88),0 12px 32px rgba(34,43,53,.10);
+}
+.liquid-underlay{
+  box-shadow:inset 0 1px 1px var(--glass-highlight),inset 0 -1px 1px rgba(0,0,0,.13);
+}
+/* Every control has an optical rim, but avoid running one expensive SVG filter per row action. */
+.archive-app .archive-button:not(.liquid-action-button),
+.archive-app .archive-visibility-options,
+.archive-app .archive-transfer-scope,
+.archive-app .archive-shortcut-menu,
+.archive-app .archive-library-search input,
+.archive-app .archive-create-form input,
+.archive-app .archive-create-form textarea,
+.archive-app .archive-edit-form input,
+.archive-app .archive-edit-form textarea,
+.archive-app .archive-settings-form input,
+.archive-app .archive-login-form input,
+.auth-experience .auth-input-wrap{
+  border:1px solid var(--glass-line);
+  background:var(--field);
+  box-shadow:inset 0 1px 0 var(--glass-highlight),inset 0 -1px 0 rgba(30,35,40,.11),
+    0 3px 11px rgba(0,0,0,.035);
+  transition:border-color .15s ease,box-shadow .15s ease,background-color .15s ease;
+}
+.archive-app .archive-button:not(.liquid-action-button){
+  background:var(--liquid-button-tint);color:var(--a-text);
+  border-radius:999px;min-height:34px;padding:7px 12px;
+  display:inline-flex;justify-content:center;align-items:center;
+  line-height:1.25;font-size:12px;
+}
+.archive-app .archive-button:not(.liquid-action-button):hover:not(:disabled){
+  background:color-mix(in srgb,var(--liquid-button-tint) 75%,var(--a-surface));
+  transform:translateY(-1px);
+}
+.archive-app .archive-button:not(.liquid-action-button):active{transform:scale(.98)}
+.archive-app .archive-row-actions{gap:5px}
+.archive-app .archive-row-actions .archive-button{
+  min-height:30px;padding:6px 10px;font-size:11px;
+}
+.archive-app .archive-button.archive-danger{color:#e69ea4}
+.archive-app[data-theme="light"] .archive-button.archive-danger{color:#a83548}
+.liquid-action-neutral{--liquid-button-tint:var(--liquid-selection-fill)}
+.liquid-action:has(button:disabled){opacity:.66;transform:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.23)}
+.liquid-action .liquid-action-button:disabled{opacity:1}
+.archive-app .archive-create-form{
+  gap:13px;padding:23px 24px 21px;
+  border-radius:18px;
+}
+.archive-app .archive-create-form label,
+.archive-app .archive-edit-form label,
+.archive-app .archive-settings-form label,
+.archive-app .archive-login-form label{
+  color:var(--a-text);font-size:12px;line-height:1.4;font-weight:650;
+}
+.archive-app .archive-form-heading{align-items:flex-start}
+.archive-app .archive-form-heading h2{font-size:19px;letter-spacing:-.02em;line-height:1.2}
+.archive-app .archive-form-heading p{font-size:11.5px;line-height:1.6;margin:4px 0 0}
+.archive-app .archive-form-heading .liquid-action{flex:0 0 auto}
+.archive-app .archive-form-heading .liquid-action .liquid-action-button{min-height:33px;padding:6px 12px!important}
+.archive-app .archive-form-between{
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+}
+.archive-app .archive-form-between .archive-faint{white-space:nowrap;font-variant-numeric:tabular-nums}
+.archive-app .archive-create-form :is(input,textarea),
+.archive-app .archive-edit-form :is(input,textarea),
+.archive-app .archive-settings-form input,
+.archive-app .archive-login-form input{
+  background:var(--field);border-radius:13px;padding:11px 13px;
+  color:var(--a-text);line-height:1.5;
+}
+.archive-app .archive-create-form textarea,.archive-app .archive-edit-form textarea{
+  min-height:112px;line-height:1.55;resize:vertical;
+}
+.archive-app .archive-create-form :is(input,textarea):focus,
+.archive-app .archive-edit-form :is(input,textarea):focus,
+.archive-app .archive-settings-form input:focus,
+.archive-app .archive-library-search input:focus{
+  outline:0;border-color:var(--a-accent);
+  box-shadow:inset 0 1px 0 var(--glass-highlight),0 0 0 2px var(--a-accent-soft);
+}
+.archive-app .archive-shortcut-pick{position:relative;display:block}
+.archive-app .archive-shortcut-pick input{
+  width:100%;padding-inline-start:39px!important;min-width:0;
+}
+.archive-app .archive-hash-symbol{
+  position:absolute;z-index:2;top:50%;left:14px;
+  transform:translateY(-50%);pointer-events:none;line-height:1;
+  font-size:15px;font-weight:700;color:var(--a-muted);
+}
+/* When the shortcut picker is expanded, keep its # aligned to the input, not the menu. */
+.archive-app .archive-shortcut-pick:has(.archive-shortcut-menu) .archive-hash-symbol{
+  top:22px;transform:translateY(-50%);
+}
+.archive-app .archive-edit-form>.archive-shortcut-pick{display:block}
+.archive-app .archive-hint{font-size:11px;line-height:1.55;margin:2px 0 4px}
+.archive-app .archive-create-form>.liquid-action{
+  margin-top:3px;align-self:flex-start;
+}
+.archive-app .archive-create-form>.liquid-action .liquid-action-button{
+  min-height:38px;padding:9px 16px!important;
+}
+.archive-app .archive-visibility-options,.archive-app .archive-transfer-scope{
+  isolation:isolate;position:relative;display:flex;align-items:stretch;
+  width:max-content;max-width:100%;gap:0;padding:4px;
+  border-radius:22px;background:var(--field);
+}
+.archive-app .archive-visibility-lens{
+  position:absolute;z-index:0;pointer-events:none;
+  top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/2);
+  transform:translate3d(0,0,0);border-radius:18px;
+  box-shadow:inset 0 1px 0 var(--glass-highlight),0 3px 9px rgba(0,0,0,.10);
+}
+.archive-app .archive-visibility-options[data-visibility="private"] .archive-visibility-lens,
+.archive-app .archive-transfer-scope[data-visibility="shared"]:has(>button:nth-of-type(2)) .archive-visibility-lens{
+  transform:translate3d(100%,0,0);
+}
+.archive-app .archive-transfer-scope:has(>button:only-of-type) .archive-visibility-lens{width:calc(100% - 8px)}
+.archive-app .archive-transfer-scope:has(>button:only-of-type){min-width:115px}
+.archive-app .archive-visibility-lens span{display:block;width:100%;height:100%}
+.archive-app .archive-visibility-options button,.archive-app .archive-transfer-scope button{
+  position:relative;z-index:1;min-width:78px;min-height:35px;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  color:var(--a-muted);font-size:12px;border-radius:18px;
+  transition:color .14s ease;
+}
+.archive-app .archive-visibility-options button.active,.archive-app .archive-transfer-scope button.active{
+  color:var(--a-text);background:transparent!important;font-weight:675;
+}
+.archive-app .archive-visibility-options button:hover,.archive-app .archive-transfer-scope button:hover{color:var(--a-text)}
+.archive-app .archive-library-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.archive-app .archive-library-header-actions .liquid-action-button{
+  min-height:36px;padding:8px 13px!important;
+}
+.archive-app .archive-library-tools{align-items:center;gap:10px}
+.archive-app .archive-shortcut-menu{max-height:195px;border-radius:12px;overflow:auto}
+.archive-app .archive-shortcut-menu button{min-height:37px}
+.archive-app .archive-shortcut-menu button:hover{background:var(--a-accent-soft)}
+.archive-app .archive-settings-form{min-width:0}
+.archive-app .archive-transfer .archive-transfer-column{
+  border-color:var(--glass-line);box-shadow:inset 0 1px 0 var(--glass-highlight);
+}
+/* Responsive layout: never rely on the parent page's available width. */
+@media(max-width:950px){
+  .archive-app .archive-library-tools{flex-wrap:wrap}
+  .archive-app .archive-library-search{min-width:180px}
+}
+@media(max-width:650px){
+  .archive-app .archive-page-heading{display:flex;align-items:flex-start;flex-wrap:wrap;gap:12px}
+  .archive-app .archive-page-heading h1{font-size:23px}
+  .archive-app .archive-composer .archive-composer-bottom{padding:6px 8px 7px 12px}
+  .archive-app .archive-hint-desktop{display:none}
+  .archive-app .archive-search-view{margin-top:18px}
+  .archive-app .archive-library-tools{gap:8px}
+  .archive-app .archive-library-search{min-width:100%;flex-basis:100%;order:2}
+  .archive-app .archive-create-form{padding:19px 15px;gap:11px}
+  .archive-app .archive-form-heading h2{font-size:17px}
+  .archive-app .archive-form-heading p{font-size:11px}
+  .archive-app .archive-create-form textarea{min-height:98px}
+  .archive-app .archive-form-between .archive-faint{font-size:10px}
+  .archive-app .archive-transfer-grid{grid-template-columns:1fr}
+  .archive-app .archive-row-actions .archive-button{padding:6px 8px}
+  .archive-app .archive-hint{overflow-wrap:anywhere}
+}
+@media(max-width:400px){
+  .archive-app .archive-page-heading h1{font-size:21px}
+  .archive-app .archive-composer textarea{font-size:13px;padding:13px 14px!important}
+  .archive-app .archive-composer .archive-composer-bottom{gap:6px}
+  .archive-app .archive-composer-hint{font-size:10px}
+  .archive-app .archive-composer-bottom .liquid-action .liquid-action-button{padding:5px 9px!important;font-size:11px}
+  .archive-app .archive-visibility-options button,.archive-app .archive-transfer-scope button{min-width:66px}
+}
+@media(prefers-reduced-motion:reduce){
+  .archive-app .archive-sidebar,.archive-app .archive-nav .archive-nav-selection,
+  .archive-app .archive-visibility-lens,.liquid-theme-switch .liquid-switch-thumb{
+    transition-duration:.01ms!important;
+  }
 }

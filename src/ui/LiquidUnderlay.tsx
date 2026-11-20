@@ -1,11 +1,12 @@
+import { memo } from 'react';
 import { Glass } from '@samasante/liquid-glass';
 
 /** Refraction lives behind content, so no displaced text or inaccessible controls. */
-export default function LiquidUnderlay({ radius = 18 }: { radius?: number }) {
+function LiquidUnderlay({ radius = 18 }: { radius?: number }) {
   return (
     <Glass className="liquid-underlay" radius={radius}
       style={{ borderRadius: radius, background: 'var(--liquid-panel-tint)' }}
-      optics={{ mapSize: 128, depth: .60, curvature: .37, strength: .14,
+      optics={{ mapSize: 96, depth: .62, curvature: .4, strength: .16,
         bend: .42, bendWidth: .12, dispersion: .12, sheen: .78,
         sheenWidth: 1.1, specular: .88, frost: 0, glow: .06,
         clipToShape: true, softEdge: true }}>
@@ -13,3 +14,5 @@ export default function LiquidUnderlay({ radius = 18 }: { radius?: number }) {
     </Glass>
   );
 }
+
+export default memo(LiquidUnderlay);
