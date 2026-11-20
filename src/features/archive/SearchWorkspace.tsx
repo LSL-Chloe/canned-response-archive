@@ -1,6 +1,7 @@
 import LiquidButton from '../../ui/LiquidButton';
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { findHashQuery, findSuggestions, insertSuggestion, type ArchiveResponse } from './model';
+import LiquidUnderlay from '../../ui/LiquidUnderlay';
 
 interface Props {
   responses: ArchiveResponse[];
@@ -86,11 +87,11 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
   return (
     <section className="archive-search-view" aria-label="Shortcut search">
       <div className="archive-search-intro">
-        <p className="archive-kicker">CANNED RESPONSE ARCHIVE</p>
-        <h1>Find the right words, faster.</h1>
-        <p>Write your message and type <kbd>#</kbd> to search available canned responses.</p>
+        <h1>Search responses</h1>
+        <p>Type <kbd>#</kbd> in your draft to insert a saved reply.</p>
       </div>
       <div className="archive-composer">
+        <LiquidUnderlay radius={18}/>
         <div className="archive-composer-top">
           <span className="archive-composer-label">MESSAGE DRAFT</span>
           <span className="archive-faint">{loading ? 'Updating responses…' : `${responses.length} available`}</span>
@@ -155,7 +156,6 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
           </LiquidButton>
         </div>
       </div>
-      <p className="archive-search-note">Shared responses are available to everyone. Sign in to include your private responses.</p>
     </section>
   );
 }

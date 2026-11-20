@@ -7,6 +7,8 @@ import SettingsWorkspace from './SettingsWorkspace';
 import TeamWorkspace from './TeamWorkspace';
 import Icon from '../../ui/Icon';
 import ThemeToggle from '../../ui/ThemeToggle';
+import OpticalBackdrop from '../../ui/OpticalBackdrop';
+import LiquidUnderlay from '../../ui/LiquidUnderlay';
 import type { Theme } from '../../ui/theme';
 import { Glass } from '@samasante/liquid-glass';
 
@@ -43,6 +45,7 @@ function LoginDialog({
       if (event.target === event.currentTarget) onClose();
     }}>
       <section className="archive-dialog archive-card" role="dialog" aria-modal="true" aria-labelledby="archive-login-title">
+        <LiquidUnderlay radius={22}/>
         <div className="archive-dialog-heading">
           <div>
             <p className="archive-kicker">ACCOUNT ACCESS</p>
@@ -190,11 +193,12 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
 
   return (
     <div className={`archive-app ${sidebarCollapsed ? 'is-sidebar-collapsed' : ''}`} data-theme={theme}>
+      <OpticalBackdrop/>
       <button type="button" className="archive-sidebar-scrim" aria-label="Close navigation"
         onClick={() => setSidebarCollapsed(true)} />
       <aside className="archive-sidebar">
         <div className="archive-sidebar-header">
-          <div className="archive-brand"><span className="archive-brand-mark glass-control">#</span><span className="archive-brand-text">response<span className="archive-brand-muted">/archive</span><small>YOUR WORDS, AT HAND</small></span></div>
+          <div className="archive-brand"><span className="archive-brand-mark"><Icon name="library" size={19}/></span><span className="archive-brand-text">Archive</span></div>
           <button type="button" className="archive-collapse-toggle"
             title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -233,19 +237,13 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
             </button>
           )}
         </nav>
-        <div className="archive-sidebar-foot">
-          <span className="archive-online-dot" aria-hidden="true" />
-          <span className="archive-sidebar-status">{loading ? 'Updating archive' : 'Connected to development'}</span>
-        </div>
       </aside>
       <div className="archive-main">
         <header className="archive-topbar">
           <div className="archive-topbar-title">
-            <span className="archive-topbar-eyebrow">ARCHIVE <span className="archive-crumb-separator">/</span> WORKSPACE</span>
             <strong>{page === 'search' ? 'Search' : page === 'library' ? 'Canned responses' : page === 'team' ? 'Team' : 'Settings'}</strong>
           </div>
           <div className="archive-topbar-right">
-            <span className="archive-dev-label"><span className="archive-dev-indicator"/> Development</span>
             <ThemeToggle theme={theme} onToggle={onThemeToggle} compact/>
             {sessionLoading ? (
               <span className="archive-faint">Checking session…</span>

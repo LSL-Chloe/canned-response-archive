@@ -26,7 +26,7 @@ export default function ThemeToggle({ theme, onToggle }: {
           clipToShape: true, softEdge: true,
         }}>
         <span className="liquid-switch-puck" aria-hidden="true">
-          <Icon name={theme === 'dark' ? 'moon' : 'sun'} size={24}/>
+          <Icon name={theme === 'dark' ? 'moon' : 'sun'} size={18}/>
         </span>
       </Glass>
     </button>

@@ -1,4 +1,5 @@
 import LiquidButton from '../../ui/LiquidButton';
+import LiquidUnderlay from '../../ui/LiquidUnderlay';
 import { useState, type ChangeEvent } from 'react';
 import { exportResponses, importResponses } from './api';
 import {
@@ -125,6 +126,7 @@ export default function TransferWorkspace({ agent, onClose, reload, onNotice, on
 
   return (
     <section className="archive-card archive-transfer" aria-label="Import and export responses">
+      <LiquidUnderlay radius={18}/>
       <div className="archive-form-heading">
         <div>
           <p className="archive-kicker">BACKUP & RESTORE</p>

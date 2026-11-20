@@ -2,6 +2,7 @@ import LiquidButton from '../../ui/LiquidButton';
 import { useEffect, useState, type FormEvent } from 'react';
 import { api } from './api';
 import { OtpCells, OtpRing } from '../auth/OtpVisual';
+import LiquidUnderlay from '../../ui/LiquidUnderlay';
 import type { Agent } from './model';
 
 interface Props {
@@ -88,6 +89,7 @@ export default function SettingsWorkspace({ agent, onAgentChange, onNotice, onEr
       </div>
       <div className="archive-settings-grid">
         <form className="archive-card archive-settings-form" onSubmit={changeName}>
+          <LiquidUnderlay radius={18}/>
           <h2>Agent name</h2>
           <label htmlFor="archive-setting-name">Display name</label>
           <input id="archive-setting-name" value={name} onChange={event => setName(event.target.value)}
@@ -95,6 +97,7 @@ export default function SettingsWorkspace({ agent, onAgentChange, onNotice, onEr
           <LiquidButton type="submit" className="archive-button archive-button-primary" disabled={busy || name === agent.agent_name}>Save name</LiquidButton>
         </form>
         <form className="archive-card archive-settings-form" onSubmit={changePin}>
+          <LiquidUnderlay radius={18}/>
           <h2>Change PIN</h2>
           <label htmlFor="archive-setting-current-pin">Current PIN</label>
           <input id="archive-setting-current-pin" type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4}
@@ -106,6 +109,7 @@ export default function SettingsWorkspace({ agent, onAgentChange, onNotice, onEr
           <p className="archive-hint">Forgot your current PIN? Sign out and use Recover PIN on the authentication test page.</p>
         </form>
         <div className="archive-card archive-settings-form">
+          <LiquidUnderlay radius={18}/>
           <h2>Recovery email</h2>
           <p className="archive-hint">Current verified email: <strong>{email || 'None'}</strong></p>
           {challenge ? (
