@@ -1345,3 +1345,56 @@
     transition-duration:.01ms!important;
   }
 }
+
+
+/* Glass across transfer controls without adding per-item SVG filters. */
+.archive-app .archive-transfer-file-label{
+  display:inline-flex;align-items:center;justify-content:center;
+  border-radius:999px;border:1px solid var(--glass-line);
+  background:var(--liquid-button-tint);color:var(--a-text);
+  box-shadow:inset 0 1px 0 var(--glass-highlight),0 5px 12px rgba(0,0,0,.08);
+  padding:9px 16px;min-height:38px;font-size:12px;font-weight:650;
+  transition:background-color .14s ease,transform .14s ease;
+  cursor:pointer;
+}
+.archive-app .archive-transfer-file-label:hover{transform:translateY(-1px);background:var(--liquid-selection-fill)}
+.archive-app .archive-transfer-file-label:active{transform:scale(.985)}
+.archive-app .archive-transfer-column{min-width:0}
+.archive-app .archive-shortcut-pick .archive-shortcut-menu button{
+  border-radius:8px;color:var(--a-text);box-shadow:none;
+}
+.archive-app .archive-settings-grid{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));
+}
+.archive-app .archive-team-table-wrap{overflow-x:auto}
+.archive-app .archive-edit-form>div:last-child{flex-wrap:wrap;align-items:center}
+.archive-app .archive-response-row-heading{gap:10px}
+.archive-app .archive-row-labels{min-width:0;flex:1}
+.archive-app .archive-row-actions{justify-content:flex-end}
+.archive-app :is(textarea,input)::selection{background:var(--a-accent-soft);color:var(--a-text)}
+.archive-app :is(textarea,input)::placeholder{opacity:.77}
+@media(max-width:780px){
+  .archive-app .archive-composer{border-radius:18px}
+  .archive-app .archive-response-row{padding:14px}
+  .archive-app .archive-page-heading{gap:10px}
+  .archive-app .archive-transfer-note{font-size:11px}
+}
+@media(max-width:530px){
+  .archive-app .archive-library-header-actions{gap:7px}
+  .archive-app .archive-response-row-heading{align-items:flex-start}
+  .archive-app .archive-form-heading{gap:7px}
+  .archive-app .archive-form-heading .liquid-action{flex-shrink:0}
+  .archive-app .archive-settings-grid{grid-template-columns:minmax(0,1fr)}
+  .archive-app .archive-library-tools{display:flex;flex-direction:column;align-items:stretch}
+  .archive-app .archive-library-search{order:0;min-width:0;width:100%}
+  .archive-app .archive-tabs{align-self:flex-start}
+  .archive-app .archive-row-actions{max-width:100%;justify-content:flex-start}
+  .archive-app .archive-composer .archive-composer-bottom{min-height:46px}
+  .optical-caustic{filter:blur(4px);opacity:.18}
+}
+@media(prefers-reduced-transparency:reduce){
+  .archive-app .archive-create-form input,.archive-app .archive-create-form textarea,
+  .archive-app .archive-edit-form input,.archive-app .archive-edit-form textarea,
+  .archive-app .archive-settings-form input{background:var(--a-surface)}
+  .archive-app .archive-visibility-options,.archive-app .archive-transfer-scope{background:var(--a-surface)}
+}
