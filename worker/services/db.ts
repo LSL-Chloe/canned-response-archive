@@ -3,6 +3,8 @@ export interface Env {
   SUPABASE_URL?: string;
   SUPABASE_SECRET_KEY?: string;
   PIN_PEPPER?: string;
+  OTP_MAILER_URL?: string;
+  OTP_MAILER_SECRET?: string;
 }
 
 export class DatabaseError extends Error {

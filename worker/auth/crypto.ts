@@ -41,3 +41,15 @@ export async function verifyPin(pin: string, stored: string, pepper: string): Pr
     return differences === 0;
   } catch { return false; }
 }
+
+/** Unbiased, cryptographically secure six-digit OTP, retaining leading zeros. */
+export function newOtp(): string {
+  const max = Math.floor(0x1_0000_0000 / 1_000_000) * 1_000_000;
+  let n: number;
+  do { n = crypto.getRandomValues(new Uint32Array(1))[0]!; } while (n >= max);
+  return String(n % 1_000_000).padStart(6, '0');
+}
+export async function otpDigest(id: string, code: string, pepper: string): Promise<string> {
+  if (!/^[0-9a-f-]{36}$/i.test(id) || !/^\d{6}$/.test(code)) throw new Error('Invalid OTP input');
+  return hmac(`archive:otp:v1:${id.toLowerCase()}:${code}`, pepper);
+}

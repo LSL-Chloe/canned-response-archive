@@ -30,12 +30,14 @@ npm run check      # all checks
 
 ## Project status
 
-**Implemented:** React entrypoint, placeholder interface, Cloudflare Worker API, secured
-agent-name/PIN no-email signup and login, sessions, account name/PIN changes, shared/private
-response CRUD, import/export permissions, admin counts and three tested development SQL migrations.
-See [backend API](docs/backend-api.md) for current routes and limitations.
+**Implemented in development:** React entrypoint, placeholder interface, Cloudflare Worker API,
+agent-name/PIN signup with optional verified email, login, email changes, PIN recovery,
+sessions, shared/private response CRUD, import/export permissions, admin counts and four
+tested development SQL migrations.
+See [backend API](docs/backend-api.md) and [Gmail OTP setup](docs/gmail-otp-setup.md)
+for current routes, security model, setup and limitations.
 
-**Not implemented:** Email OTP signup/recovery/change email, full deployed Supabase integration,
+**Not yet configured/tested end-to-end:** Gmail sending authorization, deployed Supabase Worker integration,
 realtime browser subscriptions, visual design, staging/production deployments.
 The development Supabase database is provisioned, but no Worker credentials have been added.
 

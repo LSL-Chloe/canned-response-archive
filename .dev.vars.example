@@ -4,6 +4,6 @@ SUPABASE_URL=https://your-dev-project.supabase.co
 SUPABASE_SECRET_KEY=sb_secret_REPLACE_WITH_SERVER_ONLY_KEY
 # Generate using `openssl rand -hex 32`; treat as a permanent secret used for PIN hashes and rate-limit keys.
 PIN_PEPPER=REPLACE_WITH_A_RANDOM_SECRET_AT_LEAST_32_CHARACTERS
-# FUTURE: Gmail Apps Script OTP sender (email-backed signup is intentionally disabled until verified).
+# Gmail Apps Script OTP sender (configure only once Gmail setup is authorized).
 # OTP_MAILER_URL=https://script.google.com/macros/s/EXAMPLE/exec
 # OTP_MAILER_SECRET=REPLACE_WITH_LONG_RANDOM_SECRET
