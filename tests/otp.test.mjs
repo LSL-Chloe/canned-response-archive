@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { emailInput, challengeInput, otpInput } from '../worker/api/otp.ts';
+import { emailInput, challengeInput, otpInput, throttle, OTP_SEND_LIMIT, OTP_SEND_WINDOW_SECONDS } from '../worker/api/otp.ts';
 import { hmac, newOtp, otpDigest } from '../worker/auth/crypto.ts';
 import { mailConfigured, sendVerificationEmail } from '../worker/services/mailer.ts';
 import { ApiError } from '../worker/api/shared.ts';
@@ -77,4 +77,50 @@ test('Mailer fails closed when relay refuses the request', async () => {
       (error) => error instanceof ApiError && error.status === 503,
     );
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test('OTP requests permit three per target per 15 minutes, preserving separate IP limit', async () => {
+  assert.equal(OTP_SEND_LIMIT, 3);
+  assert.equal(OTP_SEND_WINDOW_SECONDS, 900);
+  const original = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    assert.equal(new URL(url).pathname, '/rest/v1/rpc/use_rate_limit');
+    calls.push(JSON.parse(init.body));
+    return Response.json(true);
+  };
+  try {
+    const request = new Request('https://archive.example/api/auth/signup', {
+      headers: { 'CF-Connecting-IP': '192.0.2.12' },
+    });
+    await throttle(configured, request, 'signup:agent@example.com');
+    assert.equal(calls.length, 2);
+    assert.deepEqual(calls.map(({ p_limit, p_window_seconds }) => [p_limit, p_window_seconds]),
+      [[20, 3600], [3, 900]]);
+    assert.equal(calls[1].p_key_hash,
+      await hmac('otp:target:v2:signup:agent@example.com', configured.PIN_PEPPER));
+    assert.equal(calls[0].p_key_hash,
+      await hmac('otp:ip:192.0.2.12', configured.PIN_PEPPER));
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test('OTP per-target throttle rejects additional requests without contacting Gmail', async () => {
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json(calls === 1);
+  };
+  try {
+    const request = new Request('https://archive.example/api/auth/signup');
+    await assert.rejects(
+      throttle(configured, request, 'signup:agent@example.com'),
+      (error) => error instanceof ApiError && error.status === 429 && error.code === 'rate_limited',
+    );
+    assert.equal(calls, 2);
+  } finally {
+    globalThis.fetch = original;
+  }
 });
