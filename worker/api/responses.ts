@@ -154,9 +154,12 @@ export async function handleResponses(request: Request, env: Env, path: string):
       }
     }
     // Re-check scope and ownership in the update filter as defense in depth.
-    const guardedQuery = signed.agent.role === 'admin' && item.visibility === 'shared'
-      ? { id: `eq.${id}`, visibility: 'eq.shared' }
-      : { id: `eq.${id}`, owner_id: `eq.${signed.agent.id}`, visibility: `eq.${item.visibility}` };
+    const guardedQuery: Record<string, string> = {
+      id: `eq.${id}`, visibility: `eq.${item.visibility}`,
+    };
+    if (!(signed.agent.role === 'admin' && item.visibility === 'shared')) {
+      guardedQuery.owner_id = `eq.${signed.agent.id}`;
+    }
     const updated = await database<CanonicalResponse[]>(env, 'canned_responses', {
       method: 'PATCH', query: guardedQuery,
       body: { body, shortcut_id: nextShortcutId },
