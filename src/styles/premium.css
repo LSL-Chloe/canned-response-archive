@@ -752,3 +752,16 @@
     scroll-behavior:auto!important;
   }
 }
+
+/* Compact control proportions on narrow phones; the thumb remains a larger glass dome. */
+@media(max-width:530px){
+  .liquid-theme-switch{width:107px;flex-basis:107px;height:40px}
+  .liquid-theme-switch .liquid-switch-thumb{width:54px;height:54px;top:-7px;left:-3px}
+  .liquid-theme-switch[data-appearance="dark"] .liquid-switch-thumb{transform:translate3d(57px,0,0)}
+  .liquid-switch-label{font-size:12px;padding-left:14px;padding-right:6px}
+  .liquid-theme-switch[data-appearance="light"] .liquid-switch-label{padding-left:6px;padding-right:13px}
+  .liquid-switch-puck svg{width:20px;height:20px}
+  .archive-app .archive-topbar-title strong{max-width:95px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .archive-app .archive-topbar-right{gap:6px}
+  .archive-app .archive-sign-in-link{padding:7px 10px;font-size:11px}
+}

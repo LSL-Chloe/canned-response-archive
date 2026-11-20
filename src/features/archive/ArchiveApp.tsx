@@ -190,6 +190,8 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
 
   return (
     <div className={`archive-app ${sidebarCollapsed ? 'is-sidebar-collapsed' : ''}`} data-theme={theme}>
+      <button type="button" className="archive-sidebar-scrim" aria-label="Close navigation"
+        onClick={() => setSidebarCollapsed(true)} />
       <aside className="archive-sidebar">
         <div className="archive-sidebar-header">
           <div className="archive-brand"><span className="archive-brand-mark glass-control">#</span><span className="archive-brand-text">response<span className="archive-brand-muted">/archive</span><small>YOUR WORDS, AT HAND</small></span></div>
