@@ -1,13 +1,13 @@
 # Canned Response Archive
 
 A browser-based canned-response archive for a workplace team. This repository currently
-contains the **Phase 1 development foundation**, not the finished application.
+contains the **Phase 2 development backend prototype**, not the finished application.
 
 ## Stack
 
 - React 19 + TypeScript + Vite
 - Cloudflare Workers with the Cloudflare Vite plugin (frontend assets + API Worker)
-- Supabase planned for Postgres and live shared-response updates
+- Supabase development PostgreSQL schema (shared-only Realtime feed provisioned)
 - Gmail + Google Apps Script planned for low-volume OTP email
 
 ## Quickstart
@@ -30,11 +30,14 @@ npm run check      # all checks
 
 ## Project status
 
-**Implemented:** React entrypoint, minimal accessible placeholder, Cloudflare Worker
-health API, TypeScript configuration, local setup, GitHub CI, architecture/requirements notes.
+**Implemented:** React entrypoint, placeholder interface, Cloudflare Worker API, secured
+agent-name/PIN no-email signup and login, sessions, account name/PIN changes, shared/private
+response CRUD, import/export permissions, admin counts and three tested development SQL migrations.
+See [backend API](docs/backend-api.md) for current routes and limitations.
 
-**Not implemented:** Supabase connection, accounts, PIN/OTP security, response CRUD, realtime,
-shortcut search, visual design, staging/production deployment.
+**Not implemented:** Email OTP signup/recovery/change email, full deployed Supabase integration,
+realtime browser subscriptions, visual design, staging/production deployments.
+The development Supabase database is provisioned, but no Worker credentials have been added.
 
 Design and animation decisions remain intentionally open until the user supplies references.
 See [requirements](docs/requirements.md), [architecture](docs/architecture.md) and
@@ -43,4 +46,4 @@ See [requirements](docs/requirements.md), [architecture](docs/architecture.md) a
 ## Security
 
 Never commit `.dev.vars`, `.env`, credentials, API secrets, agent PINs, or OTP codes.
-Do not use this phase-1 placeholder as a production workplace archive.
+Do not use this Phase 2 prototype as a production workplace archive.

@@ -33,8 +33,18 @@
 - Development and production use separate databases.
 - Design direction, animation choices, and visual references will be supplied later.
 
+## Admin and response permissions (confirmed)
+- Any authenticated agent can create Shared or Private responses.
+- Agents can edit and delete **only their own Private** responses.
+- Agents can delete **their own Shared** responses, but cannot edit any Shared response.
+- The admin can edit or delete **any Shared** response, but not read or manage another agent's Private response contents.
+- Only admin can import/export Shared responses. Agents can import/export **their own Private** responses.
+- The shared library displays "Created by {agent name}" below response text; the
+  main `#` search suggestion interface does **not** display creator names.
+- Admin section lists registered accounts, join dates, roles, shared counts, and private counts;
+  it does not expose private response text to the admin.
+
 ## Still to define
-- Who can edit/delete shared responses created by others (agents vs admin).
-- Admin-specific management UI and moderation operations.
+- Additional admin moderation operations beyond current permissions.
 - Search ranking, shortcut character rules, and exact multi-response selection behavior.
 - Backup retention and restore process.

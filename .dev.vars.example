@@ -1,7 +1,9 @@
-# DO NOT enter real secrets in this file or commit a filled copy.
-# Copy to .dev.vars only when backend integrations are implemented.
-# The following are reserved names, NOT currently used by the Worker.
-# SUPABASE_URL=https://your-project.supabase.co
-# SUPABASE_SECRET_KEY=YOUR_SERVER_ONLY_KEY
-# OTP_MAILER_URL=https://your-authorized-apps-script-endpoint
+# Example ONLY. NEVER commit a real .dev.vars, an OTP credential, or a Supabase secret.
+# Copy to .dev.vars locally; use Cloudflare Worker Secrets in deployed environments.
+SUPABASE_URL=https://your-dev-project.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_REPLACE_WITH_SERVER_ONLY_KEY
+# Generate using `openssl rand -hex 32`; treat as a permanent secret used for PIN hashes and rate-limit keys.
+PIN_PEPPER=REPLACE_WITH_A_RANDOM_SECRET_AT_LEAST_32_CHARACTERS
+# FUTURE: Gmail Apps Script OTP sender (email-backed signup is intentionally disabled until verified).
+# OTP_MAILER_URL=https://script.google.com/macros/s/EXAMPLE/exec
 # OTP_MAILER_SECRET=REPLACE_WITH_LONG_RANDOM_SECRET

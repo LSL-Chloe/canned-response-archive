@@ -1,0 +1,1 @@
+create index canned_responses_shortcut_scope_fk_idx on public.canned_responses(shortcut_id,visibility);

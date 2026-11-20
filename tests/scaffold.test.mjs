@@ -25,7 +25,9 @@ test('secrets and generated artifacts are gitignored', () => {
   }
 });
 
-test('database migration is intentionally pending', () => {
-  assert.ok(exists('supabase/migrations/README.md'));
-  assert.ok(exists('docs/architecture.md'));
+test('versioned database migrations and API documentation exist', () => {
+  assert.ok(exists('supabase/migrations/20261120003511_initial_archive_schema.sql'));
+  assert.ok(exists('supabase/migrations/20261120003644_index_shortcut_scope_fk.sql'));
+  assert.ok(exists('supabase/migrations/20261120005428_auth_and_attribution.sql'));
+  assert.ok(exists('docs/backend-api.md'));
 });

@@ -8,7 +8,7 @@
 4. Realtime read model for shared response changes only; private content is never published to a guest-readable channel.
 5. Gmail/Google Apps Script as a potential OTP sender. Integration must be authenticated, rate-limited and tested.
 
-## Proposed data model (for Phase 2 review; not deployed)
+## Database model (deployed to development; not to production)
 
 - `agents`: immutable UUID, unique normalized agent name, optional verified email, role, timestamps.
 - `agent_credentials`: UUID to agent, cryptographically protected PIN verifier, lockout fields. No plaintext PIN.
@@ -16,7 +16,7 @@
 - `shortcuts`: UUID, normalized shortcut text, created_at. Needs careful definition for private shortcut collisions.
 - `responses`: UUID, shortcut_id, body, visibility (`shared`/`private`), owner_id, timestamps.
 - `otp_challenges`: purpose, salted code verifier, target email, expiry, attempts and send limit.
-- `shared_response_feed` (possible): safely filtered shared data for anon read + realtime. Does not contain private rows or user email/PIN data.
+- `shared_response_feed`: safely filtered shared data plus creator display name for guest read/realtime. Does not contain private rows or email/PIN data.
 
 ## Authentication security
 
@@ -46,7 +46,7 @@ untrusted staging surfaces; never share production secrets with preview deployme
 changes in migrations, validate on staging, export backups before production changes, and deploy
 only after green checks. Code rollbacks do not automatically roll back database migrations.
 
-## API (Phase 1)
+## API (Phase 2 development)
 
-- `GET /api/health` -> `{ status: "ok", service: ..., phase: "foundation" }`
-- Other API routes -> HTTP 404. No accounts, writes or database connections exist yet.
+Backend routes are implemented but are not deployed and have not been tested with server credentials.
+See [backend API](backend-api.md) for the full route matrix, security assumptions and remaining work.

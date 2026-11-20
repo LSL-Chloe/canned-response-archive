@@ -1,55 +1,59 @@
-# Local setup and account connection
+# Local development and environment setup
 
-## Prerequisites
-- Node.js 22 or newer (LTS recommended)
-- npm
-- A GitHub account, a Cloudflare account, and a Supabase account
+## Requirements
 
-## Local run
+- Node.js 22+ and npm
+- GitHub repository: [LSL-Chloe/canned-response-archive](https://github.com/LSL-Chloe/canned-response-archive)
+- Supabase dev project: `bjcfoitzfiunikkemdry` (already provisioned and migrated)
+- Cloudflare account (deployment is NOT configured)
+
+## Running the local scaffold
 
 ```bash
 npm install
+npm run check
 npm run dev
 ```
 
-Open the local URL printed by Vite. The page should report that `/api/health` is online.
+Open the URL printed by Vite. `GET /api/health` reports whether environment secrets
+are present. The page is deliberately a placeholder awaiting approved design references.
 
-To verify the build and source structure:
+## Connecting the development Worker
+
+The backend source implements agent-name/PIN login and response operations. It has **not**
+yet been tested end to end against the live development database because no credentials
+have been supplied to the Worker.
+
+1. Copy `.dev.vars.example` to `.dev.vars` locally.
+2. Set `SUPABASE_URL` to the development project's Supabase URL, not a production URL.
+3. Set `SUPABASE_SECRET_KEY` to a **server-only** dev project secret API key (`sb_secret_…`).
+4. Generate a 32+-character random `PIN_PEPPER` (e.g. `openssl rand -hex 32`).
+5. Run locally; never commit `.dev.vars` or expose these values in client-side code.
+
+For an eventual development deployment, use **Cloudflare Worker Secrets**. Do not paste
+real keys into GitHub or ChatGPT messages. The published Worker is not yet configured.
+
+**Email-backed signup deliberately returns HTTP 501 until Gmail OTP verification is built.**
+Do not launch signup to teammates before the email and recovery flows are complete.
+
+## GitHub workflow
+
+The repository is public, so review every commit carefully for secrets. Use feature
+branches and pull requests for subsequent work. Avoid initializing Git
+a second time inside an existing checkout. To clone the existing repository:
 
 ```bash
-npm run check
-npm run preview
+git clone https://github.com/LSL-Chloe/canned-response-archive.git
+cd canned-response-archive
 ```
 
-**Phase 1 intentionally has no real database integration or email sender.** Do not add API keys
-until Phase 2 implements a secure backend integration.
+Keep `main` for reviewed work. The GitHub connection now has `LSL-Chloe` write access.
+The Phase 2 backend source is development-only; avoid deploying production until security
+and end-to-end verification are complete.
 
-## GitHub setup
+## Production planning
 
-1. Create a **private**, empty GitHub repository named `canned-response-archive`.
-2. Extract this starter folder locally and run:
-
-```bash
-git init
-git branch -M main
-git add .
-git commit -m "chore: initialize canned response archive foundation"
-git remote add origin https://github.com/YOUR_USERNAME/canned-response-archive.git
-git push -u origin main
-```
-
-3. Keep `main` for reviewed stable work; use branches/PRs for features.
-4. `.dev.vars`, `.env`, and secrets are ignored. Do not commit service keys.
-
-## Cloudflare
-
-The project uses the official Workers Vite integration, NOT legacy InfinityFree hosting.
-After `npm run check` succeeds, use Cloudflare's Git integration or `npm run deploy` with an
-authorized Cloudflare login when ready. The default Worker name ends in `-dev` to discourage
-accidental production deployment. Configure a separate production environment after staging tests.
-
-## Supabase
-
-Create two **distinct** Supabase projects when ready: `canned-response-archive-dev` and
-`canned-response-archive-prod`. No SQL migration is included yet. Do not create the production
-schema or add secrets before review of authentication and access rules.
+The development migrations have been applied in Supabase and mirrored as versioned SQL
+files in `supabase/migrations`. **Do not rerun them on development.** Create a second
+Supabase project for production only after the whole stack passes an end-to-end security
+and functionality review. Stage and test every future migration first.
