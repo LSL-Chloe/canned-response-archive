@@ -87,6 +87,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   const [page, setPage] = useState<Page>('search');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.matchMedia('(max-width: 780px)').matches);
   const [agent, setAgent] = useState<Agent | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [shared, setShared] = useState<ArchiveResponse[]>([]);
   const [privateRows, setPrivateRows] = useState<ArchiveResponse[]>([]);
@@ -138,6 +139,15 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
       .finally(() => { if (live) setSessionLoading(false); });
     return () => { live = false; };
   }, [onError]);
+
+  useEffect(() => {
+    if (!agent) { setAvatarUrl(null); return; }
+    let live = true;
+    void import('./api').then(({ api }) => api<{ avatarUrl: string | null }>('/api/account/avatar'))
+      .then(result => { if (live) setAvatarUrl(result.avatarUrl); })
+      .catch(() => { if (live) setAvatarUrl(null); });
+    return () => { live = false; };
+  }, [agent?.id]);
 
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => {
@@ -251,7 +261,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
               <div className="archive-account-wrap">
                 <button className="archive-account-button" type="button" aria-haspopup="menu"
                   aria-expanded={accountMenuOpen} onClick={() => setAccountMenuOpen(open => !open)}>
-                  <span className="archive-avatar">{agent.agent_name.charAt(0).toUpperCase()}</span>
+                  <span className="archive-avatar">{avatarUrl ? <img src={avatarUrl} alt="" referrerPolicy="no-referrer"/> : agent.agent_name.charAt(0).toUpperCase()}</span>
                   <span>{agent.agent_name}</span>
                   <Icon name="chevron" size={14}/>
                 </button>
@@ -279,7 +289,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
           {page === 'library' && <LibraryWorkspace agent={agent} records={responses} loading={loading}
             pendingAction={pendingAction} onHandled={() => setPendingAction(null)} onRequireLogin={requireLogin}
             reload={() => refresh()} onNotice={onNotice} onError={onError}/>}
-          {page === 'settings' && agent && <SettingsWorkspace agent={agent} onAgentChange={setAgent}
+          {page === 'settings' && agent && <SettingsWorkspace agent={agent} onAgentChange={setAgent} avatarUrl={avatarUrl} onAvatarChange={setAvatarUrl}
             onNotice={onNotice} onError={onError}/>}
           {page === 'team' && agent?.role === 'admin' && <TeamWorkspace onError={onError}/>}
         </main>

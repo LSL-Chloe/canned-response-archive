@@ -5,6 +5,7 @@ export interface Env {
   PIN_PEPPER?: string;
   OTP_MAILER_URL?: string;
   OTP_MAILER_SECRET?: string;
+  TMDB_READ_ACCESS_TOKEN?: string;
 }
 
 export class DatabaseError extends Error {

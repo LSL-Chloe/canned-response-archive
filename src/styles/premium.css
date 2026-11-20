@@ -1398,3 +1398,82 @@
   .archive-app .archive-settings-form input{background:var(--a-surface)}
   .archive-app .archive-visibility-options,.archive-app .archive-transfer-scope{background:var(--a-surface)}
 }
+
+/* Compact fixed-height two-stage shortcut menu. Keep scrolling inside the popover. */
+.archive-app .archive-shortcut-scroll{
+  height:clamp(140px, min(300px, 42vh), 300px);
+  max-height:min(300px,42vh);overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:var(--glass-line) transparent;
+}
+.archive-app .archive-shortcut-option{padding:12px 13px}
+.archive-app .archive-shortcut-count{color:var(--a-muted);font-size:12px;display:flex;gap:12px;align-items:center}
+.archive-app .archive-shortcut-count span{font-size:19px;line-height:1}
+.archive-app .archive-shortcut-back{
+  border:0;background:transparent;color:var(--a-text);font:inherit;
+  padding:3px 7px;cursor:pointer;border-radius:9px;text-align:left;
+}
+.archive-app .archive-shortcut-back:hover{background:var(--liquid-selection-fill)}
+.archive-app .archive-response-option-label{font-size:12px;line-height:1.48;white-space:normal;overflow-wrap:anywhere}
+.archive-app .archive-shortcut-scroll .archive-suggestion-row{align-items:flex-start;gap:10px}
+.archive-app .archive-shortcut-scroll .archive-small-tag{white-space:nowrap;flex:none}
+
+/* Avatar gallery: custom upload must always be the first tile. */
+.archive-app .archive-avatar-picker{padding:22px 24px;display:flex;flex-direction:column;gap:13px;margin-bottom:14px}
+.archive-app .archive-avatar-heading{display:flex;justify-content:space-between;gap:12px;align-items:start}
+.archive-app .archive-avatar-heading h2{font-size:18px;margin:0}
+.archive-app .archive-avatar-heading p{margin:5px 0 0}
+.archive-app .archive-avatar-current{display:flex;gap:13px;align-items:center}
+.archive-app .archive-avatar-preview,.archive-app .archive-avatar-upload-circle{
+  display:grid;place-items:center;border-radius:50%;width:62px;height:62px;overflow:hidden;
+  background:var(--liquid-selection-fill);border:1px solid var(--glass-line);
+  box-shadow:inset 0 1px 1px var(--glass-highlight);
+}
+.archive-app .archive-avatar-preview img,.archive-app .archive-avatar-tile-image img{width:100%;height:100%;object-fit:cover;display:block}
+.archive-app .archive-avatar-placeholder{font-size:24px;color:var(--a-muted)}
+.archive-app .archive-avatar-source-tabs{display:flex;gap:5px;flex-wrap:wrap}
+.archive-app .archive-avatar-source-tabs button,.archive-app .archive-avatar-reset,.archive-app .archive-avatar-back{
+  background:var(--liquid-button-tint);border:1px solid var(--glass-line);
+  box-shadow:inset 0 1px 0 var(--glass-highlight);border-radius:999px;
+  color:var(--a-text);min-height:34px;padding:6px 14px;cursor:pointer;font-size:12px;
+  transition:background-color .15s ease,transform .15s ease;
+}
+.archive-app .archive-avatar-source-tabs button.active{background:var(--liquid-selection-fill);border-color:var(--a-accent)}
+.archive-app .archive-avatar-reset{white-space:nowrap}
+.archive-app .archive-avatar-source-tabs button:hover,.archive-app .archive-avatar-reset:hover,.archive-app .archive-avatar-back:hover{transform:translateY(-1px)}
+.archive-app .archive-avatar-search-label{font-size:12px;font-weight:650}
+.archive-app .archive-avatar-search{
+  padding:11px 13px;border-radius:12px;border:1px solid var(--glass-line);
+  background:var(--field);color:var(--a-text);width:100%;min-width:0;
+}
+.archive-app .archive-avatar-search:focus{outline:0;border-color:var(--a-accent);box-shadow:0 0 0 2px var(--a-accent-soft)}
+.archive-app .archive-avatar-back{align-self:flex-start}
+.archive-app .archive-avatar-file{display:none}
+.archive-app .archive-avatar-gallery{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(94px,1fr));gap:12px;
+  max-height:385px;overflow-y:auto;overscroll-behavior:contain;padding:3px;
+  scrollbar-width:thin;
+}
+.archive-app .archive-avatar-tile{
+  min-width:0;background:transparent;color:var(--a-text);border:1px solid transparent;
+  display:flex;align-items:center;flex-direction:column;gap:5px;padding:10px 5px;
+  cursor:pointer;border-radius:16px;transition:background-color .14s ease,transform .17s ease;
+}
+.archive-app .archive-avatar-tile:hover:not(:disabled),.archive-app .archive-avatar-tile:focus-visible{
+  background:var(--liquid-selection-fill);border-color:var(--glass-line);transform:translateY(-2px)
+}
+.archive-app .archive-avatar-tile-image{width:70px;height:70px;border-radius:50%;display:grid;place-items:center;overflow:hidden;
+  background:var(--field);border:1px solid var(--glass-line)}
+.archive-app .archive-avatar-upload-circle{width:70px;height:70px;background:transparent;border:1.5px dashed var(--a-muted)}
+.archive-app .archive-avatar-upload-circle span{font-size:31px;font-weight:300;line-height:1;color:var(--a-text)}
+.archive-app .archive-avatar-tile-name{max-width:100%;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:11px;font-weight:650}
+.archive-app .archive-avatar-tile-subtitle{max-width:100%;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:10px;color:var(--a-muted)}
+.archive-app .archive-avatar-error{font-size:12px;color:#e69ea4}
+.archive-app .archive-avatar-attribution{font-size:10px;line-height:1.4;color:var(--a-muted);margin:0}
+.archive-app .archive-avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+@media(max-width:530px){
+ .archive-app .archive-avatar-picker{padding:17px 15px}
+ .archive-app .archive-avatar-gallery{grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:7px}
+ .archive-app .archive-avatar-tile-image,.archive-app .archive-avatar-upload-circle{width:61px;height:61px}
+ .archive-app .archive-avatar-heading{flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){.archive-app .archive-avatar-tile,.archive-app .archive-avatar-source-tabs button{transition:none}}

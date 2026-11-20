@@ -3,15 +3,18 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { api } from './api';
 import { OtpCells, OtpRing } from '../auth/OtpVisual';
 import LiquidUnderlay from '../../ui/LiquidUnderlay';
+import AvatarPicker from './AvatarPicker';
 import type { Agent } from './model';
 
 interface Props {
   agent: Agent;
   onAgentChange: (agent: Agent) => void;
+  avatarUrl: string | null;
+  onAvatarChange: (value: string | null) => void;
   onNotice: (message: string) => void;
   onError: (message: string) => void;
 }
-export default function SettingsWorkspace({ agent, onAgentChange, onNotice, onError }: Props) {
+export default function SettingsWorkspace({ agent, onAgentChange, avatarUrl, onAvatarChange, onNotice, onError }: Props) {
   const [name, setName] = useState(agent.agent_name);
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -87,6 +90,7 @@ export default function SettingsWorkspace({ agent, onAgentChange, onNotice, onEr
       <div className="archive-page-heading">
         <div><p className="archive-kicker">ACCOUNT</p><h1>Settings</h1><p>Update your personal account details.</p></div>
       </div>
+      <AvatarPicker avatarUrl={avatarUrl} onAvatarChange={onAvatarChange} onNotice={onNotice} onError={onError}/>
       <div className="archive-settings-grid">
         <form className="archive-card archive-settings-form" onSubmit={changeName}>
           <LiquidUnderlay radius={18}/>

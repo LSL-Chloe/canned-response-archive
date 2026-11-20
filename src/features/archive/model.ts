@@ -57,6 +57,25 @@ export function findSuggestions(records: ArchiveResponse[], rawQuery: string): A
     });
 }
 
+
+export interface ShortcutGroup {
+  name: string;
+  responses: ArchiveResponse[];
+}
+
+/** One menu row per shortcut; the next level contains all matching saved responses. */
+export function findShortcutGroups(records: ArchiveResponse[], query: string): ShortcutGroup[] {
+  const matches = findSuggestions(records, query);
+  const groups = new Map<string, ShortcutGroup>();
+  for (const response of matches) {
+    const key = response.shortcut.toLowerCase();
+    const group = groups.get(key);
+    if (group) group.responses.push(response);
+    else groups.set(key, { name: response.shortcut, responses: [response] });
+  }
+  return [...groups.values()];
+}
+
 export function insertSuggestion(value: string, match: HashQuery, body: string): InsertResult {
   if (match.start < 0 || match.end > value.length || match.end < match.start) {
     return { value, caret: value.length };

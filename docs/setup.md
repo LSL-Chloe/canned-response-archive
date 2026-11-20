@@ -59,3 +59,17 @@ The development migrations have been applied in Supabase and mirrored as version
 files in `supabase/migrations`. **Do not rerun them on development.** Create a second
 Supabase project for production only after the whole stack passes an end-to-end security
 and functionality review. Stage and test every future migration first.
+
+## Profile pictures
+
+Profile pictures require the avatar migration in `supabase/migrations/20261121033500_account_avatars.sql`.
+It adds an avatar URL field and creates the `archive-avatars` public-read storage bucket.
+Uploads go through the authenticated Worker, which resizes them to square JPEGs in the browser
+(256×256, under 150 KB) and writes to a per-account object. Never expose the Supabase secret key
+to the client. Public-read avatar URLs can be viewed by anyone who has the URL; do not upload
+sensitive images. The first gallery tile is always a custom-upload circle with a plus.
+
+Anime and TV search use AniList and TVmaze. To enable movie and actor portraits, create a TMDB
+API Read Access Token and add `TMDB_READ_ACCESS_TOKEN` as a Cloudflare Worker secret.
+Do not commit the token. The movie tab displays a configuration message until it is set.
+Catalog images belong to their respective providers and may be subject to attribution or reuse terms.

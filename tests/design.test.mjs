@@ -89,3 +89,34 @@ test('form labels and glass selectors stay aligned', () => {
   assert.match(transfer, /archive-visibility-lens/);
   assert.match(library, /htmlFor="archive-response-body"[\s\S]*\{body.length\}\/10000 characters[\s\S]*<textarea id="archive-response-body"/);
 });
+
+test('two-level shortcut search groups by name and retains response insertion', () => {
+  const model = read('src/features/archive/model.ts');
+  const search = read('src/features/archive/SearchWorkspace.tsx');
+  assert.match(model, /export function findShortcutGroups/);
+  assert.match(model, /new Map<string, ShortcutGroup>/);
+  assert.match(search, /event.key === 'ArrowRight'/);
+  assert.match(search, /event.key === 'ArrowLeft'/);
+  assert.match(search, /openShortcut/);
+  assert.match(search, /goBack/);
+  assert.match(search, /selectedShortcut/);
+  assert.match(search, /useResponse/);
+  assert.match(read('src/styles/premium.css'), /archive-shortcut-scroll/);
+});
+
+test('profile picture picker includes custom upload first and catalog choices', () => {
+  const ui = read('src/features/archive/AvatarPicker.tsx');
+  const settings = read('src/features/archive/SettingsWorkspace.tsx');
+  const app = read('src/features/archive/ArchiveApp.tsx');
+  const server = read('worker/api/avatars.ts');
+  assert.match(ui, /archive-avatar-upload-circle/);
+  assert.ok(ui.indexOf('archive-avatar-upload"') < ui.indexOf('items.map('), 'Custom upload should precede catalog portraits');
+  assert.match(ui, /image\/jpeg/);
+  assert.match(ui, /compressAvatar/);
+  assert.match(settings, /<AvatarPicker/);
+  assert.match(app, /avatarUrl \? <img/);
+  assert.match(server, /getSession/);
+  assert.match(server, /sourceUrl/);
+  assert.match(server, /TMDB_READ_ACCESS_TOKEN/);
+  assert.match(server, /imageData/);
+});
