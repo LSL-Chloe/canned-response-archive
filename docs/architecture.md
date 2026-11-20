@@ -29,6 +29,13 @@ A four-digit PIN is a low-entropy secret. Before production, implement per-accou
 rate limits, backoff/temporary lockouts, uniform error messages, secure PIN hashing with
 an appropriate server-side secret, protected HttpOnly/Secure/SameSite sessions, CSRF defenses
 on state-changing operations, expiry/revocation, and no enumeration of registered emails.
+PIN verifiers use per-account 128-bit random salts and a Worker-secret-keyed HMAC-SHA256;
+the four-digit PIN is intrinsically low entropy, so preserving PIN_PEPPER secrecy and
+login throttling is critical. Workerd rejects PBKDF2 iterations above 100,000, and its
+Free plan has limited CPU time; never silently use a high-iteration PBKDF2 in the Worker.
+This scheme trades offline KDF work for dependence on an undisclosed high-entropy server
+secret. If both database content and PIN_PEPPER are compromised, four-digit PINs are
+brute-forceable; additional authentication controls are necessary before production.
 Hash OTPs, expire them quickly, set strict attempt counts, and verify emails before recovery.
 Account creation/admin bootstrap must be atomic and idempotent.
 
