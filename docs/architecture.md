@@ -55,5 +55,8 @@ only after green checks. Code rollbacks do not automatically roll back database 
 
 ## API (Phase 2 development)
 
-Backend routes are implemented but are not deployed and have not been tested with server credentials.
+Backend routes are deployed to the development Cloudflare Worker. Signup and OTP verification,
+login and PIN recovery were tested by the project owner. Shared read endpoints were verified
+externally. The initial archive UI uses same-origin API calls and 5-second refresh polling,
+not realtime push subscriptions.
 See [backend API](backend-api.md) for the full route matrix, security assumptions and remaining work.

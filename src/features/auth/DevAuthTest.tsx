@@ -152,7 +152,7 @@ export default function DevAuthTest() {
   return (
     <main className="qa-shell">
       <header className="qa-heading">
-        <a href="/" className="qa-back">← Project foundation</a>
+        <a href="/" className="qa-back">← Response archive</a>
         <p className="eyebrow">CANNED RESPONSE ARCHIVE · DEVELOPMENT ONLY</p>
         <h1>Authentication test</h1>
         <p className="intro">A temporary functional test screen, not the final signup or login design.</p>

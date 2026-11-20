@@ -1,7 +1,7 @@
 # Canned Response Archive
 
 A browser-based canned-response archive for a workplace team. This repository currently
-contains the **Phase 2 development backend prototype**, not the finished application.
+contains a **Phase 3 functional archive preview**, not the finished visual design.
 
 ## Stack
 
@@ -19,7 +19,8 @@ npm install
 npm run dev
 ```
 
-Visit the URL shown in the terminal. The temporary scaffold checks `GET /api/health`.
+Visit the URL shown in the terminal. The homepage provides shortcut search, a response
+library and creation forms; the QA auth screen remains at `/dev/auth-test`.
 
 ```bash
 npm run test       # dependency-free source/config tests
@@ -30,7 +31,9 @@ npm run check      # all checks
 
 ## Project status
 
-**Implemented in development:** React entrypoint, placeholder interface, Cloudflare Worker API,
+**Implemented in development:** React archive interface with hashtag suggestions, shared/private
+library, response creation, basic editing and deletion, agent settings, admin counts,
+Cloudflare Worker API,
 agent-name/PIN signup with optional verified email, login, email changes, PIN recovery,
 sessions, shared/private response CRUD, import/export permissions, admin counts and four
 tested development SQL migrations.
@@ -41,9 +44,10 @@ For a temporary browser-based authentication smoke test, see
 [Development authentication QA](docs/auth-qa.md) at `/dev/auth-test`.
 This is **not** the final login or signup interface.
 
-**Not yet configured/tested end-to-end:** Gmail sending authorization, deployed Supabase Worker integration,
-realtime browser subscriptions, visual design, staging/production deployments.
-The development Supabase database is provisioned, but no Worker credentials have been added.
+**Verified during development:** Gmail OTP signup, admin account, login and PIN recovery, backend and
+Supabase connectivity. **Still needed:** true push-based realtime subscription (the browser
+currently polls approximately every 5 seconds), import/export interface, final visual design,
+permission regression testing and separate production deployment.
 
 Design and animation decisions remain intentionally open until the user supplies references.
 See [requirements](docs/requirements.md), [architecture](docs/architecture.md) and
