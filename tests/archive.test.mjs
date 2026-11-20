@@ -45,7 +45,7 @@ test('inserting a selected response replaces only the current hash token', () =>
   assert.ok(match);
   const updated = insertSuggestion(original, match, 'We can reschedule.');
   assert.equal(updated.value, 'Hi We can reschedule., please reply.');
-  assert.equal(updated.caret, 19);
+  assert.equal(updated.caret, 'Hi We can reschedule.'.length);
   assert.deepEqual(insertSuggestion('#followup', { start: 0, end: 9, query: 'followup' }, 'Thanks'),
     { value: 'Thanks ', caret: 7 });
 });
