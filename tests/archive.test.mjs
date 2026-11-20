@@ -66,7 +66,7 @@ test('permission display respects agreed shared/private rules', () => {
   const outsider = { id: 'u2', agent_name: 'Alex', role: 'agent' };
   const admin = { id: 'u3', agent_name: 'Admin', role: 'admin' };
   assert.deepEqual(canManageResponse(owner, records[0]), { edit: true, delete: true });
-  assert.deepEqual(canManageResponse(outsider, records[0]), { edit: false, delete: false });
+  assert.deepEqual(canManageResponse(outsider, { ...records[0], ownedByMe: false }), { edit: false, delete: false });
   assert.deepEqual(canManageResponse(admin, records[0]), { edit: true, delete: true });
   assert.deepEqual(canManageResponse(owner, records[3]), { edit: true, delete: true });
   assert.deepEqual(canManageResponse(admin, records[3]), { edit: true, delete: true }); // Own-private feed only.
