@@ -7,3 +7,6 @@ PIN_PEPPER=REPLACE_WITH_A_RANDOM_SECRET_AT_LEAST_32_CHARACTERS
 # Gmail Apps Script OTP sender (configure only once Gmail setup is authorized).
 # OTP_MAILER_URL=https://script.google.com/macros/s/EXAMPLE/exec
 # OTP_MAILER_SECRET=REPLACE_WITH_LONG_RANDOM_SECRET
+
+# Optional: TMDB API Read Access Token for movie cast avatar search.
+# TMDB_READ_ACCESS_TOKEN=your_token_here

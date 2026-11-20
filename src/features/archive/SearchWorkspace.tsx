@@ -1,6 +1,6 @@
 import LiquidButton from '../../ui/LiquidButton';
 import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { findHashQuery, findSuggestions, insertSuggestion, type ArchiveResponse } from './model';
+import { findHashQuery, findShortcutGroups, insertSuggestion, type ArchiveResponse } from './model';
 import LiquidUnderlay from '../../ui/LiquidUnderlay';
 
 interface Props {
@@ -9,7 +9,13 @@ interface Props {
   onNotice: (notice: string) => void;
   onError: (message: string) => void;
 }
-interface LastInsert { before: string; after: string; caret: number; highlight: number }
+interface LastInsert {
+  before: string;
+  after: string;
+  caret: number;
+  highlight: number;
+  selectedShortcut: string | null;
+}
 
 export default function SearchWorkspace({ responses, loading, onNotice, onError }: Props) {
   const [draft, setDraft] = useState('');
@@ -17,9 +23,11 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
   const [focused, setFocused] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [highlight, setHighlight] = useState(0);
+  const [selectedShortcut, setSelectedShortcut] = useState<string | null>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
   const lastInsert = useRef<LastInsert | null>(null);
-  // Expand only as the message grows; don't start users in a seven-row editor.
+
   useLayoutEffect(() => {
     const field = input.current;
     if (!field) return;
@@ -28,32 +36,56 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
     field.style.height = `${Math.min(Math.max(fullHeight, 56), 216)}px`;
     field.style.overflowY = fullHeight > 216 ? 'auto' : 'hidden';
   }, [draft]);
+
   const token = findHashQuery(draft, caret);
-  const suggestions = useMemo(
-    () => token ? findSuggestions(responses, token.query) : [],
+  const groups = useMemo(
+    () => token ? findShortcutGroups(responses, token.query) : [],
     [responses, token?.query, token?.start, token?.end],
   );
+  const current = selectedShortcut
+    ? groups.find(group => group.name.toLowerCase() === selectedShortcut.toLowerCase())
+    : undefined;
+  const options = current ? current.responses : groups;
   const open = focused && !dismissed && token !== null;
-  const activeIndex = suggestions.length ? Math.min(highlight, suggestions.length - 1) : -1;
+  const activeIndex = options.length ? Math.min(highlight, options.length - 1) : -1;
+
+  // Keep keyboard selection in view inside the fixed-height menu.
+  useLayoutEffect(() => {
+    if (!open || activeIndex < 0) return;
+    menu.current?.querySelector<HTMLElement>(`#archive-option-${activeIndex}`)
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [open, activeIndex, current?.name]);
 
   function setSelection(nextCaret: number) {
     requestAnimationFrame(() => {
-      const element = input.current;
-      if (!element) return;
-      element.focus();
-      element.setSelectionRange(nextCaret, nextCaret);
+      const field = input.current;
+      if (!field) return;
+      field.focus();
+      field.setSelectionRange(nextCaret, nextCaret);
     });
+  }
+  function openShortcut(name: string) {
+    setSelectedShortcut(name);
+    setHighlight(0);
+  }
+  function goBack() {
+    const previous = groups.findIndex(group => group.name.toLowerCase() === selectedShortcut?.toLowerCase());
+    setSelectedShortcut(null);
+    setHighlight(Math.max(0, previous));
   }
   function useResponse(item: ArchiveResponse) {
     const found = findHashQuery(draft, input.current?.selectionStart ?? caret);
     if (!found) return;
     const inserted = insertSuggestion(draft, found, item.body);
-    lastInsert.current = { before: draft, after: inserted.value, caret: found.end, highlight: activeIndex };
+    lastInsert.current = {
+      before: draft, after: inserted.value, caret: found.end,
+      highlight: activeIndex, selectedShortcut,
+    };
     setDraft(inserted.value);
     setCaret(inserted.caret);
     setDismissed(true);
     setSelection(inserted.caret);
-    onNotice('Response inserted into your draft. Ctrl+Z or Cmd+Z restores the previous text.');
+    onNotice('Response inserted. Ctrl+Z or Cmd+Z restores the shortcut search.');
   }
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     const command = event.ctrlKey || event.metaKey;
@@ -65,39 +97,53 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
         setDraft(previous.before);
         setCaret(previous.caret);
         setDismissed(false);
+        setSelectedShortcut(previous.selectedShortcut);
         setHighlight(previous.highlight);
         setSelection(previous.caret);
-        onNotice('Insertion undone. Your previous # search and its suggestions are restored.');
+        onNotice('Insertion undone. Shortcut search restored.');
       }
-      return; // Otherwise preserve the browser's normal undo behavior.
+      return;
     }
     if (!open) return;
     if (event.key === 'Escape') {
       event.preventDefault();
-      setDismissed(true);
+      if (current) goBack();
+      else setDismissed(true);
       return;
     }
-    if (!suggestions.length) return;
+    if (current && event.key === 'ArrowLeft') {
+      event.preventDefault();
+      goBack();
+      return;
+    }
+    if (!options.length) return;
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
-      setHighlight(current => (current + (event.key === 'ArrowDown' ? 1 : -1) + suggestions.length) % suggestions.length);
-    } else if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      useResponse(suggestions[activeIndex] ?? suggestions[0]!);
+      setHighlight(index => (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length);
+    } else if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'ArrowRight') {
+      if (!current && options[activeIndex]) {
+        event.preventDefault();
+        openShortcut(groups[activeIndex]!.name);
+      } else if (current && event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        useResponse(current.responses[activeIndex] ?? current.responses[0]!);
+      }
     }
   }
   async function copyDraft() {
     try {
       await navigator.clipboard.writeText(draft);
       onNotice('Draft copied to clipboard.');
-    } catch { onError('Clipboard access was blocked by your browser. Select and copy the text manually.'); }
+    } catch {
+      onError('Clipboard access was blocked. Select and copy your text manually.');
+    }
   }
 
   return (
     <section className="archive-search-view" aria-label="Shortcut search">
       <div className="archive-search-intro">
         <h1>Search responses</h1>
-        <p>Type <kbd>#</kbd> in your draft to insert a saved reply.</p>
+        <p>Type <kbd>#</kbd> in your draft to find a saved shortcut.</p>
       </div>
       <div className="archive-composer">
         <LiquidUnderlay radius={18}/>
@@ -105,6 +151,7 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
           ref={input}
           aria-label="Message draft with hashtag shortcuts"
           aria-autocomplete="list"
+          aria-expanded={open}
           aria-controls="archive-suggestions"
           aria-activedescendant={open && activeIndex >= 0 ? `archive-option-${activeIndex}` : undefined}
           value={draft}
@@ -113,13 +160,14 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
           rows={2}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          onClick={event => { setCaret(event.currentTarget.selectionStart); setDismissed(false); }}
+          onClick={event => { setCaret(event.currentTarget.selectionStart); setDismissed(false); setSelectedShortcut(null); }}
           onSelect={event => setCaret(event.currentTarget.selectionStart)}
           onChange={event => {
             const value = event.currentTarget.value;
             setDraft(value);
             setCaret(event.currentTarget.selectionStart);
             setDismissed(false);
+            setSelectedShortcut(null);
             setHighlight(0);
             if (lastInsert.current?.after !== value) lastInsert.current = null;
           }}
@@ -128,37 +176,57 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
         {open && (
           <div className="archive-suggestion-popover">
             <div className="archive-suggestion-heading">
-              <span>{token?.query ? `Matches for #${token.query}` : 'Available shortcuts'}</span>
-              <span className="archive-faint">↑ ↓ to navigate · Enter to insert · Esc to close</span>
+              {current ? (
+                <button type="button" className="archive-shortcut-back"
+                  onMouseDown={event => event.preventDefault()} onClick={goBack}
+                  aria-label="Back to shortcuts">‹ <strong>#{current.name}</strong></button>
+              ) : (
+                <span>{token?.query ? `Shortcuts matching #${token.query}` : 'All shortcuts'}</span>
+              )}
+              <span className="archive-faint">
+                {current ? `${current.responses.length} saved responses · Enter to insert · ← back` :
+                  `${groups.length} shortcuts · ↑ ↓ select · Enter / → open`}
+              </span>
             </div>
-            <div role="listbox" id="archive-suggestions" aria-label="Canned response suggestions" className="archive-suggestion-list">
-              {suggestions.length ? suggestions.map((item, index) => (
-                <div
-                  key={item.id}
-                  id={`archive-option-${index}`}
-                  role="option"
+            <div role="listbox" id="archive-suggestions" ref={menu}
+              aria-label={current ? `Responses for #${current.name}` : 'Saved shortcuts'}
+              className="archive-suggestion-list archive-shortcut-scroll">
+              {current ? current.responses.map((item, index) => (
+                <div key={item.id} id={`archive-option-${index}`} role="option"
                   aria-selected={activeIndex === index}
                   className={`archive-suggestion ${activeIndex === index ? 'selected' : ''}`}
                   onMouseDown={event => event.preventDefault()}
-                  onClick={() => useResponse(item)}
-                >
+                  onMouseEnter={() => setHighlight(index)}
+                  onClick={() => useResponse(item)}>
                   <div className="archive-suggestion-row">
-                    <strong>#{item.shortcut}</strong>
+                    <span className="archive-response-option-label">{item.body}</span>
                     <span className="archive-small-tag">{item.visibility === 'private' ? 'Private' : 'Shared'}</span>
                   </div>
-                  <div className="archive-snippet">{item.body}</div>
+                </div>
+              )) : groups.length ? groups.map((group, index) => (
+                <div key={group.name.toLowerCase()} id={`archive-option-${index}`} role="option"
+                  aria-selected={activeIndex === index}
+                  className={`archive-suggestion archive-shortcut-option ${activeIndex === index ? 'selected' : ''}`}
+                  onMouseDown={event => event.preventDefault()}
+                  onMouseEnter={() => setHighlight(index)}
+                  onClick={() => openShortcut(group.name)}>
+                  <div className="archive-suggestion-row">
+                    <strong>#{group.name}</strong>
+                    <span className="archive-shortcut-count">{group.responses.length} <span aria-hidden="true">›</span></span>
+                  </div>
                 </div>
               )) : (
-                <div className="archive-empty-options">No responses match that shortcut.</div>
+                <div className="archive-empty-options">No matching shortcuts.</div>
               )}
             </div>
           </div>
         )}
         <div className="archive-composer-bottom">
-          <span className="archive-composer-hint"><kbd>#</kbd> Shortcuts<span className="archive-hint-desktop"> · <kbd>Enter</kbd> insert · <kbd>Ctrl</kbd> + <kbd>Z</kbd> undo</span></span>
-          <LiquidButton className="archive-button archive-button-primary" type="button" disabled={!draft} onClick={() => void copyDraft()}>
-            Copy draft
-          </LiquidButton>
+          <span className="archive-composer-hint"><kbd>#</kbd> Shortcuts
+            <span className="archive-hint-desktop"> · <kbd>Enter</kbd> open · <kbd>Ctrl</kbd> + <kbd>Z</kbd> undo</span>
+          </span>
+          <LiquidButton className="archive-button archive-button-primary" type="button"
+            disabled={!draft} onClick={() => void copyDraft()}>Copy draft</LiquidButton>
         </div>
       </div>
     </section>

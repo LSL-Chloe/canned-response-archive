@@ -3,6 +3,7 @@ import { ApiError, json } from './api/shared.ts';
 import { handleAuth } from './api/auth.ts';
 import { handleOtp } from './api/otp.ts';
 import { handleResponses } from './api/responses.ts';
+import { handleAvatars } from './api/avatars.ts';
 
 /** Cloudflare API Worker. Secrets never leave this module and its server-side dependencies. */
 export default {
@@ -22,6 +23,9 @@ export default {
       if (!origin || origin !== url.origin) return json({ error: 'Invalid request origin' }, 403);
     }
     try {
+      if (path.startsWith('/api/avatars/') || path === '/api/account/avatar' || path === '/api/account/avatar/upload') {
+        return await handleAvatars(request, env, path, url);
+      }
       if (path.startsWith('/api/otp/') || path === '/api/account/email') {
         return await handleOtp(request, env, path);
       }
