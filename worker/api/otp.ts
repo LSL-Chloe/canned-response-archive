@@ -40,10 +40,23 @@ export function challengeInput(value: unknown): string {
 function requireMailer(env: Env): void {
   if (!mailConfigured(env)) fail(503, 'email_unavailable', 'Email verification has not been configured');
 }
-async function throttle(env: Env, request: Request, key: string, perAccount = 3): Promise<void> {
+/** Maximum three OTP send attempts per email/account in a 15-minute fixed window. */
+export const OTP_SEND_LIMIT = 3;
+export const OTP_SEND_WINDOW_SECONDS = 15 * 60;
+/** Keep a separate, broader IP abuse limit independent of the shorter per-target window. */
+const OTP_IP_LIMIT = 20;
+const OTP_IP_WINDOW_SECONDS = 60 * 60;
+
+/**
+ * v2 rate-limit key: old counters were created with one-hour expiry times.
+ * The existing Postgres RPC preserves an unexpired counter's original reset_at;
+ * using a new namespace starts new 15-minute windows without clearing or
+ * weakening the separate IP-wide guard.
+ */
+export async function throttle(env: Env, request: Request, key: string): Promise<void> {
   const ip = ipOf(request);
-  if (!await requireRateLimit(env, `otp:ip:${ip}`, 20, 3600) ||
-      !await requireRateLimit(env, `otp:target:${key}`, perAccount, 3600)) {
+  if (!await requireRateLimit(env, `otp:ip:${ip}`, OTP_IP_LIMIT, OTP_IP_WINDOW_SECONDS) ||
+      !await requireRateLimit(env, `otp:target:v2:${key}`, OTP_SEND_LIMIT, OTP_SEND_WINDOW_SECONDS)) {
     fail(429, 'rate_limited', 'Too many verification requests. Try again later.');
   }
 }
@@ -99,7 +112,7 @@ export async function beginEmailSignup(
 ): Promise<Response> {
   requireMailer(env);
   const email = emailInput(emailRaw);
-  await throttle(env, request, `signup:${email}`, 3);
+  await throttle(env, request, `signup:${email}`);
   const nameKey = agentName.toLowerCase();
   const [existingName, existingEmail] = await Promise.all([
     queryTable<AgentRow>(env, 'agents', { select: 'id', agent_name_key: `eq.${nameKey}`, limit: '1' }),
@@ -153,7 +166,7 @@ export async function handleOtp(request: Request, env: Env, path: string): Promi
     if (!signed) return fail(401, 'login_required', 'Sign in to update your email');
     const data = await readJson(request);
     const email = emailInput(data.email);
-    await throttle(env, request, `emailchange:${signed.agent.id}`, 5);
+    await throttle(env, request, `emailchange:${signed.agent.id}`);
     const existing = await queryTable<AgentRow>(env, 'agents', {
       select: 'id,agent_name,role,email,email_verified_at', id: `eq.${signed.agent.id}`, limit: '1',
     });
@@ -190,7 +203,7 @@ export async function handleOtp(request: Request, env: Env, path: string): Promi
     requireMailer(env);
     const body = await readJson(request);
     const email = emailInput(body.email);
-    await throttle(env, request, `recovery:${email}`, 3);
+    await throttle(env, request, `recovery:${email}`);
     const agents = await queryTable<AgentRow>(env, 'agents', {
       select: 'id,agent_name,role,email_verified_at,disabled_at', email: `eq.${email}`, limit: '1',
     });

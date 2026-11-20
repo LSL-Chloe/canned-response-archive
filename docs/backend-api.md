@@ -21,6 +21,14 @@ Cloudflare Worker secrets. There is **no live deployment** yet.
 | POST | `/api/otp/recovery/start` | Guest | `{email}` requests OTP; always returns same generic message and a challengeId, even for unknown accounts. |
 | POST | `/api/otp/recovery/verify` | Guest | `{challengeId,code,newPin}` resets PIN and revokes all sessions. |
 
+OTP **send-request** limit: 3 per target (signup email, recovery email, or signed-in
+email-change account) in a 15-minute fixed window beginning with the first request.
+A separate limit of 20 OTP requests per IP address per hour remains in force.
+Rate-limit requests count even if the downstream mail sender later rejects an email.
+Previous one-hour target counters are not reused; the target key version was advanced
+to `v2` because the SQL rate-limit function preserves non-expired reset times.
+Incorrect-code verification limits are separate.
+
 Challenge responses return `{verificationRequired:true,challengeId,expiresInSeconds:600}`.
 OTP codes are six digits, expire after ten minutes and allow five incorrect attempts.
 Code hashes are HMAC-bound to challenge IDs and stored in Supabase without plaintext OTPs.
