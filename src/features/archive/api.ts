@@ -5,6 +5,7 @@ interface SharedRow {
   shortcut_name: string;
   body: string;
   created_by_name: string;
+  owned_by_viewer: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -13,6 +14,7 @@ interface PrivateRow {
   shortcut_name: string;
   body: string;
   visibility: 'private';
+  owned_by_viewer: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -64,6 +66,7 @@ export async function fetchFeed(visibility: Visibility, signal?: AbortSignal): P
     visibility,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    ownedByMe: row.owned_by_viewer === true,
     ...(visibility === 'shared'
       ? { createdBy: (row as SharedRow).created_by_name }
       : {}),
@@ -74,8 +77,8 @@ export function addResponse(visibility: Visibility, shortcut: string, body: stri
     method: 'POST', body: JSON.stringify({ visibility, shortcut, body }),
   });
 }
-export function updateResponse(id: string, body: string): Promise<{ response: unknown }> {
-  return api(`/api/responses/${id}`, { method: 'PATCH', body: JSON.stringify({ body }) });
+export function updateResponse(id: string, body: string, shortcut: string): Promise<{ response: unknown }> {
+  return api(`/api/responses/${id}`, { method: 'PATCH', body: JSON.stringify({ body, shortcut }) });
 }
 export function deleteResponse(id: string): Promise<{ deleted: true }> {
   return api(`/api/responses/${id}`, { method: 'DELETE' });

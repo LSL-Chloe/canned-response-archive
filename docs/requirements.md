@@ -35,9 +35,10 @@
 
 ## Admin and response permissions (confirmed)
 - Any authenticated agent can create Shared or Private responses.
-- Agents can edit and delete **only their own Private** responses.
-- Agents can delete **their own Shared** responses, but cannot edit any Shared response.
+- Agents can edit and delete their own Private responses, including changing their shortcuts.
+- Agents can edit and delete their **own Shared** responses, including their shortcuts; they cannot manage other agents' Shared responses.
 - The admin can edit or delete **any Shared** response, but not read or manage another agent's Private response contents.
+- Editing the shortcut of one response must reassign only that response; other responses under its old shortcut remain untouched.
 - Only admin can import/export Shared responses. Agents can import/export **their own Private** responses.
 - The shared library displays "Created by {agent name}" below response text; the
   main `#` search suggestion interface does **not** display creator names.

@@ -14,6 +14,7 @@ export interface ArchiveResponse {
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
+  ownedByMe?: boolean;
 }
 export interface HashQuery {
   start: number;
@@ -43,22 +44,17 @@ export function findHashQuery(value: string, caret: number): HashQuery | null {
   };
 }
 
-/** Keep each response independent even when it shares a shortcut with other responses. */
-export function findSuggestions(records: ArchiveResponse[], rawQuery: string, max = 9): ArchiveResponse[] {
+/** A bare # shows EVERY response, not just nine. Typing matches shortcut prefixes only. */
+export function findSuggestions(records: ArchiveResponse[], rawQuery: string): ArchiveResponse[] {
   const query = rawQuery.toLowerCase().replace(/^#/, '');
-  return records.map((record, index) => {
-    const shortcut = record.shortcut.toLowerCase();
-    const body = record.body.toLowerCase();
-    const score = !query ? 0 :
-      shortcut === query ? 0 :
-      shortcut.startsWith(query) ? 1 :
-      shortcut.includes(query) ? 2 :
-      body.includes(query) ? 3 : -1;
-    return { record, index, score };
-  }).filter(item => item.score >= 0)
-    .sort((a, b) => a.score - b.score || a.index - b.index)
-    .slice(0, max)
-    .map(item => item.record);
+  return records
+    .filter(record => record.shortcut.toLowerCase().startsWith(query))
+    .sort((a, b) => {
+      // Preserve separate options when multiple responses share one shortcut.
+      const aKey = a.shortcut.toLowerCase();
+      const bKey = b.shortcut.toLowerCase();
+      return aKey.localeCompare(bKey) || a.createdAt.localeCompare(b.createdAt);
+    });
 }
 
 export function insertSuggestion(value: string, match: HashQuery, body: string): InsertResult {
@@ -92,12 +88,13 @@ export function shortcutOptions(records: ArchiveResponse[], visibility: Visibili
 
 export function canManageResponse(agent: Agent | null, record: ArchiveResponse): { edit: boolean; delete: boolean } {
   if (!agent) return { edit: false, delete: false };
-  if (record.visibility === 'private') return { edit: true, delete: true }; // Private API fetches only the owner.
-  return {
-    edit: agent.role === 'admin',
-    delete: agent.role === 'admin' ||
-      record.createdBy?.toLocaleLowerCase() === agent.agent_name.toLocaleLowerCase(),
-  };
+  // These flags are hints only; every write is re-authorized by the Worker.
+  // Private feed is owner-filtered; shared ownership comes from an immutable ID lookup.
+  if (record.visibility === 'private') {
+    return { edit: record.ownedByMe === true, delete: record.ownedByMe === true };
+  }
+  const allowed = agent.role === 'admin' || record.ownedByMe === true;
+  return { edit: allowed, delete: allowed };
 }
 
 export function formatCount(count: number, singular: string, plural = singular + 's'): string {

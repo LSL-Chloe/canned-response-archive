@@ -165,3 +165,36 @@
   .archive-page-heading{align-items:start;flex-direction:column}
   .archive-response-row{padding:16px 14px}
 }
+
+/* Sidebar is fully reversible: the collapse control stays visible in icon-only mode. */
+.archive-sidebar-header{display:flex;align-items:flex-start;justify-content:space-between;gap:5px;min-width:0;padding-bottom:14px}
+.archive-sidebar-header .archive-brand{min-width:0;flex:1;padding-bottom:16px}
+.archive-collapse-toggle{width:29px;height:29px;flex:0 0 29px;border:1px solid var(--a-line);border-radius:8px;color:var(--a-muted);background:var(--a-soft);display:grid;place-items:center;font-size:19px;line-height:1;cursor:pointer}
+.archive-collapse-toggle:hover{background:var(--a-accent-soft);color:var(--a-accent)}
+.archive-nav .archive-nav-icon{flex:0 0 22px}
+.archive-nav .archive-nav-label{font-size:13px;min-width:0}
+.archive-app.is-sidebar-collapsed .archive-sidebar{width:73px;flex-basis:73px;padding:19px 8px}
+.archive-app.is-sidebar-collapsed .archive-sidebar-header{flex-direction:column;align-items:center;gap:13px;padding-bottom:22px}
+.archive-app.is-sidebar-collapsed .archive-sidebar-header .archive-brand{padding:0;flex:auto}
+.archive-app.is-sidebar-collapsed .archive-brand-text,
+.archive-app.is-sidebar-collapsed .archive-nav-label,
+.archive-app.is-sidebar-collapsed .archive-sidebar-status{display:none}
+.archive-app.is-sidebar-collapsed .archive-nav button{justify-content:center;padding:12px 8px}
+.archive-app.is-sidebar-collapsed .archive-nav .archive-nav-icon{font-size:21px;text-align:center}
+.archive-app.is-sidebar-collapsed .archive-sidebar-foot{text-align:center;padding:17px 0 0}
+.archive-app.is-sidebar-collapsed .archive-sidebar-foot .archive-online-dot{margin:0}
+@media(max-width:850px){
+  .archive-sidebar-header{flex-direction:column;align-items:center;gap:13px}
+  .archive-sidebar-header .archive-brand{padding:0}
+  .archive-collapse-toggle{display:grid}
+  .archive-nav .archive-nav-label,.archive-sidebar-status{display:none}
+  .archive-nav button{justify-content:center}
+}
+@media(max-width:530px){
+  .archive-app.is-sidebar-collapsed .archive-sidebar{width:54px;flex-basis:54px;padding:17px 5px}
+  .archive-app.is-sidebar-collapsed .archive-sidebar-header{gap:8px}
+}
+/* Keep sidebar text readable even with a separate collapse control. */
+.archive-sidebar-header .archive-brand{font-size:13px;gap:8px;padding-left:2px}
+.archive-brand-text{white-space:nowrap;min-width:0}
+.archive-nav .archive-nav-label{width:auto;flex:1;text-align:left;line-height:1.3}

@@ -7,7 +7,7 @@ interface Props {
   onNotice: (notice: string) => void;
   onError: (message: string) => void;
 }
-interface LastInsert { before: string; after: string; caret: number }
+interface LastInsert { before: string; after: string; caret: number; highlight: number }
 
 export default function SearchWorkspace({ responses, loading, onNotice, onError }: Props) {
   const [draft, setDraft] = useState('');
@@ -37,7 +37,7 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
     const found = findHashQuery(draft, input.current?.selectionStart ?? caret);
     if (!found) return;
     const inserted = insertSuggestion(draft, found, item.body);
-    lastInsert.current = { before: draft, after: inserted.value, caret: found.start };
+    lastInsert.current = { before: draft, after: inserted.value, caret: found.end, highlight: activeIndex };
     setDraft(inserted.value);
     setCaret(inserted.caret);
     setDismissed(true);
@@ -54,8 +54,9 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
         setDraft(previous.before);
         setCaret(previous.caret);
         setDismissed(false);
+        setHighlight(previous.highlight);
         setSelection(previous.caret);
-        onNotice('Insertion undone.');
+        onNotice('Insertion undone. Your previous # search and its suggestions are restored.');
       }
       return; // Otherwise preserve the browser's normal undo behavior.
     }

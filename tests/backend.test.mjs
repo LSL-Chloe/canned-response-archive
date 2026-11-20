@@ -43,7 +43,8 @@ test('permission matrix: own shared deletion, admin shared edit, private ownersh
   assert.equal(canDeleteResponse('agent','a',ownShared), true);
   assert.equal(canDeleteResponse('agent','a',otherShared), false);
   assert.equal(canDeleteResponse('admin','a',otherShared), true);
-  assert.equal(canEditResponse('agent','a',ownShared), false);
+  assert.equal(canEditResponse('agent','a',ownShared), true);
+  assert.equal(canEditResponse('agent','a',otherShared), false);
   assert.equal(canEditResponse('admin','a',otherShared), true);
   assert.equal(canEditResponse('admin','a',privateOther), false);
   assert.equal(canDeleteResponse('admin','a',privateOther), false);
