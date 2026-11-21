@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { api } from './api';
 import LiquidButton from '../../ui/LiquidButton';
-import { avatarImageSrc } from './avatarImages';
+import { avatarImageSrc, alternateAvatarImageSrc } from './avatarImages';
+import { featuredAvatars, searchCuratedAvatars, curatedAvatars, alternateCuratedAvatars } from './curatedAvatarCatalog';
 
 type Source = 'anime' | 'tv' | 'movie';
 type Entry = {
@@ -14,6 +15,8 @@ type Entry = {
   wiki?: string;
   wikiPage?: string;
   malId?: number;
+  franchise?: string;
+  pack?: string;
 };
 type Props = {
   avatarUrl: string | null;
@@ -30,7 +33,7 @@ function PortraitImage({ url, label }: { url: string; label: string }) {
   const [attempt, setAttempt] = useState(0);
   useEffect(() => setAttempt(0), [url]);
   if (attempt > 1) return <span className="archive-avatar-image-fallback" aria-label={label + ' portrait unavailable'}>◯</span>;
-  return <img src={attempt === 0 ? avatarImageSrc(url) : url} loading="lazy" alt=""
+  return <img src={attempt === 0 ? avatarImageSrc(url) : alternateAvatarImageSrc(url)} loading="lazy" alt=""
     onError={() => setAttempt(value => value + 1)}/>;
 }
 
@@ -69,6 +72,8 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   const [query, setQuery] = useState('');
   const [term, setTerm] = useState('');
   const [items, setItems] = useState<Entry[]>([]);
+  const [remoteKey, setRemoteKey] = useState('');
+  const [showAdditional, setShowAdditional] = useState(false);
   const [titles, setTitles] = useState<Entry[]>([]);
   const [selectedTitle, setSelectedTitle] = useState<Entry | null>(null);
   const [page, setPage] = useState(1);
@@ -87,29 +92,28 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
     return () => window.clearTimeout(timer);
   }, [query]);
 
-  // Opening a category loads featured characters. Searching replaces them
-  // with actual character portraits without requiring any title selection.
+  // The two default rows are a fixed local manifest: no API or spinner on
+  // opening Settings. Search immediately checks curated pack names, while
+  // the live database may add supporting characters as an enhancement.
   useEffect(() => {
-    if (selectedTitle) return;
+    if (selectedTitle || term.length < 2) return;
     const controller = new AbortController();
-    const path = term.length >= 2
-      ? '/api/avatars/search?source=' + source + '&q=' + encodeURIComponent(term)
-      : '/api/avatars/popular?source=' + source;
+    const key = source + ':' + term.toLowerCase();
     setLoading(true);
     setSearchError('');
-    void api<{items:Entry[];titles?:Entry[]}>(path,{signal:controller.signal})
-      .then(data => {
-        if (controller.signal.aborted) return;
-        setItems(data.items || []);
-        setTitles(data.titles || []);
-      })
-      .catch(error => {
-        if (controller.signal.aborted) return;
-        setItems([]);
-        setTitles([]);
-        setSearchError(error instanceof Error ? error.message : 'Character catalog could not load.');
-      })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    void api<{items:Entry[];titles?:Entry[]}>(
+      '/api/avatars/search?source=' + source + '&q=' + encodeURIComponent(term),
+      {signal:controller.signal},
+    ).then(data => {
+      if (controller.signal.aborted) return;
+      setItems(data.items || []);
+      setTitles(data.titles || []);
+      setRemoteKey(key);
+    }).catch(error => {
+      if (controller.signal.aborted) return;
+      setItems([]);setTitles([]);setRemoteKey(key);
+      setSearchError(error instanceof Error ? error.message : 'Additional portraits unavailable.');
+    }).finally(() => {if (!controller.signal.aborted) setLoading(false);});
     return () => controller.abort();
   }, [source,term,selectedTitle]);
 
@@ -144,10 +148,16 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
     } finally { setBusy(false); }
   }
   async function showMore(item:Entry) {
-    if (!item.wiki && !item.malId) return;
+    const curated = curatedAvatars.find(avatar => avatar.id === item.id);
+    if (!curated && !item.wiki && !item.malId) return;
     setMoreFrom(item);
     setMoreItems([]);
     setMoreError('');
+    if (curated) {
+      setMoreItems(alternateCuratedAvatars(curated).filter(avatar => avatar.id !== item.id));
+      setMoreBusy(false);
+      return;
+    }
     setMoreBusy(true);
     try {
       const params = new URLSearchParams({
@@ -189,16 +199,34 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   }
   function resetNavigation() {
     setSelectedTitle(null);setPage(1);setHasMore(false);
-    setMoreFrom(null);setMoreItems([]);setSearchError('');
+    setMoreFrom(null);setMoreItems([]);setSearchError('');setShowAdditional(false);
   }
   function changeSource(next:Source) {
     if (next===source) return;
     setSource(next);setQuery('');setTerm('');
-    setItems([]);setTitles([]);
+    setItems([]);setTitles([]);setRemoteKey('');
     resetNavigation();
   }
-  const portraits=items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl));
-  const showFeatured=term.length<2 && !selectedTitle;
+  const queryText=query.trim();
+  const localMatches=queryText.length>=2
+    ? searchCuratedAvatars(source,queryText)
+    : featuredAvatars[source];
+  const apiMatches=remoteKey===source+':'+queryText.toLowerCase() && queryText.length>=2
+    ? items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl))
+    : [];
+  // Favor real streaming-style PFPs; reveal raw database art when necessary.
+  const extraFromApi=apiMatches.filter(item=>!localMatches.some(local=>
+    local.title.toLowerCase()===item.title.toLowerCase() && local.imageUrl===item.imageUrl));
+  function hasMoreLooks(item:Entry):boolean {
+    const local=curatedAvatars.find(icon=>icon.id===item.id);
+    return !!(item.wiki || item.malId || (local&&alternateCuratedAvatars(local).length>1));
+  }
+  const portraits=selectedTitle
+    ? items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl))
+    : [...localMatches,...(localMatches.length===0||showAdditional?extraFromApi:[])];
+  const hiddenAdditional=!selectedTitle && localMatches.length>0 && !showAdditional
+    ? extraFromApi.length : 0;
+  const showFeatured=queryText.length<2 && !selectedTitle;
   return (
     <section className="archive-card archive-avatar-picker" aria-label="Choose profile picture">
       <div className="archive-avatar-heading">
@@ -230,17 +258,17 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
         className="archive-avatar-search"
         placeholder={source==='anime'?'Search Naruto, Black Clover, Asta…':
           source==='tv'?'Search Breaking Bad, Walter White…':'Search Avengers, Harry Potter, Loki…'}
-        onChange={event=>{setQuery(event.target.value);resetNavigation();}}/>
+        onChange={event=>{setQuery(event.target.value);setShowAdditional(false);resetNavigation();}}/>
       {selectedTitle && (
         <button type="button" className="archive-avatar-back" onClick={resetNavigation}>
           <span aria-hidden="true">‹</span> {selectedTitle.title} — back to results
         </button>
       )}
       <div className="archive-avatar-gallery-header">
-        <strong>{selectedTitle ? selectedTitle.title : showFeatured?'Popular characters':'Character portraits'}</strong>
-        <span className="archive-faint">{loading ? 'Searching…' : portraits.length + ' available'}</span>
+        <strong>{selectedTitle ? selectedTitle.title : showFeatured?'Featured characters':'Character portraits'}</strong>
+        <span className="archive-faint">{portraits.length + ' available'}</span>
       </div>
-      <div className="archive-avatar-gallery" aria-label="Available character profile pictures" aria-busy={loading}>
+      <div className="archive-avatar-gallery" aria-label="Available character profile pictures">
         <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp"
           className="archive-avatar-file" aria-label="Choose picture from your computer"
           onChange={event=>void upload(event)}/>
@@ -260,14 +288,17 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
               </span>
               <span className="archive-avatar-tile-name">{item.title}</span>
             </button>
-            {(item.wiki || item.malId) &&
+            {hasMoreLooks(item) &&
               <button type="button" className="archive-avatar-more-link" disabled={busy}
                 onClick={()=>void showMore(item)}>More looks</button>}
           </div>
         ))}
       </div>
-      {loading && <p className="archive-hint" role="status">Finding character portraits…</p>}
-      {searchError && <p className="archive-avatar-error" role="alert">{searchError}</p>}
+      {!showFeatured && loading && <p className="archive-hint" role="status">Looking for more portraits…</p>}
+      {hiddenAdditional>0 &&
+        <button type="button" className="archive-avatar-expand-results"
+          onClick={()=>setShowAdditional(true)}>Show {hiddenAdditional} additional database portraits</button>}
+      {searchError && !portraits.length && <p className="archive-avatar-error" role="alert">{searchError}</p>}
       {!loading && !searchError && !portraits.length &&
         <p className="archive-hint">
           No character portraits available here yet. Try a different name or choose a custom picture.
@@ -314,8 +345,8 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
             <p className="archive-hint">No additional portraits are available for this character.</p>}
         </div>}
       <p className="archive-avatar-attribution">
-        Character artwork from AniList, Kitsu, Jikan and fan-wiki contributors.
-        Portrait availability varies by title; actor headshots are excluded.
+        Featured icons from community avatar packs; additional character artwork from AniList,
+        Kitsu, Jikan and fan wikis. Art belongs to its respective rights holders.
       </p>
     </section>
   );
