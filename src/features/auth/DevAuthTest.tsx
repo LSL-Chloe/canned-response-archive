@@ -88,7 +88,7 @@ export default function DevAuthTest() {
   const login = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void run(async () => {
-      const data = await request('/api/auth/login', { agentName: agentName.trim(), pin });
+      const data = await request('/api/auth/login', { identifier: agentName.trim(), pin });
       setPin('');
       if (!data.user) throw new Error('Login returned no account.');
       setUser(data.user);
@@ -201,9 +201,10 @@ export default function DevAuthTest() {
             ) : mode === 'signup' || mode === 'login' ? (
               <form className="qa-form" onSubmit={mode === 'signup' ? signup : login}>
                 <h2>{mode === 'signup' ? 'Create development account' : 'Sign in to development'}</h2>
-                <label htmlFor="qa-agent">Agent name</label>
+                <label htmlFor="qa-agent">{mode === 'signup' ? 'Agent name' : 'Agent name or verified email'}</label>
                 <input id="qa-agent" value={agentName} onChange={e => setAgentName(e.target.value)}
-                  autoComplete="username" minLength={2} maxLength={48} required />
+                  autoComplete="username" minLength={2} maxLength={mode === 'signup' ? 48 : 254}
+                  autoCapitalize="none" spellCheck={false} required />
                 {mode === 'signup' && (
                   <>
                     <label htmlFor="qa-email">Email (optional)</label>
