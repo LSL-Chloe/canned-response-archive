@@ -173,3 +173,16 @@ test('curated profile-picture shelves render immediately without a public API re
   assert.match(server, /raw\.githubusercontent\.com/);
   assert.match(images, /alternateAvatarImageSrc/);
 });
+
+
+test('import control stays accessible without a duplicate native file button', () => {
+  const transfer = read('src/features/archive/TransferWorkspace.tsx');
+  const css = read('src/styles/premium.css');
+  assert.match(transfer, /htmlFor="archive-import-file"/);
+  assert.match(transfer, /className="sr-only archive-transfer-input" type="file"/);
+  assert.match(transfer, /archive-transfer-file-name/);
+  assert.match(transfer, /aria-describedby="archive-import-filename"/);
+  assert.doesNotMatch(transfer, /Selected: \{selectedName\}/);
+  assert.match(css, /archive-transfer-file-row:has\(\.archive-transfer-input:focus-visible\)/);
+  assert.match(css, /archive-transfer-scope:has\(>button:nth-of-type\(2\)\) button/);
+});

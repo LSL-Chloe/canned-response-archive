@@ -80,10 +80,12 @@ test('desktop rail stays sticky when the Settings page is taller than the viewpo
 
 test('the entire pinned Crunchyroll folder is in Anime exactly once, grouped by anime and character', () => {
  const anime=curatedAvatars.filter(x=>x.category==='anime');
- const originals=anime.filter(x=>x.imageUrl.includes('/kalibrado/jf-avatars-images/') &&
-   x.imageUrl.includes('/images/Crunchyroll/'));
+ const originals=anime.filter(x=>x.avatarUrl.includes('/kalibrado/jf-avatars-images/') &&
+   x.avatarUrl.includes('/images/Crunchyroll/'));
  assert.equal(originals.length,470,'470 distinct Crunchyroll folder assets must be available');
- assert.equal(new Set(originals.map(x=>x.imageUrl)).size,470,'no duplicate Crunchyroll images');
+ assert.equal(new Set(originals.map(x=>x.avatarUrl)).size,470,'no duplicate Crunchyroll image sources');
+ assert.ok(originals.every(x=>x.imageUrl.startsWith('https://cdn.jsdelivr.net/gh/kalibrado/jf-avatars-images@')),
+   'thumbnails should use the pinned edge CDN, not an unversioned image');
  assert.ok(anime.length>=673,'retain the original 305 anime icons and add 368 new icons');
  assert.equal(featuredAvatars.anime.length,15,'preserve the original featured row');
  const lock=originals.filter(x=>x.franchise==='Blue Lock');

@@ -36,6 +36,18 @@ export function alternateAvatarImageSrc(value: string): string {
     if (pinnedIcon(url) && url.hostname !== 'raw.githubusercontent.com') {
       return '/api/avatars/image?url=' + encodeURIComponent(url.toString());
     }
+    // Pinned catalog thumbnails prefer jsDelivr's edge cache; a failed CDN
+    // request falls back to the original, commit-pinned GitHub image.
+    if (url.hostname === 'cdn.jsdelivr.net') {
+      const cdn = url.pathname.match(/^\/gh\/(eueueue292\/Fusion-Profile-Avatars|kalibrado\/jf-avatars-images)@([a-f0-9]{40})\/(.+\.(?:png|jpe?g|webp))$/i);
+      if (!cdn) return value;
+      const allowed =
+        (cdn[1] === 'eueueue292/Fusion-Profile-Avatars' && cdn[2] === 'd45287304717a441095003633a6643d6bae66289') ||
+        (cdn[1] === 'kalibrado/jf-avatars-images' && cdn[2] === 'b483c1a06325509237891f87920453b6ced31d00');
+      return allowed
+        ? 'https://raw.githubusercontent.com/' + cdn[1] + '/' + cdn[2] + '/' + cdn[3]
+        : value;
+    }
     if (url.hostname !== 'raw.githubusercontent.com') return value;
     const match = url.pathname.match(/^\/(eueueue292\/Fusion-Profile-Avatars|kalibrado\/jf-avatars-images)\/([a-f0-9]{40})\/(.+)$/);
     if (!match || !/\.(?:png|jpe?g|webp)$/i.test(match[3] || '')) return value;

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { getTeam, type TeamAgent } from './api';
-import LiquidUnderlay from '../../ui/LiquidUnderlay';
 import LiquidButton from '../../ui/LiquidButton';
 
 export default function TeamWorkspace({ onError }: { onError: (message: string) => void }) {
@@ -24,7 +23,6 @@ export default function TeamWorkspace({ onError }: { onError: (message: string) 
         <LiquidButton tone="neutral" type="button" className="archive-button archive-button-quiet" onClick={() => setRefresh(value => value + 1)}>Refresh</LiquidButton>
       </div>
       <div className="archive-card archive-team-table-wrap">
-        <LiquidUnderlay radius={18}/>
         {loading ? <p>Loading agents…</p> : (
           <table className="archive-team-table">
             <thead><tr><th>Agent</th><th>Role</th><th>Joined</th><th>Shared</th><th>Private</th></tr></thead>

@@ -1611,3 +1611,48 @@
 /* Keep the composited backdrop isolated from the workspace's scrolling
  * contents; avoid invalidating translucent panels when a band drifts. */
 .optical-environment { contain: layout paint; }
+
+
+/* Long-library scroll stability: a single SVG-refraction surface stretched
+ * across hundreds of response rows can exceed GPU texture limits and paint
+ * enormous coloured distortion bands while scrolling. Reserve the expensive
+ * refractive lenses for viewport-sized controls/cards. The full response list
+ * keeps the same translucent glass tint and rim without an oversized filter. */
+.archive-app .archive-response-list {
+  background:var(--liquid-panel-tint);
+  border:1px solid var(--glass-line);
+  box-shadow:inset 0 1px 0 var(--glass-highlight),0 12px 30px rgba(0,0,0,.09);
+}
+.archive-app .archive-response-row { min-width:0; }
+.archive-app .archive-row-labels, .archive-app .archive-row-actions { min-width:0; }
+.archive-app .archive-shortcut-tag { max-width:100%;overflow-wrap:anywhere;white-space:normal; }
+.archive-app .archive-response-meta { overflow-wrap:anywhere; }
+
+/* Exactly one file-selection control: keep the native input keyboard/screen
+ * reader accessible, but visually clip it behind the existing glass label. */
+.archive-app .archive-transfer-file-row {
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0;
+}
+.archive-app .archive-transfer-file-name {
+  color:var(--a-muted);font-size:11px;line-height:1.45;
+  overflow-wrap:anywhere;min-width:0;max-width:100%;
+}
+.archive-app .archive-transfer-file-label {
+  flex:0 0 auto;white-space:nowrap;
+}
+.archive-app .archive-transfer-file-row:has(.archive-transfer-input:focus-visible) .archive-transfer-file-label {
+  outline:2px solid var(--a-accent);outline-offset:3px;
+}
+.archive-app .archive-transfer-scope:has(>button:nth-of-type(2)) button {
+  min-width:112px;flex:1 1 0;white-space:nowrap;
+}
+@media(max-width:400px) {
+  .archive-app .archive-transfer-file-row { gap:7px; }
+}
+
+/* The Team table may also grow with the number of agents. Avoid stretching
+ * one SVG glass texture down an unbounded table while keeping its panel tint. */
+.archive-app .archive-team-table-wrap {
+  background:var(--liquid-panel-tint);
+  border-color:var(--glass-line);
+}

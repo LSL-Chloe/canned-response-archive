@@ -21,15 +21,15 @@ This is a practical walkthrough for testing the saved-response workflow in a rea
 5. Delete a reply you own. A normal agent must not be able to change another agent's shared reply.
 6. As administrator, verify editing/deleting shared replies works, while another user's private text stays inaccessible.
 7. Open Import / Export. Export your private JSON, preview it before importing, and confirm new entries append rather than replace existing entries.
-8. Try importing a malformed file or the wrong visibility. Confirm the UI rejects it. A failed batch may be partially imported, so check the library before trying again.
-9. Open Settings, switch between Anime, TV series, and Movies, and browse all PFP options with **Show more**. The first tile must remain custom upload. Check images and account updates on a mobile device.
+8. Try importing a malformed file or the wrong visibility. Confirm the UI rejects it. Each batch is an atomic transaction: the failing batch saves all or none. Network failures can occur after the server commits, so reupload the same file to skip matching shortcut/text records. The whole multi-batch file is not one transaction. Confirm only one visible **Choose JSON file** button appears, that its label shows the selected filename, and that it can be reached by keyboard.
+9. Open Settings, switch between Anime, TV series, and Movies, and browse all PFP options with **Show more**. The first tile must remain custom upload. Anime includes 470 source-pinned Crunchyroll pictures; search for a franchise and character. Thumbnails should use a CDN first and fall back to the original GitHub image when it fails. On slow connections, verify the first row loads promptly and later rows load on demand. Check image failures, account updates and selection on a mobile device.
 10. Collapse the sidebar and navigate among pages. Verify Settings remains usable and the desktop sidebar keeps its full-height appearance.
 
 ## Updating and performance
 
 While the tab is visible, the app refreshes its response lists approximately every five seconds. A newly saved reply should be visible without a manual page reload. When nothing has changed, the interface should not jump or reset its draft, menu selection, or scroll position.
 
-Scroll long libraries and galleries on a lower-powered phone if available. The background, theme switch, and glass effects should remain responsive; the first screen should not download every avatar in the catalog.
+Scroll long libraries (including 200+ responses), larger Team tables, and galleries on a lower-powered phone if available. In both themes, verify no large coloured/refraction artifacts appear when scrolling very far down, row actions remain aligned, the sidebar stays anchored, and the response list still looks translucent. The background, theme switch, and bounded glass effects should remain responsive. The first screen should not download every avatar in the catalog. Test keyboard focus on the hidden-native file picker and a long selected filename.
 
 ## API permission checks
 
@@ -37,4 +37,4 @@ Hiding a button is not enough. Confirm a non-admin receives **403** when attempt
 
 ## Limitations
 
-The project uses polling rather than direct push-based Realtime. Imports are append-only and not transactional across batches. Third-party PFPs may be missing or unavailable. Automated tests do not prove visual fidelity, browser-specific behavior, or secure operations in a real production environment.
+The project uses polling rather than direct push-based Realtime. Silent polls skip if another response refresh is still in flight; imports are atomic only within individual batches, not across the whole file. Third-party PFP CDNs may be missing, slow or unavailable and original GitHub sources provide a fallback. Automated tests do not prove visual fidelity, browser-specific behavior, or secure operations in a real production environment.

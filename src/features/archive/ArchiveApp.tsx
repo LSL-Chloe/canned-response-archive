@@ -101,6 +101,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   const [notice, setNotice] = useState('');
   const [problem, setProblem] = useState('');
   const requestSerial = useRef(0);
+  const refreshInFlight = useRef(false);
   // Warm just the first visible row when the browser has spare capacity.
   // The previous eager 45-image preload consumed data and image decode time on
   // every sign-in, even when Settings was never opened.
@@ -134,7 +135,11 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   const onError = useCallback((message: string) => { setProblem(message); setNotice(''); }, []);
 
   const refresh = useCallback(async (silent = false) => {
+    // On slow connections a poll can take longer than its interval. Skip
+    // overlapping silent polls instead of discarding every completed response.
+    if (silent && refreshInFlight.current) return;
     const serial = ++requestSerial.current;
+    refreshInFlight.current = true;
     if (!silent) setLoading(true);
     try {
       const data = await Promise.all([
@@ -155,7 +160,10 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
         onError(error instanceof Error ? error.message : 'Could not load responses.');
       }
     } finally {
-      if (serial === requestSerial.current) setLoading(false);
+      if (serial === requestSerial.current) {
+        refreshInFlight.current = false;
+        setLoading(false);
+      }
     }
   }, [agent, onError]);
 
