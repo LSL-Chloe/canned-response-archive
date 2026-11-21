@@ -10,6 +10,7 @@ import ThemeToggle from '../../ui/ThemeToggle';
 import OpticalBackdrop from '../../ui/OpticalBackdrop';
 import LiquidUnderlay from '../../ui/LiquidUnderlay';
 import { avatarImageSrc } from './avatarImages';
+import { featuredAvatars } from './curatedAvatarCatalog';
 import type { Theme } from '../../ui/theme';
 import { Glass } from '@samasante/liquid-glass';
 
@@ -100,6 +101,20 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   const [notice, setNotice] = useState('');
   const [problem, setProblem] = useState('');
   const requestSerial = useRef(0);
+  // Warm the fixed, lightweight avatar shelves after sign-in. Settings does not
+  // wait on this prefetch; thumbnails still have normal browser-cache semantics.
+  useEffect(() => {
+    if (!agent) return;
+    const saveData=(navigator as Navigator & {connection?:{saveData?:boolean}}).connection?.saveData;
+    if(saveData)return;
+    const warm=(urls:string[])=>{for(const url of urls){const image=new Image();image.decoding='async';image.src=url;}};
+    warm(featuredAvatars.anime.map(item=>item.imageUrl));
+    const later=window.setTimeout(()=>{
+      warm([...featuredAvatars.tv,...featuredAvatars.movie].map(item=>item.imageUrl));
+    },1000);
+    return ()=>window.clearTimeout(later);
+  },[agent?.id]);
+
   useEffect(() => {
     if (!notice) return;
     const timeout = window.setTimeout(() => setNotice(''), 5500);

@@ -17,7 +17,11 @@ function sourceUrl(value: unknown): string | null {
   let url: URL;
   try { url = new URL(value); } catch { return fail(400, 'invalid_avatar', 'Choose an image from the catalog'); }
   const allowed = /^(?:s[1-9][0-9]*\.anilist\.co|cdn\.anilist\.co|static\.tvmaze\.com|image\.tmdb\.org|media\.kitsu\.(?:io|app)|static\.wikia\.nocookie\.net|cdn\.myanimelist\.net|images\.myanimelist\.net)$/i.test(url.hostname);
-  if (url.protocol !== 'https:' || !allowed || url.username || url.password || url.port) {
+  const rawRepo = url.hostname === 'raw.githubusercontent.com' && (
+    url.pathname.startsWith('/eueueue292/Fusion-Profile-Avatars/d45287304717a441095003633a6643d6bae66289/') ||
+    url.pathname.startsWith('/kalibrado/jf-avatars-images/b483c1a06325509237891f87920453b6ced31d00/')
+  ) && /\.(png|jpe?g|webp)$/i.test(url.pathname);
+  if (url.protocol !== 'https:' || !(allowed || rawRepo) || url.username || url.password || url.port) {
     fail(400, 'invalid_avatar', 'This image source is not supported');
   }
   return url.toString();

@@ -88,3 +88,29 @@ artwork are not backfilled with actor publicity images. Fan-wiki profile pages a
 by the browser's HTTP cache, and more looks are fetched only when requested.
 The third-party sites own their images, and contributors' credits/rights should be
 respected if the project becomes public or commercial.
+
+## Instant, fixed two-row avatar shelves (2026-11-21)
+
+The PFP picker now uses `src/features/archive/curatedAvatarCatalog.ts` for its
+featured 15 icons in each tab. The first gallery tile is always **Custom PFP +**.
+These default choices are built into the frontend; opening Settings **does not**
+call the `/api/avatars/popular` endpoint or wait for AniList/Jikan/Fandom to respond.
+The selected icons are prewarmed in the browser after sign-in, except when the
+browser advertises data-saving mode. A first visit still requires fetching the image
+bytes; subsequent visits generally use the browser/CDN cache.
+
+The curated index merges named character packs from
+`eueueue292/Fusion-Profile-Avatars` and lightweight icons from
+`kalibrado/jf-avatars-images`, pinned at known GitHub commits. It does not
+embed third-party copyrighted images into our repository. Searching instantly
+filters by character **and** franchise, with live anime/TV/movie character API
+results loaded afterward as an optional supplement. Curated results take priority
+over plain-background database portraits. If enough curated results match, the
+user can choose to reveal additional database portraits instead.
+Characters with multiple curated artworks offer **More looks**.
+
+These repositories do not explicitly license all the underlying artwork. Their
+availability online is not a transfer of redistribution rights. This is for a
+personal prototype; obtain permissions and consider licensed alternatives
+before offering a public avatar library. If maintaining a reliable long-term
+catalog, use a rights-cleared, optimized asset store, for example Cloudflare R2.

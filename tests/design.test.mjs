@@ -140,9 +140,10 @@ test('avatar chooser loads popular characters immediately and searches without t
   const picker = read('src/features/archive/AvatarPicker.tsx');
   const catalog = read('worker/api/avatarCatalog.ts');
   const api = read('worker/api/avatars.ts');
-  assert.match(picker, /api\/avatars\/popular/);
+  assert.match(picker, /featuredAvatars/);
+  assert.doesNotMatch(picker, /api\/avatars\/popular/);
   assert.match(picker, /api\/avatars\/search/);
-  assert.match(picker, /Popular characters/);
+  assert.match(picker, /Featured characters/);
   assert.match(picker, /More looks/);
   assert.match(catalog, /POPULAR_TV/);
   assert.match(catalog, /POPULAR_MOVIES/);
@@ -153,4 +154,21 @@ test('avatar chooser loads popular characters immediately and searches without t
   assert.match(catalog, /variations/);
   assert.match(api, /api\/avatars\/variations/);
   assert.doesNotMatch(catalog, /profile_path|poster_path/);
+});
+
+test('curated profile-picture shelves render immediately without a public API request', () => {
+  const picker = read('src/features/archive/AvatarPicker.tsx');
+  const catalog = read('src/features/archive/curatedAvatarCatalog.ts');
+  const app = read('src/features/archive/ArchiveApp.tsx');
+  const server = read('worker/api/avatars.ts');
+  const images = read('src/features/archive/avatarImages.ts');
+  assert.match(catalog, /const featuredPaths/);
+  assert.match(catalog, /const records/);
+  assert.match(catalog, /searchCuratedAvatars/);
+  assert.match(catalog, /alternateCuratedAvatars/);
+  assert.match(picker, /const localMatches/);
+  assert.match(picker, /showAdditional/);
+  assert.match(app, /warm\(featuredAvatars\.anime/);
+  assert.match(server, /raw\.githubusercontent\.com/);
+  assert.match(images, /alternateAvatarImageSrc/);
 });
