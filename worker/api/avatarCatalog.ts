@@ -1,4 +1,5 @@
 import type { Env } from '../services/db.ts';
+import { findSafeAnimePortraits, type SafeAnimeAvatar } from './safeAnimePortraits.ts';
 
 /** Only actual character artwork or in-character photos enter this catalog.
  * Movie/TV cast publicity headshots and posters are deliberately excluded.
@@ -14,6 +15,8 @@ export interface Portrait {
   wiki?: string;
   wikiPage?: string;
   malId?: number;
+  provider?: 'safebooru';
+  booruTag?: string;
 }
 type WikiGroup = { wiki: string; names: string[] };
 
@@ -127,7 +130,7 @@ async function kitsuCharacters(id: string, page = 1): Promise<{items:Portrait[],
     .filter((item:Portrait|null):item is Portrait=>Boolean(item));
   return {items,hasMore:Boolean(data?.links?.next)};
 }
-async function kitsuSearch(query:string): Promise<{titles:Portrait[],items:Portrait[]}> {
+async function kitsuSearch(query:string, seriesHint?:string): Promise<{titles:Portrait[],items:Portrait[]}> {
   const name=encodeURIComponent(query);
   const [anime, characters]=await Promise.all([
     optional(()=>requestJson('https://kitsu.io/api/edge/anime?filter%5Btext%5D='+name+'&page%5Blimit%5D=7'),{data:[]}),
@@ -143,7 +146,21 @@ async function kitsuSearch(query:string): Promise<{titles:Portrait[],items:Portr
   const top=titles.slice(0,2);
   const related=await Promise.all(top.flatMap(title => [1,2].map(page =>
     optional(()=>kitsuCharacters(title.id.slice(2),page),{items:[] as Portrait[],hasMore:false}))));
-  return {titles,items:unique([...related.flatMap(value=>value.items),...direct])};
+  const known = unique([...related.flatMap(value=>value.items),...direct]);
+  // Names come from character records, not posters or arbitrary title matches.
+  // Query artist-tagged SFW images for up to three distinct characters.
+  const q = cleanKey(query);
+  const directlyNamed = direct.filter(item =>
+    cleanKey(item.title).includes(q) || q.includes(cleanKey(item.title)));
+  const names = [...directlyNamed, ...known].filter((item,index,all) =>
+    all.findIndex(other => cleanKey(other.title) === cleanKey(item.title)) === index);
+  const bestSeries = seriesHint || titles[0]?.title || '';
+  const choices = names.slice(0,3).map(person => person.title);
+  // If Kitsu is unavailable, try the query as a character name as well.
+  if (!choices.length && query.trim().split(/\s+/).length <= 4) choices.push(query);
+  const safe = await Promise.all(choices.map(name =>
+    findSafeAnimePortraits(name,bestSeries,5)));
+  return {titles,items:unique([...safe.flat(),...known])};
 }
 async function aniListTop(): Promise<Portrait[]> {
   const response=await requestJson('https://graphql.anilist.co',{
@@ -290,15 +307,21 @@ async function movieSearch(query:string,env:Env):Promise<{items:Portrait[],title
   return {items:unique([...lists.flat(),...matched.flat(),...POPULAR_MOVIES.flatMap(g=>cachedWiki(g.wiki,[query]))]),titles};
 }
 
-export async function search(source:AvatarSource,query:string,env:Env):
+export async function search(source:AvatarSource,query:string,env:Env,seriesHint?:string):
   Promise<{items:Portrait[],titles:Portrait[]}> {
-  if(source==='anime')return kitsuSearch(query);
+  if(source==='anime')return kitsuSearch(query,seriesHint);
   if(source==='tv')return tvSearch(query);
   return movieSearch(query,env);
 }
-export async function characterList(source:AvatarSource,id:string,page:number,env:Env):Promise<Portrait[]> {
+export async function characterList(source:AvatarSource,id:string,page:number,env:Env,seriesHint?:string):Promise<Portrait[]> {
   if(source==='anime') {
-    if(id.startsWith('k-'))return (await kitsuCharacters(id.slice(2),page)).items;
+    if(id.startsWith('k-')){
+      const chars=(await kitsuCharacters(id.slice(2),page)).items;
+      if(page>1)return chars;
+      const safe=await Promise.all(chars.slice(0,3)
+        .map(char=>findSafeAnimePortraits(char.title,seriesHint,5)));
+      return unique([...safe.flat(),...chars]);
+    }
     const response=await requestJson('https://graphql.anilist.co',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({query:'query($id:Int,$page:Int){Media(id:$id,type:ANIME){characters(page:$page,perPage:25,sort:FAVOURITES_DESC){nodes{id name{full} image{large medium}}}}}',variables:{id:Number(id),page}}),
