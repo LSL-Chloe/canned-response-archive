@@ -26,6 +26,30 @@ for(const category of categories){
  }
 }
 function normalize(value:string){return value.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+/**
+ * A series/movie title opens the artwork for its known franchise, not generic
+ * database portraits. Handle sequels and subtitle variants like "One Piece:
+ * Episode of ..." without accidentally matching an unrelated franchise.
+ */
+export function curatedAvatarsForTitle(category:AvatarCategory,title:string):CuratedAvatar[]{
+ const name=normalize(title);
+ if(name.length<3)return [];
+ const aliases:Record<string,string>=category==='movie' ? {
+  'avengers':'marvel avengers','iron man':'marvel avengers','guardians of the galaxy':'marvel avengers',
+  'captain america':'marvel avengers','black panther':'marvel avengers',
+  'doctor strange':'marvel avengers','ant man':'marvel avengers',
+  'star wars':'star wars','harry potter':'harry potter'
+ } : {};
+ const mapped=Object.entries(aliases).find(([key])=>name===key||name.startsWith(key+' '))?.[1];
+ const target=mapped||name;
+ return curatedAvatars.filter(icon=>{
+  if(icon.category!==category)return false;
+  const franchise=normalize(icon.franchise);
+  return target===franchise || target.startsWith(franchise+' ') ||
+   (target.split(' ').length>=2 && franchise.startsWith(target+' '));
+ });
+}
+
 export function searchCuratedAvatars(category:AvatarCategory,value:string):CuratedAvatar[]{
  const q=normalize(value);
  if(q.length<2)return featuredAvatars[category];
