@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { loginIdentifierInput, handleAuth } from '../worker/api/auth.ts';
+import { loginIdentifierInput } from '../worker/api/auth.ts';
+import api from '../worker/index.ts';
 import { hashPin, hmac } from '../worker/auth/crypto.ts';
 import { ApiError } from '../worker/api/shared.ts';
 
@@ -21,7 +22,7 @@ const credentials = { pin_hash: await hashPin('0042', env.PIN_PEPPER) };
 function loginRequest(body) {
   return new Request('https://archive.example/api/auth/login', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '192.0.2.111' },
+    headers: { 'Content-Type': 'application/json', Origin: 'https://archive.example', 'CF-Connecting-IP': '192.0.2.111' },
     body: JSON.stringify(body),
   });
 }
@@ -62,7 +63,7 @@ test('login identifiers preserve existing agent names and normalize verified ema
 
 test('a verified email signs into the original account using the same PIN', async () => {
   await withFakeDatabase(true, async seen => {
-    const result = await handleAuth(loginRequest({ identifier: 'AGENT@EXAMPLE.COM', pin: '0042' }), env, '/api/auth/login');
+    const result = await api.fetch(loginRequest({ identifier: 'AGENT@EXAMPLE.COM', pin: '0042' }), env);
     assert.equal(result.status, 200);
     assert.equal((await result.json()).user.id, agent.id);
     assert.match(result.headers.get('Set-Cookie') ?? '', /HttpOnly; SameSite=Strict/);
@@ -77,8 +78,8 @@ test('a verified email signs into the original account using the same PIN', asyn
 
 test('agent-name and email sign-ins share one per-account PIN-attempt bucket', async () => {
   await withFakeDatabase(true, async seen => {
-    const nameLogin = await handleAuth(loginRequest({ agentName: 'Agent One', pin: '9999' }), env, '/api/auth/login');
-    const emailLogin = await handleAuth(loginRequest({ identifier: 'agent@example.com', pin: '9999' }), env, '/api/auth/login');
+    const nameLogin = await api.fetch(loginRequest({ agentName: 'Agent One', pin: '9999' }), env);
+    const emailLogin = await api.fetch(loginRequest({ identifier: 'agent@example.com', pin: '9999' }), env);
     assert.equal(nameLogin.status, 401);
     assert.equal(emailLogin.status, 401);
     assert.equal((await nameLogin.json()).message, (await emailLogin.json()).message);
@@ -90,11 +91,11 @@ test('agent-name and email sign-ins share one per-account PIN-attempt bucket', a
 
 test('unverified or unrecognized email cannot log in and never reveals account details', async () => {
   await withFakeDatabase(false, async seen => {
-    const response = await handleAuth(loginRequest({ identifier: 'agent@example.com', pin: '0042' }), env, '/api/auth/login');
+    const response = await api.fetch(loginRequest({ identifier: 'agent@example.com', pin: '0042' }), env);
     assert.equal(response.status, 401);
     assert.equal((await response.json()).message, 'Invalid agent name, email or PIN');
     assert.equal(seen.some(x => x.route === '/rest/v1/agent_credentials'), false);
-    const nameResponse = await handleAuth(loginRequest({ agentName: 'Agent One', pin: '0042' }), env, '/api/auth/login');
+    const nameResponse = await api.fetch(loginRequest({ agentName: 'Agent One', pin: '0042' }), env);
     assert.equal(nameResponse.status, 200, 'old agent-name login must still work without a verified email');
   });
 });
