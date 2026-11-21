@@ -43,6 +43,18 @@ Official documentation:
 - https://developers.cloudflare.com/workers/previews/get-started/
 - https://developers.cloudflare.com/workers/previews/configuration/
 
+## Staging database status (verified 22 November 2026)
+
+- **Created:** `canned-response-archive-staging`, project ref `vfxjiecelhlqryxlymsv`, US West 2.
+- **Project URL (public identifier, not a key):** `https://vfxjiecelhlqryxlymsv.supabase.co`
+- **Applied:** all eight existing SQL migrations from this `develop` branch, in the order given below. The staging project now contains ten application tables and the public-read avatar bucket.
+- **Security:** RLS is enabled on all ten tables; only `shared_response_feed` has a guest-readable policy. Server-side RPC functions require the Worker-held service role. The Supabase-generated `public.rls_auto_enable()` event-trigger function initially had public EXECUTE permission, which was revoked on staging as an extra hardening step. The remaining nine `rls_enabled_no_policy` advisor entries are intentional deny-by-default informational notices.
+- **Integration checks:** disposable SQL tests verified admin registration, Shared feed triggers, moving a reply to its original owner's Private collection, and denial of admin access to another account's Private content. All test records were rolled back; counts remain zero.
+- **Not yet connected:** the Cloudflare `develop` Preview runtime still needs `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and a new `PIN_PEPPER`. **Never reuse current live credentials.**
+- **No changes to production:** the original project `bjcfoitzfiunikkemdry` and production domain/Worker were not modified during this staging initialization.
+
+Do **not** rerun the eight migrations on this already-initialized staging project. The Supabase connector recorded them as applied. For any future fresh staging installation, verify the migration history first and use the repository SQL files in chronological order. If the optional automatic-RLS setup creates `public.rls_auto_enable()`, review its EXECUTE grants and revoke access from `PUBLIC`, `anon` and `authenticated` as needed.
+
 ## Provision a separate Supabase project
 
 Create a brand-new Supabase project named something like `canned-response-archive-staging`. Check your Supabase plan's available project quota and any associated cost before creating it. Apply all SQL files in `supabase/migrations/` **to that new project only**, in chronological order. Use fresh test accounts; an empty installation's first completed signup claims administrator.
