@@ -130,3 +130,7 @@ a new Vite, TypeScript, or GitHub Actions major version) require manual,
 coordinated review to avoid incompatible dependency combinations. GitHub CI
 checks pull requests and `main` pushes, without duplicate checks for every
 feature-branch push.
+
+## Response-management migration
+
+Changing a response's Shared/Private visibility and bulk deletion rely on the server-only Postgres functions in `supabase/migrations/20261122010100_response_management.sql`. Apply that migration **before** deploying any Worker code that calls `update_archive_response` or `delete_archive_responses_batch`. The connected development project has already applied this migration and verified its permissions; do not run it there again. New installations should apply every migration in chronological order. Do not grant these RPCs to `anon` or `authenticated` roles.

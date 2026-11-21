@@ -92,6 +92,23 @@ export function visibilityInput(input: unknown): 'shared' | 'private' {
   if (input !== 'shared' && input !== 'private') fail(400, 'invalid_visibility', 'Choose Shared or Private');
   return input;
 }
+/** Validate deletion IDs before the Worker sends them to a privileged RPC. */
+export function bulkDeleteIds(input: unknown): string[] {
+  if (!Array.isArray(input) || input.length < 1 || input.length > 100) {
+    return fail(400, 'invalid_selection', 'Select between 1 and 100 responses per batch');
+  }
+  const ids = input.map(value => {
+    if (typeof value !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+      return fail(400, 'invalid_selection', 'The selection contains an invalid response ID');
+    }
+    return value.toLowerCase();
+  });
+  if (new Set(ids).size !== ids.length) {
+    return fail(400, 'invalid_selection', 'The selection has duplicate response IDs');
+  }
+  return ids;
+}
 export function canDeleteResponse(role: 'agent' | 'admin', actorId: string, response: { visibility: string; owner_id: string }): boolean {
   return (response.visibility === 'shared' && role === 'admin') || response.owner_id === actorId;
 }

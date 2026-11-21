@@ -1,6 +1,6 @@
 import { database, queryTable, callRpc, type Env, DatabaseError } from '../services/db.ts';
 import { getSession, requireRateLimit } from '../auth/session.ts';
-import { json, fail, shortcutInput, bodyInput, visibilityInput, readJson, canDeleteResponse, canEditResponse } from './shared.ts';
+import { json, fail, shortcutInput, bodyInput, visibilityInput, readJson, canDeleteResponse, canEditResponse, bulkDeleteIds } from './shared.ts';
 
 interface CanonicalResponse {
   id: string;
@@ -79,9 +79,12 @@ export async function handleResponses(request: Request, env: Env, path: string):
     // Use immutable agent IDs, not creator display names (which users may later change).
     const ownedShared = new Set<string>();
     if (signed && shared.length) {
+      // Query the viewer's own shared IDs directly. Sending hundreds of
+      // response IDs in one GET query string exceeds proxy URL limits on
+      // larger libraries and makes the By me tab disappear unexpectedly.
       const mine = await queryTable<{ id: string }>(env, 'canned_responses', {
-        select: 'id', id: `in.(${shared.map(row => row.response_id).join(',')})`,
-        visibility: 'eq.shared', owner_id: `eq.${signed.agent.id}`, limit: '1000',
+        select: 'id', visibility: 'eq.shared', owner_id: `eq.${signed.agent.id}`,
+        order: 'created_at.desc', limit: '1000',
       });
       mine.forEach(row => ownedShared.add(row.id));
     }
@@ -118,6 +121,30 @@ export async function handleResponses(request: Request, env: Env, path: string):
     return json({ response }, 201);
   }
 
+  if (path === '/api/responses/bulk-delete' && request.method === 'POST') {
+    if (!signed) return fail(401, 'login_required', 'Sign in to delete responses');
+    const data = await readJson(request);
+    const ids = bulkDeleteIds(data.ids);
+    if (!await requireRateLimit(env, `bulk-delete:${signed.agent.id}`, 15, 900)) {
+      return fail(429, 'rate_limited', 'Too many deletion batches. Try again later.');
+    }
+    try {
+      const result = await callRpc<{ deleted: number }>(env, 'delete_archive_responses_batch', {
+        p_actor_id: signed.agent.id,
+        p_ids: ids,
+      });
+      return json(result);
+    } catch (error) {
+      if (error instanceof DatabaseError && error.code === '42501') {
+        return fail(403, 'forbidden', 'You can delete only your responses, except admins can manage shared ones');
+      }
+      if (error instanceof DatabaseError && error.code === 'P0002') {
+        return fail(409, 'selection_changed', 'One of the selected responses changed or was removed. Refresh and try again.');
+      }
+      throw error;
+    }
+  }
+
   const match = /^\/api\/responses\/([0-9a-f-]{36})$/.exec(path);
   if (match && (request.method === 'PATCH' || request.method === 'DELETE')) {
     if (!signed) return fail(401, 'login_required', 'Sign in to manage responses');
@@ -138,34 +165,30 @@ export async function handleResponses(request: Request, env: Env, path: string):
       return fail(403, 'forbidden', 'You can only edit your own responses, except that admins can edit shared ones.');
     }
     const data = await readJson(request);
-    // Validate all fields before any DB modifications. Renaming only this response's
-    // shortcut means reassignment, NEVER updating the shortcut row (which is shared
-    // by any number of other responses).
+    // One transaction updates text, shortcut and visibility. The SQL RPC locks
+    // the canonical row and checks ownership again, including the original
+    // owner's private shortcut when admins move somebody's shared reply.
     const body = bodyInput(data.body);
-    const requestedShortcut = data.shortcut === undefined ? undefined : shortcutInput(data.shortcut);
-    let nextShortcutId = item.shortcut_id;
-    if (requestedShortcut !== undefined) {
-      const previous = (await queryTable<Shortcut>(env, 'shortcuts', {
-        select: 'id,name', id: `eq.${item.shortcut_id}`, limit: '1',
-      }))[0];
-      if (!previous) return fail(409, 'shortcut_missing', 'The original shortcut was removed. Refresh the library.');
-      if (previous.name.toLowerCase() !== requestedShortcut.toLowerCase()) {
-        nextShortcutId = await shortcutFor(env, requestedShortcut, item.visibility, signed.agent.id);
+    const shortcut = shortcutInput(data.shortcut);
+    const visibility = visibilityInput(data.visibility ?? item.visibility);
+    try {
+      const updated = await callRpc<{ id: string; visibility: 'shared' | 'private' }>(env, 'update_archive_response', {
+        p_actor_id: signed.agent.id,
+        p_response_id: id,
+        p_body: body,
+        p_shortcut: shortcut,
+        p_visibility: visibility,
+      });
+      return json({ response: updated });
+    } catch (error) {
+      if (error instanceof DatabaseError && error.code === '42501') {
+        return fail(403, 'forbidden', 'You cannot change another user private reply');
       }
+      if (error instanceof DatabaseError && error.code === 'P0002') {
+        return fail(409, 'response_changed', 'Response or shortcut changed. Refresh the library and try again.');
+      }
+      throw error;
     }
-    // Re-check scope and ownership in the update filter as defense in depth.
-    const guardedQuery: Record<string, string> = {
-      id: `eq.${id}`, visibility: `eq.${item.visibility}`,
-    };
-    if (!(signed.agent.role === 'admin' && item.visibility === 'shared')) {
-      guardedQuery.owner_id = `eq.${signed.agent.id}`;
-    }
-    const updated = await database<CanonicalResponse[]>(env, 'canned_responses', {
-      method: 'PATCH', query: guardedQuery,
-      body: { body, shortcut_id: nextShortcutId },
-    });
-    if (!updated[0]) return fail(409, 'response_changed', 'The response changed before saving. Refresh and try again.');
-    return json({ response: updated[0] });
   }
 
   if (path === '/api/responses/export' && request.method === 'GET') {

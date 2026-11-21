@@ -1,5 +1,5 @@
 export type Visibility = 'shared' | 'private';
-export type LibraryScope = 'all' | Visibility;
+export type LibraryScope = 'all' | Visibility | 'mine';
 export type View = 'search' | 'library' | 'team';
 export interface Agent {
   id: string;

@@ -34,14 +34,19 @@ OTP codes are six digits, expire after ten minutes, and allow at most five wrong
 | GET | `/api/responses?scope=private` | Signed-in user, own private replies only |
 | GET | `/api/responses?scope=all` | Signed-in user, shared replies plus own private replies |
 | POST | `/api/responses` | Signed-in user creates a shared or private reply |
-| PATCH | `/api/responses/:id` | Owner edits their reply; admin can also edit shared replies |
+| PATCH | `/api/responses/:id` | Owner edits text, shortcut and Shared/Private visibility; admin can also edit shared replies. A scope change is atomic. |
 | DELETE | `/api/responses/:id` | Owner deletes their reply; admin can also delete shared replies |
+| POST | `/api/responses/bulk-delete` | Requires sign-in; body `{"ids":["uuid", ...]}` containing 1–100 distinct IDs. Atomically deletes the entire authorized batch or none. Admin may delete others' Shared, never others' Private. |
 | GET | `/api/responses/export?scope=private` | Download your own private replies |
 | GET | `/api/responses/export?scope=shared` | Administrator only |
 | POST | `/api/responses/import` | Signed-in user for private imports; administrator for shared imports |
 | GET | `/api/admin/users` | Administrator-only account and response counts, without private text |
 
 Replies live under `#shortcut` names, with original internal spaces and underscores preserved (1–64 characters, case-insensitive uniqueness). Several independent replies can share one shortcut. Creating another reply doesn't overwrite an existing one.
+
+PATCH accepts `{"body":"...","shortcut":"follow up","visibility":"private"}`; for compatibility, the visibility field may be omitted to keep the current scope. Each change happens in one locked database transaction. When an administrator moves someone else's Shared reply to Private, the original owner does not change: the administrator immediately loses access to that private reply. The database trigger removes it from the anonymous Shared feed. Moving it back to Shared publishes it again.
+
+The library's **By me** filter uses the per-viewer `owned_by_viewer` flag returned by the existing feeds, derived from immutable owner IDs. It does not trust user display names. When using bulk delete, the client groups larger selections into batches of at most 100 and confirms every returned count. Failures can leave earlier confirmed batches deleted; a request whose response was lost might also have committed. Reload before retrying.
 
 Exports use:
 
@@ -79,7 +84,9 @@ Uploaded pictures are publicly readable in the designated Supabase Storage bucke
 
 - Role checks happen in the Worker, not only in the UI.
 - Public shared responses must not contain confidential information.
-- Changing a reply's shortcut reassigns that one reply, leaving other replies under the original shortcut alone.
+- Changing a reply's shortcut or visibility reassigns only that reply, leaving the other replies under its shortcut intact.
+- The new `update_archive_response` and `delete_archive_responses_batch` RPCs are server-only (service role). The Worker checks the user session and Postgres checks current permissions again under row locks; the browser cannot invoke them using an anonymous key.
+- Bulk deletion is intentionally destructive and cannot be undone; verify your current filter and selection first.
 - Rate limits use server-side hashed keys; they do not remove the risks of a four-digit PIN.
 - The service is under development. Before a public production rollout, review secrets, authentication strength, permissions, and external image usage.
 

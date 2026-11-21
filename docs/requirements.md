@@ -10,11 +10,13 @@ The same shortcut can contain several separate responses. Shortcut labels preser
 
 ## Saving and organizing
 
-Signed-in agents can create shared and private responses, edit or delete responses they own, and change one response's shortcut without changing other entries in the original group.
+Signed-in agents can create shared and private responses, edit or delete responses they own, change a response's visibility between Shared and Private, and change one response's shortcut without changing other entries in the original group. An administrator can also edit, move, or delete another agent's Shared response. The original creator remains the owner when an administrator moves it to Private, and the administrator cannot see it afterward.
 
-The library has All, Shared, and Private views. A guest sees the shared material only. A user's private text stays private to that account, even from the administrator.
+The library has **All**, **Shared**, **Private**, and **By me** views. By me filters to responses created by the signed-in agent, whether shared or private. A guest sees shared material only. A user's private text stays private to that account, even from the administrator.
 
-Import and export use JSON. An import adds rows rather than replacing existing ones; the UI previews the file and warns that batch imports are not atomic.
+The **Select** action reveals checkboxes beside responses the current user may delete; **Select all** selects eligible responses within the current filter or search results, not hidden responses. **Delete selected** requires confirmation. The server validates all IDs and permissions; deletion is atomic per batch of at most 100, with multiple batches possible for larger selections.
+
+Import and export use JSON. An import adds rows rather than replacing existing ones; the UI previews the file. Each individual import batch is atomic, although a full multi-batch import is not one transaction.
 
 ## Accounts
 
@@ -33,7 +35,10 @@ Settings also allows uploading a custom profile image or choosing a character po
 | Read another user's private replies | No | No | No |
 | Create shared or private replies | No | Yes | Yes |
 | Edit or delete your own replies | No | Yes | Yes |
-| Edit or delete someone else's shared reply | No | No | Yes |
+| Change your own reply's Shared/Private visibility | No | Yes | Yes |
+| Edit, move or delete someone else's shared reply | No | No | Yes |
+| Move someone else's reply when it is Private | No | No | No |
+| Bulk delete eligible responses after confirmation | No | Own only | Own + others' Shared |
 | Import/export private replies | No | Own only | Own only |
 | Import/export the shared library | No | No | Yes |
 | View account counts | No | No | Yes |

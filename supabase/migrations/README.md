@@ -9,8 +9,13 @@ Apply them in timestamp order to a **new** project, using a migration tool or pr
 3. `20261120005428_auth_and_attribution.sql` — atomic first-admin registration, rate limiting, shared creator attribution, and admin statistics.
 4. `20261120014009_otp_completion_transactions.sql` — transactional OTP verification for signup, email changes, and PIN recovery.
 5. `20261120225401_account_avatars.sql` — optional avatar URL field and a public-read image bucket.
+6. `20261122000000_atomic_import_batches.sql` — atomic JSON import function with scoped deduplication.
+7. `20261122000001_preserve_original_shortcut_labels.sql` — allow and preserve spaces/leading underscores in shortcut names.
+8. `20261122010100_response_management.sql` — atomic reply visibility changes and permission-checked bulk deletion of up to 100 IDs per request.
 
-**All five have already been applied to the project's development database.** Do not run them there a second time without checking migration history. A new production database should be created, migrated, and tested separately.
+The connected **development** database has applied all eight migrations, including response management (recorded as version `20261121203646`). The two new RPCs were verified as `SECURITY INVOKER`, executable by `service_role` only, and inaccessible to `anon` / `authenticated`. A disposable transactional test checked scope conversion, original-owner preservation, shared-feed synchronization, and mixed-permission bulk rejection. All disposable writes were rolled back; existing archive counts were unchanged.
+
+File timestamps in Git are a source ordering guide; a Supabase project's applied migration versions can differ. Do not blindly reapply historical schema changes. A new production database should be created, migrated, and tested separately.
 
 The shared-response feed is deliberately readable to anonymous visitors; credentials and private data are protected by server-only access and database permissions. The avatar storage bucket is public-read, so uploaded pictures must not be sensitive.
 
