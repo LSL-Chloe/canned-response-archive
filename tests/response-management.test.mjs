@@ -103,6 +103,5 @@ test('response ownership remains immutable through admin Shared-to-Private moves
   assert.match(sql, /sync_shared_response_feed/);
   assert.match(sql, /jsonb_build_object\('id',v_result\.id,'visibility',v_result\.visibility\)/);
   assert.doesNotMatch(sql, /to_jsonb\(v_result\)/);
-  const api = read('worker/api/responses.ts');
   assert.doesNotMatch(api, /id: `in\.\(\$\{shared\.map/);
 });
