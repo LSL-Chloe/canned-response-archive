@@ -14,7 +14,7 @@ jobs:
     name: Historical credential patterns
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -29,12 +29,17 @@ jobs:
     name: Dependency vulnerabilities
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
       - name: Resolve dependencies for an advisory check
         run: npm install --package-lock-only --ignore-scripts --no-fund --no-audit
+      - name: Export resolved lockfile for initial review (temporary)
+        run: |
+          echo LOCK_MANIFEST_BEGIN
+          base64 -w 0 package-lock.json | fold -w 500
+          echo LOCK_MANIFEST_END
       - name: Audit production dependencies
         run: |
           npm audit --json --omit=dev > prod-audit.json || true
