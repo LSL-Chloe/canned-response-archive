@@ -3,7 +3,7 @@ import LiquidButton from '../../ui/LiquidButton';
 import LiquidUnderlay from '../../ui/LiquidUnderlay';
 import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { addResponse, deleteResponse, updateResponse } from './api';
+import { addResponse, bulkDeleteResponses, deleteResponse, updateResponse } from './api';
 import TransferWorkspace from './TransferWorkspace';
 import {
   canManageResponse, formatCount, shortcutOptions,
@@ -37,11 +37,16 @@ export default function LibraryWorkspace({
   const [editing, setEditing] = useState<ArchiveResponse | null>(null);
   const [editBody, setEditBody] = useState('');
   const [editShortcut, setEditShortcut] = useState('');
+  const [editVisibility, setEditVisibility] = useState<Visibility>('shared');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState(0);
   const [showEditExisting, setShowEditExisting] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!agent && scope === 'private') setScope('all');
+    if (!agent && (scope === 'private' || scope === 'mine')) setScope('all');
   }, [agent, scope]);
   useEffect(() => {
     if (!agent || !pendingAction) return;
@@ -54,34 +59,100 @@ export default function LibraryWorkspace({
   const shown = useMemo(() => {
     const term = search.toLowerCase().trim();
     return records
-      .filter(item => scope === 'all' || item.visibility === scope)
+      .filter(item => scope === 'all' || (scope === 'mine' ? item.ownedByMe === true : item.visibility === scope))
       .filter(item => !term || item.shortcut.toLowerCase().includes(term) ||
         item.body.toLowerCase().includes(term) || item.createdBy?.toLowerCase().includes(term))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [records, scope, search]);
+  // Bulk selection always refers to the currently visible, authorized rows.
+  // Do not render individual SVG lenses for each checkbox in a long list.
+  const selectableIds = useMemo(
+    () => shown.filter(item => canManageResponse(agent, item).delete).map(item => item.id),
+    [shown, agent],
+  );
+  const allVisibleSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.has(id));
+
   const existing = useMemo(
     () => shortcutOptions(records, visibility, shortcut),
     [records, visibility, shortcut],
   );
   const editExisting = useMemo(
-    () => editing ? shortcutOptions(records, editing.visibility, editShortcut) : [],
-    [records, editing, editShortcut],
+    () => editing ? shortcutOptions(records, editVisibility, editShortcut) : [],
+    [records, editing, editShortcut, editVisibility],
   );
 
+  function clearSelection() {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+    setBulkProgress(0);
+  }
   function chooseScope(next: LibraryScope) {
-    if (next === 'private' && !agent) {
+    if ((next === 'private' || next === 'mine') && !agent) {
       onRequireLogin('private');
       return;
     }
     setScope(next);
+    setEditing(null);
+    clearSelection();
+  }
+  function toggleSelection(id: string) {
+    setSelectedIds(previous => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  async function removeSelected() {
+    if (!agent || bulkBusy || !selectedIds.size) return;
+    const eligible = new Set(selectableIds);
+    const ids = [...selectedIds];
+    if (ids.some(id => !eligible.has(id))) {
+      clearSelection();
+      onError('The selection changed. Select the responses again.');
+      return;
+    }
+    if (!window.confirm(
+      `Permanently delete ${ids.length} selected ${ids.length === 1 ? 'response' : 'responses'}?\n\n` +
+      'This cannot be undone. Only the currently selected responses will be deleted.',
+    )) return;
+    setBulkBusy(true);
+    setBulkProgress(0);
+    let confirmed = 0;
+    try {
+      // The database verifies every ID and either deletes the entire batch
+      // or deletes none. Large selections use bounded batches to avoid timeouts.
+      for (let start = 0; start < ids.length; start += 100) {
+        const batch = ids.slice(start, start + 100);
+        const result = await bulkDeleteResponses(batch);
+        if (result.deleted !== batch.length) throw new Error('Unexpected deletion count. Refresh before trying again.');
+        confirmed += result.deleted;
+        setBulkProgress(confirmed);
+      }
+      onNotice(`Deleted ${confirmed} selected ${confirmed === 1 ? 'response' : 'responses'}.`);
+    } catch (error) {
+      onError(
+        `Deletion stopped after ${confirmed} confirmed entries. ` +
+        'The current batch is atomic, but a disconnected request may have committed. Refresh before selecting again. ' +
+        (error instanceof Error ? error.message : 'The request failed.'),
+      );
+    } finally {
+      clearSelection();
+      setBulkBusy(false);
+      try { await reload(); }
+      catch (error) { onError(error instanceof Error ? error.message : 'Could not refresh after deletion.'); }
+    }
   }
   function openTransfer() {
+    if (bulkBusy) return;
+    clearSelection();
     if (!agent) { onRequireLogin('transfer'); return; }
     setCreating(false);
     setEditing(null);
     setTransferOpen(open => !open);
   }
   function openCreate() {
+    if (bulkBusy) return;
+    clearSelection();
     if (!agent) { onRequireLogin('create'); return; }
     setTransferOpen(false);
     setEditing(null);
@@ -113,18 +184,22 @@ export default function LibraryWorkspace({
   }
   async function saveEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!editing || saving) return;
+    if (!editing || saving || bulkBusy) return;
     setSaving(true);
     try {
-      await updateResponse(editing.id, editBody, editShortcut.trim());
+      await updateResponse(editing.id, editBody, editShortcut.trim(), editVisibility);
+      const movedForAnotherOwner = !editing.ownedByMe && editVisibility === 'private';
       setEditing(null);
-      onNotice('Response text and shortcut saved. Other responses under the original shortcut are unchanged.');
+      onNotice(movedForAnotherOwner
+        ? 'Saved as Private for its original creator. This response is no longer visible to other agents or admins.'
+        : `Response saved as ${editVisibility === 'shared' ? 'Shared' : 'Private'}. Other replies under the shortcut are unchanged.`);
       void reload().catch(err => onError(err instanceof Error ? err.message : 'Could not refresh responses'));
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Could not update response');
     } finally { setSaving(false); }
   }
   async function remove(item: ArchiveResponse) {
+    if (bulkBusy || saving) return;
     if (!window.confirm(`Delete this response under #${item.shortcut}? This cannot be undone.`)) return;
     setProcessingId(item.id);
     try {
@@ -213,7 +288,7 @@ export default function LibraryWorkspace({
       )}
       <div className="archive-library-tools">
         <div className="archive-tabs" role="group" aria-label="Response visibility filters"
-          style={{ '--filter-index': scope === 'all' ? 0 : scope === 'shared' ? 1 : 2 } as CSSProperties}>
+          style={{ '--filter-index': scope === 'all' ? 0 : scope === 'shared' ? 1 : scope === 'private' ? 2 : 3 } as CSSProperties}>
           <Glass className="archive-tabs-lens" radius={24}
             style={{ borderRadius: 24, background: 'var(--liquid-selection-fill)' }}
             optics={{ depth: .75, curvature: .4, strength: .17, bend: .48,
@@ -221,47 +296,85 @@ export default function LibraryWorkspace({
               frost: 0, clipToShape: true, softEdge: true }}>
             <span aria-hidden="true"/>
           </Glass>
-          {(['all', 'shared', 'private'] as const).map(item => (
+          {(['all', 'shared', 'private', 'mine'] as const).map(item => (
             <button type="button" key={item} className={scope === item ? 'active' : ''} aria-pressed={scope === item}
-              onClick={() => chooseScope(item)}>{item[0]!.toUpperCase() + item.slice(1)}</button>
+              onClick={() => chooseScope(item)}>{item === 'mine' ? 'By me' : item[0]!.toUpperCase() + item.slice(1)}</button>
           ))}
         </div>
         <label className="archive-library-search">
           <span className="sr-only">Search response library</span>
-          <input type="search" value={search} onChange={event => setSearch(event.target.value)}
+          <input type="search" value={search} onChange={event => { setSearch(event.target.value); setSelectedIds(new Set()); }}
             placeholder="Search shortcuts and responses…" />
         </label>
         <LiquidButton className="archive-button archive-button-quiet" tone="neutral" type="button"
           onClick={() => void reload().catch(err => onError(String(err)))}>
           Refresh
         </LiquidButton>
+        {agent && <LiquidButton className="archive-button archive-button-quiet" tone="neutral"
+          type="button" disabled={bulkBusy || (!selectionMode && !selectableIds.length)}
+          aria-pressed={selectionMode}
+          onClick={() => {
+            if (selectionMode) clearSelection();
+            else { setCreating(false); setEditing(null); setTransferOpen(false); setSelectionMode(true); }
+          }}>{selectionMode ? 'Done' : 'Select'}</LiquidButton>}
       </div>
       <div className="archive-list-summary" aria-live="polite">
         {loading ? 'Loading responses…' : formatCount(shown.length, 'response')}
         {!agent && <span> · All includes shared responses only. Sign in to see Private.</span>}
       </div>
+      {selectionMode && (
+        <div className="archive-selection-toolbar" role="group" aria-label="Bulk response actions">
+          <span className="archive-selection-count" aria-live="polite">
+            {bulkBusy ? `Deleting… ${bulkProgress}/${selectedIds.size}` :
+              `${selectedIds.size} selected · ${selectableIds.length} available in this view`}
+          </span>
+          <button type="button" className="archive-button archive-button-quiet" disabled={bulkBusy || !selectableIds.length}
+            onClick={() => setSelectedIds(previous => {
+              const next = new Set(previous);
+              if (allVisibleSelected) selectableIds.forEach(id => next.delete(id));
+              else selectableIds.forEach(id => next.add(id));
+              return next;
+            })}>{allVisibleSelected ? 'Deselect all' : 'Select all'}</button>
+          <button type="button" className="archive-button archive-button-quiet"
+            disabled={bulkBusy || !selectedIds.size}
+            onClick={() => setSelectedIds(new Set())}>Clear</button>
+          <button type="button" className="archive-button archive-danger"
+            disabled={bulkBusy || !selectedIds.size}
+            onClick={() => void removeSelected()}>Delete selected ({selectedIds.size})</button>
+          <span className="archive-selection-hint">Only responses you can manage are selectable.</span>
+        </div>
+      )}
       {shown.length ? (
         <div className="archive-response-list">
           {shown.map(item => {
             const permission = canManageResponse(agent, item);
             return (
-              <article className="archive-response-row" key={item.id}>
+              <article className={`archive-response-row${selectedIds.has(item.id) ? ' is-selected' : ''}`} key={item.id}>
                 <div className="archive-response-row-heading">
                   <div className="archive-row-labels">
+                    {selectionMode && permission.delete && (
+                      <label className="archive-row-select">
+                        <input type="checkbox" checked={selectedIds.has(item.id)} disabled={bulkBusy}
+                          onChange={() => toggleSelection(item.id)}
+                          aria-label={`Select response under #${item.shortcut}`}/>
+                      </label>
+                    )}
                     <strong className="archive-shortcut-tag">#{item.shortcut}</strong>
                     <span className="archive-small-tag">{item.visibility === 'private' ? 'Private' : 'Shared'}</span>
                   </div>
                   <div className="archive-row-actions">
-                    <button className="archive-button archive-button-quiet" type="button" onClick={() => void copy(item)}>Copy</button>
-                    {permission.edit && <button className="archive-button archive-button-quiet" type="button"
-                      onClick={() => {
+                    <button className="archive-button archive-button-quiet" type="button"
+                      disabled={bulkBusy} onClick={() => void copy(item)}>Copy</button>
+                    {!selectionMode && permission.edit && <button className="archive-button archive-button-quiet" type="button"
+                      disabled={bulkBusy} onClick={() => {
                         setEditing(item);
                         setEditBody(item.body);
                         setEditShortcut(item.shortcut);
+                        setEditVisibility(item.visibility);
                         setShowEditExisting(false);
                       }}>Edit</button>}
-                    {permission.delete && <button className="archive-button archive-button-quiet archive-danger" type="button"
-                      disabled={processingId === item.id} onClick={() => void remove(item)}>Delete</button>}
+                    {!selectionMode && permission.delete && <button className="archive-button archive-button-quiet archive-danger" type="button"
+                      disabled={bulkBusy || processingId === item.id} onClick={() => void remove(item)}>Delete</button>}
                   </div>
                 </div>
                 {editing?.id === item.id ? (
@@ -291,8 +404,29 @@ export default function LibraryWorkspace({
                       )}
                     </div>
                     <p className="archive-hint">Changing this shortcut moves only this response, not other responses sharing the old shortcut.</p>
-                    <div>
-                      <LiquidButton className="archive-button archive-button-primary" type="submit" disabled={saving || !editBody.trim() || !editShortcut.trim()}>
+                    <label>Visibility</label>
+                    <div className="archive-visibility-options archive-edit-visibility" role="group"
+                      aria-label="Edit response visibility" data-visibility={editVisibility}>
+                      <Glass className="archive-visibility-lens" radius={18}
+                        style={{ borderRadius:18, background:'var(--liquid-selection-fill)' }}
+                        optics={{ mapSize:96, depth:.56, curvature:.40, strength:.15, bend:.42, bendWidth:.13,
+                          dispersion:.12, sheen:.9, specular:.9, frost:0, clipToShape:true }}>
+                        <span/>
+                      </Glass>
+                      <button type="button" className={editVisibility === 'shared' ? 'active' : ''} aria-pressed={editVisibility === 'shared'}
+                        onClick={() => { setEditVisibility('shared'); setShowEditExisting(false); }}>Shared</button>
+                      <button type="button" className={editVisibility === 'private' ? 'active' : ''} aria-pressed={editVisibility === 'private'}
+                        onClick={() => { setEditVisibility('private'); setShowEditExisting(false); }}>Private</button>
+                    </div>
+                    {editVisibility !== editing.visibility && <p className="archive-hint">
+                      {editVisibility === 'shared'
+                        ? 'This reply will become visible to everyone, including visitors without an account.'
+                        : editing.ownedByMe
+                          ? 'Only you will be able to view this reply after saving.'
+                          : 'This reply will become private to its original creator. You will no longer be able to see it.'}
+                    </p>}
+                    <div className="archive-edit-actions">
+                      <LiquidButton className="archive-button archive-button-primary" type="submit" disabled={saving || bulkBusy || !editBody.trim() || !editShortcut.trim()}>
                         {saving ? 'Saving…' : 'Save changes'}
                       </LiquidButton>
                       <button className="archive-button archive-button-quiet" type="button" onClick={() => setEditing(null)}>Cancel</button>
