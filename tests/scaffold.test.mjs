@@ -36,10 +36,15 @@ test('versioned database migrations and API documentation exist', () => {
   assert.ok(exists('docs/backend-api.md'));
 });
 
-test('dependency updates avoid incompatible major-version PRs and duplicate branch CI', () => {
+test('dependency updates avoid major-version noise and both stable branches run CI', () => {
   const dependabot = read('.github/dependabot.yml');
   const ci = read('.github/workflows/ci.yml');
+  const security = read('.github/workflows/security-audit.yml');
+  const pruner = read('.github/workflows/prune-merged-branches.yml');
   assert.equal((dependabot.match(/version-update:semver-major/g) ?? []).length, 2);
-  assert.match(ci, /branches: \[main\]/);
+  assert.match(ci, /branches: \[main, develop\]/);
+  assert.match(security, /branches: \[main, develop\]/);
   assert.match(ci, /pull_request:/);
+  assert.match(pruner, /\$branch" != "main" && "\$branch" != "develop"/);
+  assert.ok(exists('docs/staging-and-releases.md'));
 });
