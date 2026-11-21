@@ -47,7 +47,12 @@ export async function handleAuth(request: Request, env: Env, path: string): Prom
 
   if (path === '/api/auth/login' && request.method === 'POST') {
     const data = await readJson(request);
-    const identity = loginIdentifierInput(data.identifier ?? data.agentName);
+    // Older integrations supplied agentName even when that name happened
+    // to contain '@'. Preserve that exact legacy behavior; only the new
+    // identifier field auto-detects a verified email address.
+    const identity = data.identifier === undefined
+      ? { kind: 'name' as const, key: nameInput(data.agentName).toLowerCase() }
+      : loginIdentifierInput(data.identifier);
     const pin = pinInput(data.pin);
     const ip = ipOf(request);
     // Always cap IP attempts before looking up any account. Each real account
