@@ -24,3 +24,21 @@ test('security checks scan history and report production and build-tool advisori
   assert.match(report, /High\/critical production dependency advisory/);
   assert.doesNotMatch(workflow, /contents: write/);
 });
+
+test('reproducible installs are used in both CI workflows', () => {
+  const lock = JSON.parse(source('package-lock.json'));
+  const pkg = JSON.parse(source('package.json'));
+  assert.equal(lock.lockfileVersion, 3);
+  assert.equal(lock.name, pkg.name);
+  assert.deepEqual(lock.packages[''].dependencies, pkg.dependencies);
+  assert.deepEqual(lock.packages[''].devDependencies, pkg.devDependencies);
+  assert.match(source('.github/workflows/ci.yml'), /npm ci --no-audit --no-fund/);
+  assert.match(source('.github/workflows/security-audit.yml'), /npm ci --ignore-scripts --no-fund --no-audit/);
+  assert.doesNotMatch(source('.github/workflows/ci.yml'), /npm install/);
+});
+
+test('avatar account request reuses the already loaded API module', () => {
+  const app = source('src/features/archive/ArchiveApp.tsx');
+  assert.match(app, /import \{ api, ApiProblem,/);
+  assert.doesNotMatch(app, /import\('\.\/api'\)/);
+});

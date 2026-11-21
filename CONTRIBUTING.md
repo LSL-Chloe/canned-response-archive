@@ -13,7 +13,7 @@ Please avoid including real account information, customer messages, API keys, or
 ## Working locally
 
 ```bash
-npm install
+npm ci
 npm run dev
 npm run check
 ```
@@ -28,7 +28,7 @@ See [docs/setup.md](docs/setup.md) for local Worker and database configuration. 
 - Include tests for bug fixes or permissions-sensitive paths.
 - Keep animation responsive and respect reduced-motion and lower-capability devices.
 - Update the appropriate documentation when features or setup change.
-- Run `npm run check` and describe any manual testing you performed.
+- Use `npm ci` and run `npm run check`; commit any intentional npm lockfile changes and describe manual testing.
 
 Avoid silently importing third-party artwork into the repository: include its source and usage rights, and prefer licensed or clearly permitted assets.
 
