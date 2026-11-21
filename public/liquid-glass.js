@@ -51,6 +51,16 @@ const css=`
 .archive-app button,.liquid-action,.archive-sign-in-link{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .liquid-action:hover,.archive-button:hover,.archive-sign-in-link:hover{transform:translateY(-1px) scale(1.03)!important}
 html[data-lg="0"] [data-liquid-glass]::after,html[data-lg="0"] [data-lgx]::after{background:var(--lg-r2)}
+/* Color changes follow the existing .58s sliding theme thumb, without replacing
+   its spring animation or delaying React state changes. */
+.archive-app[data-theme],.auth-experience[data-theme]{transition:color .58s ease}
+.archive-app>.optical-environment,.auth-experience>.optical-environment{transition:background-color .58s ease}
+.archive-app .archive-sidebar{transition:width .27s cubic-bezier(.16,1,.3,1),flex-basis .27s cubic-bezier(.16,1,.3,1),padding .27s cubic-bezier(.16,1,.3,1),background-color .58s ease,border-color .58s ease}
+.archive-app .archive-topbar{transition:background-color .58s ease,color .58s ease,border-color .58s ease}
+.archive-app .archive-nav button{transition:color .58s ease}
+.archive-app .archive-search-intro p:last-child,.archive-app .archive-composer-hint,.archive-app .archive-composer textarea,.archive-app .archive-composer textarea::placeholder,.archive-app .archive-composer kbd{transition:color .58s ease}
+.auth-experience .auth-form-header p,.auth-experience .auth-field-label{transition:color .58s ease}
+@media(prefers-reduced-motion:reduce){.archive-app[data-theme],.auth-experience[data-theme]{transition:none!important}}
 `;
 const st=D.createElement('style');st.textContent=css;D.head.append(st);
 
@@ -145,7 +155,10 @@ function bg(env){
  if(!gl.getProgramParameter(p,gl.LINK_STATUS))return null;gl.useProgram(p);
  const u=n=>gl.getUniformLocation(p,n),uR=u('uR'),uM=u('uM'),uT=u('uT'),uD=u('uD'),uK=u('uK');
  env.prepend(c);env.classList.add('lg-gl');
- const base=[.25,.35,.5][tier];let sc=base,ud=0,W,H,mx=0,my=0,tx=0,ty=0,act=0,prev=0,ki=0,fr=0,ms=0,la=-1,dk=0,n=0,ok=1;
+ // Match the initial React appearance before the very first WebGL frame.
+ const readDark=()=>((D.querySelector('.archive-app,.auth-experience')?.dataset.theme||R.dataset.theme)==='dark'?1:0);
+ const initialDark=readDark();
+ const base=[.25,.35,.5][tier];let sc=base,ud=initialDark,W,H,mx=0,my=0,tx=0,ty=0,act=0,prev=0,ki=0,fr=0,ms=0,la=-1,dk=initialDark,fromDark=initialDark,changeAt=0,ok=1;
  const ks=new Float32Array(24),t0=performance.now(),T=()=>(performance.now()-t0)/1e3;
  const size=()=>{W=innerWidth;H=innerHeight;c.width=Math.max(2,W*sc|0);c.height=Math.max(2,H*sc|0);gl.viewport(0,0,c.width,c.height)};
  size();addEventListener('resize',size);
@@ -160,8 +173,14 @@ function bg(env){
   if(fr>=45){const avg=ms/fr;fr=ms=0;                          // adapt resolution only; never stop the loop
    if(avg>min*1.6&&sc>.18){sc*=.8;size()}else if(avg<min*1.15&&sc<base){sc=Math.min(base,sc*1.12);size()}}
   const k=1-Math.exp(-dt*5);mx+=(tx-mx)*k;my+=(ty-my)*k;
-  if(!(n++%30))dk=D.querySelector('.archive-app,.auth-experience')?.dataset.theme==='dark'?1:0;
-  gl.uniform2f(uR,c.width,c.height);gl.uniform2f(uM,mx*(H/c.height*c.height/H),my);gl.uniform1f(uT,T());ud+=(dk-ud)*(1-Math.exp(-dt*7));gl.uniform1f(uD,ud);gl.uniform4fv(uK,ks);
+  // Read every rendered frame: the old 30-frame polling left the light UI
+  // stranded over a dark canvas for up to a second on low-end devices.
+  const nextDark=readDark();
+  if(nextDark!==dk){fromDark=ud;dk=nextDark;changeAt=now}
+  const progress=Math.min(1,Math.max(0,(now-changeAt)/580));
+  const eased=progress*progress*(3-2*progress);
+  ud=fromDark+(dk-fromDark)*eased;
+  gl.uniform2f(uR,c.width,c.height);gl.uniform2f(uM,mx*(H/c.height*c.height/H),my);gl.uniform1f(uT,T());gl.uniform1f(uD,ud);gl.uniform4fv(uK,ks);
   gl.drawArrays(gl.TRIANGLES,0,3);
   if(tier===2){const a=Math.round((Math.atan2(mx,my)*57.296+360)%360/4)*4;if(a!==la){la=a;R.style.setProperty('--la',a+'deg')}} // rim light follows cursor
  })(0);
