@@ -78,8 +78,12 @@ export function addResponse(visibility: Visibility, shortcut: string, body: stri
     method: 'POST', body: JSON.stringify({ visibility, shortcut, body }),
   });
 }
-export function updateResponse(id: string, body: string, shortcut: string): Promise<{ response: unknown }> {
-  return api(`/api/responses/${id}`, { method: 'PATCH', body: JSON.stringify({ body, shortcut }) });
+export function updateResponse(id: string, body: string, shortcut: string, visibility: Visibility): Promise<{ response: unknown }> {
+  return api(`/api/responses/${id}`, { method: 'PATCH', body: JSON.stringify({ body, shortcut, visibility }) });
+}
+/** Each batch is all-or-nothing on the database side. Maximum 100 IDs. */
+export function bulkDeleteResponses(ids: string[]): Promise<{ deleted: number }> {
+  return api('/api/responses/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
 }
 export function deleteResponse(id: string): Promise<{ deleted: true }> {
   return api(`/api/responses/${id}`, { method: 'DELETE' });
