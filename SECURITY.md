@@ -48,3 +48,9 @@ it does not grant them access to the production Supabase project. If preview
 features need database access, use a separate disposable test project with
 independent credentials and only test data. Do not promote preview secrets or
 public preview URLs as equivalent to production protections.
+
+## Dependency and history review
+
+The GitHub security-audit workflow checks reachable Git history and performs npm advisory checks on each PR and main. Its results supplement, but do not replace, GitHub's provider-backed secret-scanning alerts. Vite 7.3.8 is the minimum approved Vite 7 release; do not expose a development server publicly.
+
+The project still needs an audited lockfile, a separate production security review, and rights clearance for third-party avatar artwork before a broad launch.
