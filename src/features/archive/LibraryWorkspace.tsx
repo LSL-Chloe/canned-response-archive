@@ -405,7 +405,7 @@ export default function LibraryWorkspace({
                       )}
                     </div>
                     <p className="archive-hint">Changing this shortcut moves only this response, not other responses sharing the old shortcut.</p>
-                    <label>Visibility</label>
+                    <span className="archive-edit-label">Visibility</span>
                     <div className="archive-visibility-options archive-edit-visibility" role="group"
                       aria-label="Edit response visibility" data-visibility={editVisibility}>
                       <Glass className="archive-visibility-lens" radius={18}

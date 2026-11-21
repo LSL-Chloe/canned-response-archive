@@ -56,3 +56,11 @@ public preview URLs as equivalent to production protections.
 The GitHub security-audit workflow checks reachable Git history and performs npm advisory checks on each PR and main. Its results supplement, but do not replace, GitHub's provider-backed secret-scanning alerts. Vite 7.3.8 is the minimum approved Vite 7 release; do not expose a development server publicly.
 
 The dependency lockfile is committed and checked in CI. A separate production security review and rights clearance for third-party avatar artwork are still needed before a broad launch.
+
+## Changing visibility and managing several responses
+
+A signed-in user may move their own responses between Shared (publicly readable) and Private. The administrator may also move an **existing Shared** reply created by another agent to Private. That reply remains owned by its original author; after the move, even the administrator cannot view its private text. No one can use the UI or Worker API to reveal another account's Private reply by moving it to Shared.
+
+Bulk selection restricts regular agents to their own replies. Administrators may additionally delete others' Shared replies, but never another account's Private replies. Deletes are permanent. The Worker checks the signed-in session and enforces rate limits, and a service-role-only database function rechecks every selected row under locks before deleting it atomically per batch. Larger selections are multiple batches, so an interrupted request may have already committed a prior batch. Confirm the filter and selection before deleting.
+
+A successful source build is not a substitute for testing actual account boundaries and backup restoration in a staging environment.

@@ -39,3 +39,12 @@ Hiding a button is not enough. Confirm a non-admin receives **403** when attempt
 ## Limitations
 
 The project uses polling rather than direct push-based Realtime. Silent polls skip if another response refresh is still in flight; imports are atomic only within individual batches, not across the whole file. Third-party PFP CDNs may be missing, slow or unavailable and original GitHub sources provide a fallback. Automated tests do not prove visual fidelity, browser-specific behavior, or secure operations in a real production environment.
+
+## Two-account visibility checks (use expendable test content)
+
+1. Create a shared test reply as Agent A. Confirm **By me** displays it for A but not for B. Confirm both see it under Shared and may copy it.
+2. Agent B attempts to edit, move or bulk-delete Agent A's Shared reply using the API; each must return 403 without changing the data.
+3. Admin edits Agent A's Shared reply to Private. Confirm the public feed removes it, A still has it under Private and By me, and the admin cannot retrieve or move the private reply afterward.
+4. Agent A changes that Private reply back to Shared. Confirm that its ownership and shortcut remain intact and that it reappears on the shared feed.
+5. With at least two selected rows, simulate a mixed authorized/unauthorized bulk-delete request; the database must reject the entire batch. Clear selections and repeat with only A's own rows to confirm successful deletion.
+6. At narrow widths, 200% zoom, and with reduced-motion enabled, the new four-tab lens must stay aligned and native checkboxes and delete confirmation must remain usable.

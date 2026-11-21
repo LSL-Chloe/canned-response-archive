@@ -1743,3 +1743,5 @@
     animation:none!important;will-change:auto;
   }
 }
+
+.archive-app .archive-edit-label {font-size:12px;font-weight:750;line-height:1.35;color:var(--a-text)}
