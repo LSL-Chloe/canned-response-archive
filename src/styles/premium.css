@@ -1748,9 +1748,16 @@
 
 
 /* STAGING GLASS POLISH: independent hover previews, soft shell edges, aligned rail icons. */
-/* Keep the shell geometry intact: only soften the existing optical edges. */
-.archive-app .archive-sidebar{border-radius:0 19px 19px 0}
-.archive-app .archive-topbar{border-radius:0 0 17px 17px}
+/* The rail and top bar form one continuous shell. Rounding their shared
+   corner made an accidental notch in the junction shown in staging. */
+.archive-app{--shell-header-height:62px}
+.archive-app .archive-sidebar,.archive-app .archive-topbar{border-radius:0}
+.archive-app .archive-sidebar::before{
+  content:"";position:absolute;z-index:1;pointer-events:none;
+  left:0;right:0;top:calc(var(--shell-header-height) - 1px);height:1px;
+  background:var(--lg-r2,var(--a-line));
+}
+@media(max-width:530px){.archive-app{--shell-header-height:59px}}
 
 /* Collapsed icon bubbles and the SVG glyphs share exactly one center. */
 .archive-app .archive-nav .archive-nav-icon{
@@ -1765,9 +1772,8 @@
   flex:0 0 0;max-width:0;min-width:0;
 }
 
-/* A second, lighter optical lens follows hover/focus without changing the
-   selected lens or selected page. It is a CSS surface, not another SVG filter. */
-.archive-app .archive-nav::before,
+/* Other segmented controls retain the lighter hover/focus preview.
+   Sidebar navigation intentionally uses only its selected glass pill. */
 .archive-app .archive-tabs::before,
 .archive-app .archive-visibility-options::before,
 .archive-app .archive-transfer-scope::before,
@@ -1779,13 +1785,6 @@
     0 3px 10px rgba(0,0,0,.07);
   opacity:var(--hover-visible,0);
   transition:transform .27s cubic-bezier(.16,1,.3,1),opacity .13s ease;
-}
-.archive-app .archive-nav::before{
-  top:5px;left:5px;right:5px;height:44px;border-radius:17px;
-  transform:translate3d(0,calc(var(--hover-slot,0) * 48px),0);
-}
-.archive-app[data-theme].is-sidebar-collapsed .archive-nav::before{
-  left:4px;right:4px;top:4px;
 }
 .archive-app .archive-tabs::before{
   top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/4);border-radius:999px;
@@ -1803,9 +1802,6 @@
 }
 /* Explicit slots keep movement continuous as the pointer changes options;
    an active button never receives a redundant hover lens. */
-.archive-app .archive-nav:has(>button:nth-of-type(1):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:0;--hover-visible:1}
-.archive-app .archive-nav:has(>button:nth-of-type(2):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:1;--hover-visible:1}
-.archive-app .archive-nav:has(>button:nth-of-type(3):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:2;--hover-visible:1}
 .archive-app .archive-tabs:has(>button:nth-of-type(1):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:0;--hover-visible:1}
 .archive-app .archive-tabs:has(>button:nth-of-type(2):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:1;--hover-visible:1}
 .archive-app .archive-tabs:has(>button:nth-of-type(3):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:2;--hover-visible:1}
@@ -1819,7 +1815,7 @@
 
 /* Preserve visible keyboard focus and avoid creating hover animation on touch. */
 @media(prefers-reduced-motion:reduce){
-  .archive-app .archive-nav::before,.archive-app .archive-tabs::before,
+  .archive-app .archive-tabs::before,
   .archive-app .archive-visibility-options::before,.archive-app .archive-transfer-scope::before,
   .auth-experience .auth-mode-tabs::before{transition:none!important}
 }
