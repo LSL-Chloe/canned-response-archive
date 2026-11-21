@@ -76,7 +76,9 @@ test('session cookies are HttpOnly, strict, secure on HTTPS', () => {
 test('health check is accessible while credentials are not configured', async () => {
   const response = await api.fetch(new Request('https://example.test/api/health'), {});
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).databaseConfigured, false);
+  const body = await response.json();
+  assert.equal(body.status, 'ok');
+  assert.equal('databaseConfigured' in body, false, 'Health response must not disclose deployment configuration');
   const blocked = await api.fetch(new Request('https://example.test/api/auth/me'), {});
   assert.equal(blocked.status, 503);
 });

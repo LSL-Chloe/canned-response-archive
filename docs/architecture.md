@@ -1,62 +1,52 @@
-# Architecture and boundaries
+# How Canned Response Archive fits together
 
-## Layers
+The app has three main parts: a React interface, an API that runs on Cloudflare Workers, and a Supabase PostgreSQL database. The browser does not connect directly to private database tables.
 
-1. React browser SPA. No database service credentials, email secrets, PIN hashes or privileged JWTs are embedded here.
-2. Cloudflare Worker `/api/*` for validation, authentication, permission checks and write endpoints.
-3. Supabase Postgres for users, sessions, shortcuts, and responses. Separate project for development.
-4. Realtime read model for shared response changes only; private content is never published to a guest-readable channel.
-5. Gmail/Google Apps Script as a potential OTP sender. Integration must be authenticated, rate-limited and tested.
+## A request's journey
 
-## Database model (deployed to development; not to production)
+1. **React** displays the library, draft editor, Settings, and account screens. Its data requests use same-origin `/api/*` endpoints.
+2. **Cloudflare Worker** checks input, sessions, permissions, and rate limits. It performs the database operation and returns a limited response.
+3. **Supabase PostgreSQL** stores accounts, sessions, shortcuts, saved replies, OTP challenges, and the public shared-response feed.
+4. **Optional mail service** sends verification codes through a signed Google Apps Script request.
 
-- `agents`: immutable UUID, unique normalized agent name, optional verified email, role, timestamps.
-- `agent_credentials`: UUID to agent, cryptographically protected PIN verifier, lockout fields. No plaintext PIN.
-- `agent_sessions`: opaque hashed session token, agent ID, expiry, revocation.
-- `shortcuts`: UUID, normalized shortcut text, created_at. Needs careful definition for private shortcut collisions.
-- `responses`: UUID, shortcut_id, body, visibility (`shared`/`private`), owner_id, timestamps.
-- `otp_challenges`: purpose, salted code verifier, target email, expiry, attempts and send limit.
-- `shared_response_feed`: safely filtered shared data plus creator display name for guest read/realtime. Does not contain private rows or email/PIN data.
+The Worker owns the Supabase secret key. It must never be compiled into the React application.
 
-## Authentication security
+## Shared and private are different on purpose
 
-The design uses a custom agent-name + PIN experience because email is optional. Supabase's
-out-of-the-box email auth should NOT be treated as implementing this custom flow automatically.
-All agent-specific authorization must be enforced on the server and in database grants/RLS,
-not by hiding navigation. Only server-side code may access privileged DB keys. No secrets in Git.
+A Shared response becomes part of `shared_response_feed`, which is designed for **anonymous reading**. The feed includes the shortcut, response body, and creator display name. This lets visitors find and copy public shared replies without creating an account.
 
-A four-digit PIN is a low-entropy secret. Before production, implement per-account and per-IP
-rate limits, backoff/temporary lockouts, uniform error messages, secure PIN hashing with
-an appropriate server-side secret, protected HttpOnly/Secure/SameSite sessions, CSRF defenses
-on state-changing operations, expiry/revocation, and no enumeration of registered emails.
-PIN verifiers use per-account 128-bit random salts and a Worker-secret-keyed HMAC-SHA256;
-the four-digit PIN is intrinsically low entropy, so preserving PIN_PEPPER secrecy and
-login throttling is critical. Workerd rejects PBKDF2 iterations above 100,000, and its
-Free plan has limited CPU time; never silently use a high-iteration PBKDF2 in the Worker.
-This scheme trades offline KDF work for dependence on an undisclosed high-entropy server
-secret. If both database content and PIN_PEPPER are compromised, four-digit PINs are
-brute-forceable; additional authentication controls are necessary before production.
-Hash OTPs, expire them quickly, set strict attempt counts, and verify emails before recovery.
-Account creation/admin bootstrap must be atomic and idempotent.
+Private responses remain in the canonical `canned_responses` table and are served through owner-filtered Worker queries. The administrator cannot use the API to read another user's private text. Database row-level security and grants prevent clients from querying protected tables with anonymous credentials.
 
-## Realtime authorization
+Saved responses may share a shortcut. Editing a reply's shortcut reassigns that reply, not the entire shortcut collection.
 
-The simplest safe Phase 2 direction is a public shared-only read model + realtime feed,
-with private records accessible solely through authenticated API requests. We must not simply
-subscribe unauthenticated browsers to `responses` with access to all rows. Review Supabase RLS,
-publication choices and trigger permissions before enabling any database change subscriptions.
+## Accounts, recovery, and sessions
 
-## Development and production
+An agent name and four-digit PIN identify an account. PIN verifiers use a random salt and an HMAC keyed with a Worker-only `PIN_PEPPER`. The PIN's short length is still a real security limitation; rate limits are essential and high-value data is out of scope for this development deployment.
 
-Use two independent Supabase projects (dev/test and live). Treat Cloudflare preview URLs as
-untrusted staging surfaces; never share production secrets with preview deployments. Keep schema
-changes in migrations, validate on staging, export backups before production changes, and deploy
-only after green checks. Code rollbacks do not automatically roll back database migrations.
+Session tokens are random and only their SHA-256 hashes are stored. HTTPS cookies are HttpOnly, Secure, SameSite=Strict, and host-only, with a seven-day expiry. State-changing API routes check the Origin header. Logout revokes the session; PIN recovery revokes existing sessions.
 
-## API (Phase 2 development)
+Adding a verified recovery email is optional. Signup, recovery, and email changes use six-digit, short-lived codes. The code digest and completion state are kept server-side, with transactional consumption through the database.
 
-Backend routes are deployed to the development Cloudflare Worker. Signup and OTP verification,
-login and PIN recovery were tested by the project owner. Shared read endpoints were verified
-externally. The initial archive UI uses same-origin API calls and 5-second refresh polling,
-not realtime push subscriptions.
-See [backend API](backend-api.md) for the full route matrix, security assumptions and remaining work.
+The first completed signup claims the sole administrator role. Be sure to register the intended administrator before exposing an empty installation.
+
+## Keeping the interface current
+
+The client refreshes the response feed every five seconds while visible, and on returning focus. This is near-live polling, not a direct Supabase Realtime subscription. Response arrays are reused when their contents have not changed so polling doesn't force unnecessary UI work.
+
+The compact composer groups replies by shortcut. The draft itself is held in React state and is not automatically uploaded as a saved response.
+
+## Profile pictures
+
+Default character icons are indexed in frontend source files. Anime uses a curated collection; TV and Movies also include character icons from a separate streaming-service index. The browser can display these immediately without asking an API for a list.
+
+Additional character artwork comes from external APIs. Images are subject to per-image quality checks and strict URL host/path restrictions. Existing profile icons may load directly from public CDNs, with a Worker proxy fallback when necessary. Custom user uploads are cropped/compressed in the browser, sent to the authenticated Worker, and stored as public-read JPEG objects in Supabase Storage.
+
+Third-party icons may be removed or changed by their owners. Their presence on a public CDN is not permission to redistribute them.
+
+## Deployment boundaries
+
+The repository currently has a live Cloudflare Worker deployment using development infrastructure. That isn't the same as production readiness. A separate production Supabase project, independently managed secrets, backups, abuse protection, and end-to-end permission testing are still needed.
+
+The versioned SQL files under `supabase/migrations/` document the development schema. Applying a migration to a new environment should be a reviewed change. Rolling back a frontend commit does not reverse a database migration.
+
+See [the API reference](backend-api.md), [setup instructions](setup.md), and [security notes](../SECURITY.md).

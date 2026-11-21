@@ -1,62 +1,44 @@
-# Free Gmail OTP sender — setup guide
+# Email verification with Gmail
 
-Email OTP code is implemented in the Worker and in
-[`scripts/apps-script/Code.gs`](../scripts/apps-script/Code.gs).
-This setup **requires your Google account authorization**. The GitHub connection
-cannot access your Gmail or authorize a Google Apps Script web app.
+Canned Response Archive can send one-time verification codes using a small Google Apps Script web app. This is optional for development, but required if you want email-backed signup, recovery emails, and forgotten-PIN recovery.
 
-## What it does
+You authorize the mail sender from **your own Google account**. The Worker never needs your Gmail password.
 
-- Agent enters any valid email address.
-- The Worker creates a one-time six-digit code valid for 10 minutes.
-- It stores only a keyed code digest in Supabase, never the plaintext code.
-- It signs a request to the Google Apps Script mail relay using a separate secret.
-- The Apps Script checks the signature, timestamp and nonce before sending via Gmail.
-- Code verification and any account change occur atomically in Supabase.
-- Incorrect attempts are capped at five per challenge, with additional server-side limits.
+## How a verification email is sent
 
-Never send the mailbox password to ChatGPT, GitHub, Cloudflare, or Supabase.
-Google Apps Script authorizes through your own signed-in Google session.
+The Worker creates a six-digit code, stores only a keyed digest with a ten-minute expiry, and sends a signed request to the Apps Script relay. The relay verifies the HMAC signature, timestamp, and request nonce before asking Gmail to send the message.
 
-## One-time Google setup
+The Worker and Supabase handle code verification and any account update. The relay only delivers mail.
 
-1. Visit [script.google.com](https://script.google.com/) using the Gmail account that will **send** OTPs.
-2. Create a standalone Apps Script project named **Canned Archive OTP Sender**.
-3. Replace `Code.gs` with the contents of [`scripts/apps-script/Code.gs`](../scripts/apps-script/Code.gs).
-4. Under **Project Settings → Script Properties**, add:
-   `OTP_MAILER_SECRET` with a generated, random 32+ character string.
-5. In Apps Script, run `authorizeMailService` once from the editor and grant Google's requested permissions.
-6. Use **Deploy → New deployment → Web app**. Choose **Execute as: Me** and **Who has access: Anyone**.
-7. Copy the generated `https://script.google.com/macros/s/.../exec` URL **privately**.
-8. Set `OTP_MAILER_URL` to that URL and `OTP_MAILER_SECRET` to the **same secret**
-   as Cloudflare Worker encrypted secrets (for development, use a local-only `.dev.vars`).
-9. Do **not** commit those values or paste them in chat.
-10. Run a staged end-to-end test to your own email before sharing signup with teammates.
+## Set up the sender
 
-### Security
+1. Open [Google Apps Script](https://script.google.com/) using the Google account you want to send emails from.
+2. Create a standalone Apps Script project, for example **Archive OTP Sender**.
+3. Replace its `Code.gs` contents with [the relay script in this repository](../scripts/apps-script/Code.gs).
+4. In **Project settings → Script properties**, create `OTP_MAILER_SECRET` with a random value of at least 32 characters.
+5. From the editor, run `authorizeMailService` and approve the Google permission prompt.
+6. Choose **Deploy → New deployment → Web app**. Set **Execute as: Me** and **Who has access: Anyone**. The public endpoint is safe only because unsigned or invalid requests are rejected.
+7. Copy the `https://script.google.com/macros/s/.../exec` URL privately.
+8. In Cloudflare Worker Secrets (or your ignored local `.dev.vars`), set:
+   - `OTP_MAILER_URL` to that deployment URL
+   - `OTP_MAILER_SECRET` to the *same* random secret used by Apps Script
+9. Test a signup with your own inbox. Verify code delivery, expiry, incorrect-code behavior, and PIN recovery.
 
-The Apps Script Web App endpoint is publicly reachable, **but requests without the
-matching HMAC signature are rejected**. The Worker keeps the secret server-side. The
-script rejects stale and replayed requests. Rate limits and PIN/OTP validation
-are enforced on the Worker and in Supabase.
+Do not put the relay URL and secret together in a public screenshot, issue, or commit. Don't share the Gmail account password or any OTP code.
 
-Gmail sending is quota-limited. Apps Script personal accounts currently have
-a published quota of 100 email recipients/day, but Google can revise limits.
-Use `MailApp.getRemainingDailyQuota()` to inspect the remainder.
+## Limits and recovery
 
-### Recovery behavior
+The Worker limits verification requests per target and IP address. Each challenge expires after ten minutes, and incorrect codes are capped at five attempts. The relay also rejects stale signatures and already-seen nonces, and Gmail applies its own sending quotas.
 
-- No email supplied at signup: account created immediately; no self-service PIN recovery.
-- Email supplied at signup: a pending signup is created, and the account is created
-  **only after successful verification**.
-- Email updated in settings: the new email becomes active only after verifying its OTP.
-- Forgotten PIN: request OTP to existing verified email, enter OTP + new PIN;
-  all existing sessions are revoked, and the agent signs in again.
-- The first completed signup (email or no email) is admin. This is atomic in the database.
+If signup has no email, an account is created immediately and **cannot use email PIN recovery**. If an email is supplied during signup, the account is only created after verification. Changing an email in Settings also requires verifying the new address. Successful PIN recovery invalidates previous sessions.
 
-### Official documentation
+A Gmail relay is appropriate for a small personal project, not a high-volume transactional email service. Check Google's current sending quotas and review the sender's operating logs without logging message bodies or secrets.
 
-- https://developers.google.com/apps-script/guides/web
-- https://developers.google.com/apps-script/reference/mail/mail-app
-- https://developers.google.com/apps-script/guides/properties
-- https://developers.google.com/apps-script/guides/services/quotas
+## Useful references
+
+- [Apps Script web apps](https://developers.google.com/apps-script/guides/web)
+- [MailApp](https://developers.google.com/apps-script/reference/mail/mail-app)
+- [Script properties](https://developers.google.com/apps-script/guides/properties)
+- [Google services quotas](https://developers.google.com/apps-script/guides/services/quotas)
+
+See [authentication QA](auth-qa.md) to test the full user flow.

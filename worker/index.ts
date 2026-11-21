@@ -11,7 +11,7 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     if (request.method === 'GET' && path === '/api/health') {
-      return json({ status: 'ok', service: 'canned-response-archive', phase: 'backend-auth', databaseConfigured: configured(env) });
+      return json({ status: 'ok', service: 'canned-response-archive' });
     }
     if (!path.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     if (!configured(env)) return json({ error: 'Backend configuration is missing' }, 503);
