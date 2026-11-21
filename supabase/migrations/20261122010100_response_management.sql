@@ -78,7 +78,7 @@ begin
    where r.id = v_row.id
    returning r.* into v_result;
 
-  -- Existing triggers synchronize the anonymous feed on both transitions.
+  -- The existing sync_shared_response_feed trigger synchronizes the anonymous\n  -- feed on both visibility transitions.
   return pg_catalog.to_jsonb(v_result);
 end;
 $$;
