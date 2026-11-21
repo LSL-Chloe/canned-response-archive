@@ -1559,3 +1559,16 @@
  .archive-app .archive-avatar-gallery{grid-template-columns:repeat(8,minmax(0,1fr))}
 }
 @media(prefers-reduced-motion:reduce){.archive-app .archive-avatar-expand-results{transition:none}}
+
+/* Analyze only supplemental anime catalog art. Hide the image until its tiny
+ * pixel sample has been reviewed; preserve curated icons and user uploads.
+ * Mildly high-key pictures get a restrained contrast/saturation adjustment.
+ */
+.archive-app .archive-avatar-tile-image img.archive-anime-portrait-pending,
+.archive-app .archive-avatar-variation-grid img.archive-anime-portrait-pending {
+  opacity: 0;
+}
+.archive-app .archive-avatar-tile-image img.archive-anime-portrait-enhance,
+.archive-app .archive-avatar-variation-grid img.archive-anime-portrait-enhance {
+  filter: contrast(1.12) saturate(1.16);
+}

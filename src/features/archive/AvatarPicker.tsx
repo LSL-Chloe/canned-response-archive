@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { api } from './api';
 import LiquidButton from '../../ui/LiquidButton';
 import { avatarImageSrc, alternateAvatarImageSrc } from './avatarImages';
+import { assessAnimePortraitImage, type AnimePortraitQuality } from './avatarQuality';
 import { featuredAvatars, searchCuratedAvatars, curatedAvatarsForTitle, curatedAvatars, alternateCuratedAvatars } from './curatedAvatarCatalog';
 
 type Source = 'anime' | 'tv' | 'movie';
@@ -29,12 +30,46 @@ const sources: { id: Source; label: string }[] = [
   { id: 'anime', label: 'Anime' }, { id: 'tv', label: 'TV series' }, { id: 'movie', label: 'Movies' },
 ];
 
-function PortraitImage({ url, label }: { url: string; label: string }) {
+function PortraitImage({ url, label, inspectAnime = false, onReject }: {
+  url: string;
+  label: string;
+  inspectAnime?: boolean;
+  onReject?: (url: string) => void;
+}) {
   const [attempt, setAttempt] = useState(0);
-  useEffect(() => setAttempt(0), [url]);
-  if (attempt > 1) return <span className="archive-avatar-image-fallback" aria-label={label + ' portrait unavailable'}>◯</span>;
-  return <img src={attempt === 0 ? avatarImageSrc(url) : alternateAvatarImageSrc(url)} loading="lazy" alt=""
-    onError={() => setAttempt(value => value + 1)}/>;
+  const [quality, setQuality] = useState<AnimePortraitQuality | 'pending'>(
+    inspectAnime ? 'pending' : 'good',
+  );
+
+  useEffect(() => {
+    setAttempt(0);
+    setQuality(inspectAnime ? 'pending' : 'good');
+  }, [url, inspectAnime]);
+
+  if (attempt > 1) return (
+    <span className="archive-avatar-image-fallback" aria-label={label + ' portrait unavailable'}>◯</span>
+  );
+
+  function review(image: HTMLImageElement) {
+    if (!inspectAnime) return;
+    const result = assessAnimePortraitImage(image);
+    setQuality(result);
+    if (result === 'reject') onReject?.(url);
+  }
+
+  return (
+    <img
+      src={attempt === 0 ? avatarImageSrc(url) : alternateAvatarImageSrc(url)}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      className={inspectAnime ? quality === 'pending' || quality === 'reject'
+        ? 'archive-anime-portrait-pending'
+        : quality === 'enhance' ? 'archive-anime-portrait-enhance' : undefined : undefined}
+      onLoad={event => review(event.currentTarget)}
+      onError={() => setAttempt(value => value + 1)}
+    />
+  );
 }
 
 async function compressAvatar(file: File): Promise<string> {
@@ -74,6 +109,18 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   const [items, setItems] = useState<Entry[]>([]);
   const [remoteKey, setRemoteKey] = useState('');
   const [showAdditional, setShowAdditional] = useState(false);
+  // Block only the individual image URLs that fail the pixel-based quality test.
+  // This is not a provider blacklist: other portraits from the same API remain.
+  const [rejectedImages, setRejectedImages] = useState<Set<string>>(() => new Set());
+  function rejectImage(url: string) {
+    setRejectedImages(current => {
+      if (current.has(url)) return current;
+      const next = new Set(current);
+      next.add(url);
+      return next;
+    });
+  }
+
   const [titles, setTitles] = useState<Entry[]>([]);
   const [selectedTitle, setSelectedTitle] = useState<Entry | null>(null);
   const [page, setPage] = useState(1);
@@ -236,9 +283,10 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
     return !!(item.wiki || item.malId || (local&&alternateCuratedAvatars(local).length>1));
   }
   const curatedSeries=selectedTitle ? curatedAvatarsForTitle(source,selectedTitle.title) : [];
-  const portraits=selectedTitle
+  const candidatePortraits=selectedTitle
     ? curatedSeries.length ? curatedSeries : items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl))
     : [...localMatches,...(localMatches.length===0||showAdditional?extraFromApi:[])];
+  const portraits=candidatePortraits.filter(item => !item.avatarUrl || !rejectedImages.has(item.avatarUrl));
   const hiddenAdditional=!selectedTitle && localMatches.length>0 && !showAdditional
     ? extraFromApi.length : 0;
   const showFeatured=queryText.length<2 && !selectedTitle;
@@ -298,7 +346,8 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
               className="archive-avatar-tile" title={'Use '+item.title}
               onClick={()=>item.avatarUrl&&void selectAvatar(item.avatarUrl)}>
               <span className="archive-avatar-tile-image">
-                {item.imageUrl ? <PortraitImage url={item.imageUrl} label={item.title}/> :
+                {item.imageUrl ? <PortraitImage url={item.imageUrl} label={item.title}
+                  inspectAnime={source==='anime' && !item.pack} onReject={rejectImage}/> :
                   <span className="archive-avatar-image-fallback" aria-hidden="true">◯</span>}
               </span>
               <span className="archive-avatar-tile-name">{item.title}</span>
@@ -342,13 +391,14 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
             <button type="button" onClick={()=>setMoreFrom(null)} aria-label="Close alternate looks">×</button>
           </div>
           <div className="archive-avatar-variation-grid">
-            {[moreFrom,...moreItems].filter(item=>item.avatarUrl).map((item,index)=>(
+            {[moreFrom,...moreItems].filter(item=>item.avatarUrl && !rejectedImages.has(item.avatarUrl)).map((item,index)=>(
               <button type="button" key={item.id+':'+index} disabled={busy}
                 title={'Choose '+moreFrom.title+' look '+(index+1)}
                 className="archive-avatar-tile"
                 onClick={()=>item.avatarUrl&&void selectAvatar(item.avatarUrl)}>
                 <span className="archive-avatar-tile-image">
-                  <PortraitImage url={item.avatarUrl!} label={moreFrom.title}/>
+                  <PortraitImage url={item.avatarUrl!} label={moreFrom.title}
+                    inspectAnime={source==='anime' && !item.pack} onReject={rejectImage}/>
                 </span>
                 <span className="archive-avatar-tile-subtitle">Look {index+1}</span>
               </button>
