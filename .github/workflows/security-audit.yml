@@ -35,11 +35,6 @@ jobs:
           node-version: 22
       - name: Resolve dependencies for an advisory check
         run: npm install --package-lock-only --ignore-scripts --no-fund --no-audit
-      - name: Export resolved lockfile for initial review (temporary)
-        run: |
-          echo LOCK_MANIFEST_BEGIN
-          base64 -w 0 package-lock.json | fold -w 500
-          echo LOCK_MANIFEST_END
       - name: Audit production dependencies
         run: |
           npm audit --json --omit=dev > prod-audit.json || true
