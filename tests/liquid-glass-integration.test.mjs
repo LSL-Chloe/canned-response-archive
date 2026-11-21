@@ -13,7 +13,13 @@ test('uploaded liquid-glass layer is loaded without replacing the original theme
   assert.match(layer, /REACTIVE 3D BACKGROUND/);
   assert.match(layer, /prefers-reduced-motion:reduce/);
   assert.match(layer, /webglcontextlost/);
-  assert.match(layer, /ud\+=\(dk-ud\)/, 'Preserve original gradual background theme blending');
+  assert.match(layer, /const initialDark=readDark\(\)/, 'Initialize WebGL with the visible React theme');
+  assert.match(layer, /const nextDark=readDark\(\)/, 'Read each rendered frame for immediate theme response');
+  assert.doesNotMatch(layer, /n\+\+%30/, 'Do not poll theme only once every 30 frames');
+  assert.match(layer, /\(now-changeAt\)\/580/, 'Match background interpolation to the theme thumb duration');
+  assert.match(layer, /ud=fromDark\+\(dk-fromDark\)\*eased/, 'Retarget smoothly on rapid repeated toggles');
+  assert.match(layer, /\.archive-app \.archive-topbar\{transition:background-color \.58s/, 'Crossfade topbar color with background');
+  assert.match(layer, /prefers-reduced-motion:reduce/);
   assert.doesNotMatch(layer, /startViewTransition|sw\.click\(\)/, 'Do not intercept React theme-toggle clicks');
   assert.match(themeToggle, /role="switch"/);
   assert.match(app, /<ThemeToggle/);
