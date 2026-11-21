@@ -139,3 +139,40 @@ Anime artwork posted to an imageboard is copyrighted by its individual creators;
 the API is not an image license. The site links thumbnails, without bundling those
 files into our GitHub repo. This remains a personal prototype; obtain permission
 before making a public redistribution or commercial avatar service.
+
+## Expanded profile-icon packs (2026-11-21)
+
+The icon picker now indexes 928 **named character profile icons** from
+`Angel2mp3/Bring-Back-Netflix-Icons` (GitHub source script blob
+`f5649af92b6b090a505ca712254821f2d4c73ea7`). Each record includes
+the specific character name, its film or series, and a publicly reachable
+Netflix CDN profile-icon URL. The index is partitioned into 71 anime,
+741 TV-series, and 116 movie icons; celebrity, generic and miscellaneous
+non-character categories were excluded. Sample images were checked against
+Netflix's image CDN (KPop Demon Hunters, Rebel Moon, The Sea Beast, Vivo,
+Stranger Things, Castlevania, Arcane, The Witcher) before adding the index.
+
+The existing custom-upload (+) and first 15 default curated icons remain
+unchanged. Each tab now offers sixteen extra character pictures instantly,
+followed by a **Browse more character icons** control that reveals its full
+indexed catalog in batches of 64. Search locally merges both named icon packs,
+prioritizes curated icons, then may add individually quality-checked external
+image search results. Clicking a known title shows its indexed character icons
+immediately without relying on a remote cast/headshot API. No poster artwork,
+actor publicity headshots, or site-wide disclaimer has been introduced.
+
+Netflix/CDN icons are owned by their original rights holders and can disappear
+or change as remote assets. Their availability from a public CDN is **not**
+a grant of reuse rights; users of a public or commercial site need permission
+and reliable alternative asset hosting. This personal prototype hotlinks them
+without vendoring binary artwork into GitHub or Supabase. Their urls are
+restricted by image-host + image-path allowlists, and the original avatar
+values remain valid. There is no new API key or migration.
+
+### Sidebar height
+
+Desktop sidebars must remain `position:sticky` with viewport height.
+An earlier rule used `position:relative` and caused the sidebar background
+to stop after scrolling into long Settings pages. The high-specificity
+desktop-only override restores the expected behavior without changing the
+mobile fixed rail.

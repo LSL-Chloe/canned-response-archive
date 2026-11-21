@@ -1572,3 +1572,25 @@
 .archive-app .archive-avatar-variation-grid img.archive-anime-portrait-enhance {
   filter: contrast(1.12) saturate(1.16);
 }
+
+/* Fix desktop Settings rail: an earlier optical z-index rule changed sticky to
+   relative, causing the sidebar background to end as the document scrolled. */
+@media (min-width:781px) {
+  .archive-app[data-theme] > .archive-sidebar {
+    position:sticky;
+    top:0;
+    height:100dvh;
+    min-height:100vh;
+    align-self:flex-start;
+  }
+}
+/* Featured icons remain the first two rows, then new movie/TV/anime icons are
+   scrollable within the same picker with a deliberate Browse more affordance. */
+.archive-app .archive-avatar-gallery {
+  scroll-behavior:smooth;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+}
+@media(prefers-reduced-motion:reduce) {
+  .archive-app .archive-avatar-gallery {scroll-behavior:auto}
+}
