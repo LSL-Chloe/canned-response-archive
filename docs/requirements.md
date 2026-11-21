@@ -4,7 +4,7 @@ This document describes the behavior the archive currently aims to preserve. It 
 
 ## Finding a reply
 
-Anyone can open the search workspace and browse **Shared** responses. Typing `#` in the draft opens the available shortcuts; typing more characters filters the shortcut names. Press Enter or the right arrow to open a shortcut and then choose a reply. The popup scrolls when there are many results. Ctrl/Cmd+Z can undo the most recent insertion. The draft can be copied to the clipboard.
+Anyone can open the search workspace and browse **Shared** responses. Typing `#` anywhere in the draft opens the shortcut picker; typing a matching shortcut **without** `#` at the start of the draft also opens it after at least two characters. Unrelated prose should not trigger shortcut suggestions. Both `follow_up` and `#follow_up` work in the library search. Press Enter or the right arrow to open a shortcut and then choose a reply. The popup scrolls when there are many results. Ctrl/Cmd+Z can undo the most recent insertion. The draft can be copied to the clipboard.
 
 The same shortcut can contain several separate responses. Shortcut labels preserve spaces and underscores as entered (e.g., `#auto pricing` or `#_OnIdle_`); typing the complete label after `#` filters it normally. Selecting a reply never overwrites other saved replies.
 
@@ -20,7 +20,7 @@ Import and export use JSON. An import adds rows rather than replacing existing o
 
 ## Accounts
 
-An account has an agent name, a four-digit PIN, and an optional verified recovery email. Users can update their name, email and PIN from Settings. Recovery uses an emailed six-digit code when a verified email is present.
+An account has an agent name, a four-digit PIN, and an optional verified recovery email. Users can sign in with either the agent name or the **verified** email using the same PIN. An unverified or absent email cannot be used to sign in; name-based sign-in continues working. Users can update their name, email and PIN from Settings. Recovery uses an emailed six-digit code when a verified email is present.
 
 The first completed signup becomes the administrator. This should happen in a controlled environment before opening registration to others.
 

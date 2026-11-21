@@ -14,7 +14,7 @@ Canned Response Archive is a personal/development project, not a certified secur
 
 ## Authentication boundaries
 
-Accounts use a four-digit PIN. Although PIN verifiers are salted and protected with a server-side pepper and login attempts are rate-limited, four digits are still a low-entropy secret. We do **not** recommend using this authentication scheme to protect valuable or sensitive data in a public production deployment.
+Accounts use a four-digit PIN. Sign-in accepts the original agent name or the account's **verified** email, and both aliases share the same per-account attempt limit, along with an IP limit. Invalid credentials do not reveal whether an email is registered. Although PIN verifiers are salted and protected with a server-side pepper and login attempts are rate-limited, four digits are still a low-entropy secret. We do **not** recommend using this authentication scheme to protect valuable or sensitive data in a public production deployment.
 
 Only the Worker should receive `SUPABASE_SECRET_KEY`, `PIN_PEPPER`, `OTP_MAILER_SECRET`, or `TMDB_READ_ACCESS_TOKEN`. The browser uses HttpOnly, SameSite=Strict session cookies; state-changing API requests require a matching Origin. Supabase tables containing credentials, sessions, and private content deny direct anonymous access.
 

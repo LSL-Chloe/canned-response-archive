@@ -44,7 +44,7 @@ Generate a strong pepper privately, for example with `openssl rand -hex 32`. Do 
 
 Email-backed signup, changing a recovery email, and recovering a forgotten PIN use a Google Apps Script relay. If you want those features, follow [the Gmail OTP guide](gmail-otp-setup.md) and add the encrypted `OTP_MAILER_URL` and `OTP_MAILER_SECRET` variables.
 
-Without the mailer, signup without an email still works, but that account cannot recover a forgotten PIN through email.
+Without the mailer, signup without an email still works, but that account cannot recover a forgotten PIN through email or use email sign-in. After an email is successfully verified in Settings or during signup, the existing four-digit PIN can be used with either the agent name or the verified email; no additional database migration is required for email login.
 
 ## 4. Optional movie character discovery
 

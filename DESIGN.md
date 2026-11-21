@@ -38,3 +38,7 @@ Large lists use a translucent panel and optical edge rather than extending one S
 ## Response management and motion
 
 The library filter has four equally sized tab targets (**All / Shared / Private / By me**). Its sliding glass lens uses a short transform-only transition; do not animate layout or recreate four expensive optical filters. Selection checkboxes are native form controls, not new liquid-glass SVGs for every row. A bulk action bar wraps instead of overflowing on narrow screens. Confirm destructive operations and show progress for batched deletes. Respect reduced-motion mode and do not promise a particular refresh rate: measure performance on the target hardware at full list length.
+
+## Shortcut search modes
+
+Show a single compact draft composer rather than adding an extra dashboard-style search pane. A typed `#` opens the shortcut menu from any draft position. A plain typed prefix should open that same menu only when it matches a known shortcut at the start of a draft; avoid interrupting ordinary messages. Preserve two-level shortcut/reply navigation, keyboard arrows/Enter/Escape, and Ctrl/Cmd+Z undo in both modes. The saved label is unchanged: `#` is a search convenience, not a mutation of the shortcut itself.

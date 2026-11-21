@@ -21,7 +21,7 @@ Saved responses may share a shortcut. Editing a reply's shortcut or Shared/Priva
 
 ## Accounts, recovery, and sessions
 
-An agent name and four-digit PIN identify an account. PIN verifiers use a random salt and an HMAC keyed with a Worker-only `PIN_PEPPER`. The PIN's short length is still a real security limitation; rate limits are essential and high-value data is out of scope for this development deployment.
+An agent name or an already **verified email address** plus the same four-digit PIN identify an account. The login endpoint resolves email only when `email_verified_at` is set, while legacy name-based clients remain compatible. The server limits both aliases using the same immutable account ID, in addition to IP throttling, so switching identifiers does not increase PIN attempts. PIN verifiers use a random salt and an HMAC keyed with a Worker-only `PIN_PEPPER`. The PIN's short length is still a real security limitation; rate limits are essential and high-value data is out of scope for this development deployment.
 
 Session tokens are random and only their SHA-256 hashes are stored. HTTPS cookies are HttpOnly, Secure, SameSite=Strict, and host-only, with a seven-day expiry. State-changing API routes check the Origin header. Logout revokes the session; PIN recovery revokes existing sessions.
 
@@ -39,7 +39,7 @@ Bulk delete accepts a bounded list of UUIDs. The Worker validates distinct IDs a
 
 The client refreshes the response feed every five seconds while visible, and on returning focus. This is near-live polling, not a direct Supabase Realtime subscription. Silent refreshes skip while a previous request is still in flight, so slow networks do not produce overlapping, perpetually superseded polling requests. Response arrays are reused when their contents have not changed so polling doesn't force unnecessary UI work.
 
-The compact composer groups replies by shortcut. The draft itself is held in React state and is not automatically uploaded as a saved response.
+The compact composer groups replies by shortcut. A hashtag triggers the popup anywhere in the draft; a matching prefix without `#` triggers it only at the start of the draft, avoiding unsolicited menus during normal prose entry. Library search strips an optional leading `#`. The draft itself is held in React state and is not automatically uploaded as a saved response.
 
 ## Profile pictures
 
