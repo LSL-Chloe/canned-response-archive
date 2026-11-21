@@ -43,8 +43,8 @@ export function classifyAnimePortraitPixels(pixels: Uint8ClampedArray): AnimePor
   // White/very pale background occupies most of the circle, with only
   // a few narrow colored outlines and almost no dark character detail.
   if (
-    (whiteRatio >= 0.71 && vividRatio < 0.12 && darkRatio < 0.13) ||
-    (paleRatio >= 0.83 && vividRatio < 0.13 && darkRatio < 0.10)
+    (whiteRatio >= 0.77 && vividRatio < 0.15 && darkRatio < 0.20) ||
+    (paleRatio >= 0.84 && vividRatio < 0.15 && darkRatio < 0.18)
   ) return 'reject';
 
   // Slightly flat images with real details may benefit from gentle contrast.

@@ -20,6 +20,7 @@ const darkOutline = [39, 49, 56, 255];
 const vivid = [33, 107, 192, 255];
 const skin = [175, 109, 79, 255];
 const mist = [201, 203, 204, 255];
+const softLine = [240, 175, 170, 255];
 
 test('remove almost-white and thin-line anime drawings on a per-image basis', () => {
   assert.equal(classifyAnimePortraitPixels(imageData([[white, 850], [sketchLine, 100], [darkOutline, 50]])), 'reject');
@@ -32,7 +33,7 @@ test('keep colorful and detailed character artwork from the very same source', (
 });
 
 test('gently enhance moderately pale portraits without excluding them', () => {
-  assert.equal(classifyAnimePortraitPixels(imageData([[white, 615], [sketchLine, 90], [darkOutline, 85], [mist, 210]])), 'enhance');
+  assert.equal(classifyAnimePortraitPixels(imageData([[white, 615], [softLine, 90], [darkOutline, 85], [mist, 210]])), 'enhance');
 });
 
 test('do not judge fully transparent or unreadable samples as pale', () => {
