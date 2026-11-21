@@ -18,6 +18,8 @@ type Entry = {
   malId?: number;
   franchise?: string;
   pack?: string;
+  provider?: 'safebooru';
+  booruTag?: string;
 };
 type Props = {
   avatarUrl: string | null;
@@ -148,8 +150,11 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
     const key = source + ':' + term.toLowerCase();
     setLoading(true);
     setSearchError('');
+    const hint=source==='anime' ? searchCuratedAvatars('anime',term)[0]?.franchise : '';
+    const query=new URLSearchParams({ source, q:term });
+    if(hint)query.set('series',hint);
     void api<{items:Entry[];titles?:Entry[]}>(
-      '/api/avatars/search?source=' + source + '&q=' + encodeURIComponent(term),
+      '/api/avatars/search?' + query,
       {signal:controller.signal},
     ).then(data => {
       if (controller.signal.aborted) return;
@@ -180,7 +185,8 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
     setSearchError('');
     try {
       const result = await api<{items:Entry[];hasMore:boolean}>(
-        '/api/avatars/characters?source=' + source + '&id=' + encodeURIComponent(title.id) + '&page=' + nextPage,
+        '/api/avatars/characters?source=' + source + '&id=' + encodeURIComponent(title.id) +
+        '&page=' + nextPage + '&series=' + encodeURIComponent(title.title),
       );
       setItems(previous => nextPage===1 ? result.items : [...previous,...result.items]);
       setPage(nextPage);
@@ -206,7 +212,7 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   }
   async function showMore(item:Entry) {
     const curated = curatedAvatars.find(avatar => avatar.id === item.id);
-    if (!curated && !item.wiki && !item.malId) return;
+    if (!curated && !item.wiki && !item.malId && !item.booruTag) return;
     setMoreFrom(item);
     setMoreItems([]);
     setMoreError('');
@@ -217,12 +223,18 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
     }
     setMoreBusy(true);
     try {
-      const params = new URLSearchParams({
-        wiki:item.wiki || '',page:item.wikiPage || item.title,
-        malId:String(item.malId || 0),
-      });
-      const result = await api<{items:Entry[]}>('/api/avatars/variations?' + params);
-      setMoreItems((result.items || []).filter(x=>x.avatarUrl));
+      if (item.booruTag) {
+        const result=await api<{items:Entry[]}>(
+          '/api/avatars/booru-looks?tag=' + encodeURIComponent(item.booruTag));
+        setMoreItems((result.items||[]).filter(x=>x.avatarUrl && x.avatarUrl!==item.avatarUrl));
+      } else {
+        const params = new URLSearchParams({
+          wiki:item.wiki || '',page:item.wikiPage || item.title,
+          malId:String(item.malId || 0),
+        });
+        const result = await api<{items:Entry[]}>('/api/avatars/variations?' + params);
+        setMoreItems((result.items || []).filter(x=>x.avatarUrl));
+      }
     } catch(error) {
       setMoreError(error instanceof Error ? error.message : 'Alternate looks are unavailable.');
     } finally { setMoreBusy(false); }
@@ -275,20 +287,26 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   // Kitsu's anime character images are often white-background catalog art.
   // Never append those to a populated streaming-style anime icon collection.
   // For less common anime with no curated pack, keep the API fallback available.
-  const extraFromApi=(source==='anime' && localMatches.length>0 ? [] : apiMatches)
-    .filter(item=>!localMatches.some(local=>
-      local.title.toLowerCase()===item.title.toLowerCase() && local.imageUrl===item.imageUrl));
+  // Keep colorful, safely tagged single-character artwork even when curated
+  // PFPs exist. Only old database portraits stay behind "Show additional".
+  const extraFromApi=apiMatches
+    .filter(item=>source!=='anime'||localMatches.length===0||item.provider==='safebooru')
+    .filter(item=>!localMatches.some(local=>local.imageUrl===item.imageUrl));
+  const safeAdditions=extraFromApi.filter(item=>item.provider==='safebooru');
+  const optionalAdditions=extraFromApi.filter(item=>item.provider!=='safebooru');
   function hasMoreLooks(item:Entry):boolean {
     const local=curatedAvatars.find(icon=>icon.id===item.id);
-    return !!(item.wiki || item.malId || (local&&alternateCuratedAvatars(local).length>1));
+    return !!(item.wiki || item.malId || item.booruTag ||
+      (local&&alternateCuratedAvatars(local).length>1));
   }
   const curatedSeries=selectedTitle ? curatedAvatarsForTitle(source,selectedTitle.title) : [];
   const candidatePortraits=selectedTitle
     ? curatedSeries.length ? curatedSeries : items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl))
-    : [...localMatches,...(localMatches.length===0||showAdditional?extraFromApi:[])];
+    : [...localMatches,...safeAdditions,
+      ...(localMatches.length===0||showAdditional?optionalAdditions:[])];
   const portraits=candidatePortraits.filter(item => !item.avatarUrl || !rejectedImages.has(item.avatarUrl));
   const hiddenAdditional=!selectedTitle && localMatches.length>0 && !showAdditional
-    ? extraFromApi.length : 0;
+    ? optionalAdditions.length : 0;
   const showFeatured=queryText.length<2 && !selectedTitle;
   return (
     <section className="archive-card archive-avatar-picker" aria-label="Choose profile picture">

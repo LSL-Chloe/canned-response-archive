@@ -2,6 +2,7 @@ import { database, queryTable, type Env } from '../services/db.ts';
 import { getSession, requireRateLimit } from '../auth/session.ts';
 import { fail, json, readJson } from './shared.ts';
 import { popular, search, characterList, variations, type AvatarSource } from './avatarCatalog.ts';
+import { moreSafeAnimePortraits } from './safeAnimePortraits.ts';
 
 const BUCKET = 'archive-avatars';
 const MAX_UPLOAD_BYTES = 150_000;
@@ -16,7 +17,7 @@ function sourceUrl(value: unknown): string | null {
   if (typeof value !== 'string' || value.length > 900) fail(400, 'invalid_avatar', 'Choose a valid avatar');
   let url: URL;
   try { url = new URL(value); } catch { return fail(400, 'invalid_avatar', 'Choose an image from the catalog'); }
-  const allowed = /^(?:s[1-9][0-9]*\.anilist\.co|cdn\.anilist\.co|static\.tvmaze\.com|image\.tmdb\.org|media\.kitsu\.(?:io|app)|static\.wikia\.nocookie\.net|cdn\.myanimelist\.net|images\.myanimelist\.net)$/i.test(url.hostname);
+  const allowed = /^(?:s[1-9][0-9]*\.anilist\.co|cdn\.anilist\.co|static\.tvmaze\.com|image\.tmdb\.org|media\.kitsu\.(?:io|app)|static\.wikia\.nocookie\.net|cdn\.myanimelist\.net|images\.myanimelist\.net|cdn\.donmai\.us)$/i.test(url.hostname);
   const rawRepo = url.hostname === 'raw.githubusercontent.com' && (
     url.pathname.startsWith('/eueueue292/Fusion-Profile-Avatars/d45287304717a441095003633a6643d6bae66289/') ||
     url.pathname.startsWith('/kalibrado/jf-avatars-images/b483c1a06325509237891f87920453b6ced31d00/')
@@ -109,7 +110,8 @@ export async function handleAvatars(request: Request, env: Env, path: string, ur
     const term = (url.searchParams.get('q') || '').trim();
     if (term.length < 2 || term.length > 80) fail(400, 'invalid_query', 'Search with 2–80 characters');
     if (!await requireRateLimit(env, 'avatar:search:' + agentId, 90, 900)) fail(429, 'rate_limited', 'Too many searches');
-    return json(await search(source, term, env));
+    const hint=(url.searchParams.get('series') || '').trim().slice(0,80);
+    return json(await search(source, term, env, hint));
   }
   if (path === '/api/avatars/characters' && request.method === 'GET') {
     const source = sourceFrom(url.searchParams.get('source'));
@@ -118,8 +120,17 @@ export async function handleAvatars(request: Request, env: Env, path: string, ur
     if (!/^(?:k-)?[0-9]{1,10}$/.test(id) || !Number.isInteger(page) || page < 1 || page > 30)
       fail(400, 'invalid_id', 'Choose a series or movie');
     if (!await requireRateLimit(env,'avatar:characters:'+agentId,90,900))fail(429,'rate_limited','Too many catalog requests');
-    const items = await characterList(source,id,page,env);
+    const series=(url.searchParams.get('series') || '').trim().slice(0,80);
+    const items = await characterList(source,id,page,env,series);
     return json({ items, hasMore: items.length >= 20 && source === 'anime' });
+  }
+  if (path === '/api/avatars/booru-looks' && request.method === 'GET') {
+    const tag=(url.searchParams.get('tag') || '').trim();
+    if (!/^[a-z0-9_:.!()'&-]{2,110}$/i.test(tag))
+      fail(400,'invalid_tag','Choose a known character');
+    if (!await requireRateLimit(env,'avatar:booru-looks:'+agentId,24,900))
+      fail(429,'rate_limited','Too many portrait requests');
+    return json({ items: await moreSafeAnimePortraits(tag) });
   }
   if (path === '/api/avatars/variations' && request.method === 'GET') {
     const wiki=(url.searchParams.get('wiki')||'').trim();

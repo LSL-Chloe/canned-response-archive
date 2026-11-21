@@ -36,7 +36,9 @@ test('picker suppresses pale Kitsu supplements when curated anime icons exist an
   const css = readFileSync(new URL('../src/styles/premium.css', import.meta.url), 'utf8');
   assert.match(picker, /curatedAvatarsForTitle\(source,title\.title\)/);
   assert.match(picker, /curatedSeries\.length \? curatedSeries/);
-  assert.match(picker, /source==='anime' && localMatches\.length>0/);
+  assert.match(picker, /item\.provider==='safebooru'/);
+  assert.match(picker, /safeAdditions/);
+  assert.match(picker, /optionalAdditions/);
   assert.doesNotMatch(picker, /archive-avatar-attribution|Art belongs to its respective rights holders/);
   assert.doesNotMatch(css, /archive-avatar-attribution/);
 });

@@ -114,3 +114,28 @@ availability online is not a transfer of redistribution rights. This is for a
 personal prototype; obtain permissions and consider licensed alternatives
 before offering a public avatar library. If maintaining a reliable long-term
 catalog, use a rights-cleared, optimized asset store, for example Cloudflare R2.
+
+## Anime character-artwork supplement (SFW)
+
+The two default avatar rows and our curated square icons are unchanged. Anime searches now
+optionally supplement Kitsu/AniList with `safebooru.donmai.us` character-tagged artwork.
+Queries use only a verified character tag + `solo`, respecting the public API's two-tag
+limit. Every post is checked locally for **general rating**, exactly one matching
+character, still-image media, a useful minimum size, non-sketch/non-white backgrounds,
+and a square-gallery-compatible aspect ratio. Small 360px still-image thumbnails are
+preferred to downloading original, potentially huge files. Source thumbnails still
+pass the browser's per-image brightness classifier. Providers are optional and
+fail gracefully: if the imageboard denies a request or lacks a character, the curated
+icons and existing character sources stay available.
+
+Search resolves character names with the public character-tag index, using a matched
+series as a disambiguation hint (for example, Asta from Black Clover rather than
+Asta from a game). Up to three named characters are queried per search; results are
+ranked for actual portraits/close-ups before inclusion. The source has a brief
+in-worker cache and per-account request limits. Use "More looks" to browse additional
+general-rated solo art for the same tag.
+
+Anime artwork posted to an imageboard is copyrighted by its individual creators;
+the API is not an image license. The site links thumbnails, without bundling those
+files into our GitHub repo. This remains a personal prototype; obtain permission
+before making a public redistribution or commercial avatar service.
