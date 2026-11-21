@@ -1,0 +1,44 @@
+# Keep the branch list focused on active work. This job will never remove
+# main, a protected branch, a branch with unmerged changes, or a changed head.
+name: Prune merged PR branches
+
+on:
+  push:
+    branches: [main]
+    # Run once to remove the existing backlog when this workflow is merged.
+    paths:
+      - .github/workflows/prune-merged-branches.yml
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  prune:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete unchanged head branches from merged same-repository PRs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Never remove a branch merely because it is old or an issue was closed.
+          # Compare its live SHA to the SHA GitHub recorded at merge time.
+          gh api --paginate "repos/$GH_REPO/pulls?state=closed&per_page=100" \
+            --jq '.[] | select(.merged_at != null and .head.repo.full_name == .base.repo.full_name) | [.head.ref, .head.sha] | @tsv' |
+          while IFS=$'\t' read -r branch merged_sha; do
+            [[ -n "$branch" && -n "$merged_sha" && "$branch" != "main" ]] || continue
+            current_sha="$(gh api "repos/$GH_REPO/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null || true)"
+            [[ "$current_sha" == "$merged_sha" ]] || continue
+            is_protected="$(gh api "repos/$GH_REPO/branches/$branch" --jq '.protected' 2>/dev/null || true)"
+            [[ "$is_protected" == "false" ]] || continue
+            echo "Deleting already-merged and unchanged branch: $branch"
+            gh api --method DELETE "repos/$GH_REPO/git/refs/heads/$branch" \
+              || echo "Could not delete $branch; leaving it for manual review"
+          done
