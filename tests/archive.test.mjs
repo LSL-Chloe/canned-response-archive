@@ -26,7 +26,11 @@ test('hashtags are detected at the caret without matching embedded words', () =>
   assert.deepEqual(findHashQuery('hello #', 7), { start: 6, end: 7, query: '' });
   assert.equal(findHashQuery('email@example.com', 17), null);
   assert.equal(findHashQuery('text#app', 8), null);
-  assert.equal(findHashQuery('#app more words', 15), null);
+  assert.deepEqual(findHashQuery('#app more words', 15), { start: 0, end: 15, query: 'app more words' });
+  assert.deepEqual(findHashQuery('Hello #auto trade', 'Hello #auto trade'.length), {
+    start: 6, end: 'Hello #auto trade'.length, query: 'auto trade',
+  });
+  assert.deepEqual(findHashQuery('#_OnIdle_', 9), { start: 0, end: 9, query: '_OnIdle_' });
   assert.equal(findHashQuery('#app', -1), null);
 });
 
@@ -40,6 +44,7 @@ test('search returns each matching response, including duplicates under one shor
     .map(x => x.id), ['e']);
   assert.deepEqual(findSuggestions(records, 'unknown').map(x => x.id), []);
   assert.equal(findSuggestions(records, '').length, 4);
+  assert.deepEqual(findSuggestions([...records, shared('e', 'auto trade', 'Text')], 'auto t').map(x => x.id), ['e']);
   const many = Array.from({ length: 60 }, (_, i) => shared(String(i), 'bulk', 'Text ' + i));
   assert.equal(findSuggestions(many, '').length, 60, 'A bare # must show all responses, not first nine');
   assert.equal(findSuggestions(many, 'bul').length, 60);

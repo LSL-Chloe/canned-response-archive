@@ -49,11 +49,11 @@ export interface ShortcutOption {
   count: number;
 }
 
-/** The token immediately before the caret can begin at start-of-text or after whitespace/brackets. */
+/** Hash queries can contain spaces and leading underscores, matching saved shortcut names. */
 export function findHashQuery(value: string, caret: number): HashQuery | null {
   if (!Number.isInteger(caret) || caret < 0 || caret > value.length) return null;
   const before = value.slice(0, caret);
-  const matched = /(?:^|[\s([{])#([A-Za-z0-9_-]*)$/.exec(before);
+  const matched = /(?:^|[\s([{])#([A-Za-z0-9_ -]{0,64})$/.exec(before);
   if (!matched) return null;
   const markerOffset = matched[0].lastIndexOf('#');
   return {

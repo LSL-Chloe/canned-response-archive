@@ -6,7 +6,7 @@ This document describes the behavior the archive currently aims to preserve. It 
 
 Anyone can open the search workspace and browse **Shared** responses. Typing `#` in the draft opens the available shortcuts; typing more characters filters the shortcut names. Press Enter or the right arrow to open a shortcut and then choose a reply. The popup scrolls when there are many results. Ctrl/Cmd+Z can undo the most recent insertion. The draft can be copied to the clipboard.
 
-The same shortcut can contain several separate responses. Selecting a reply never overwrites other saved replies.
+The same shortcut can contain several separate responses. Shortcut labels preserve spaces and underscores as entered (e.g., `#auto pricing` or `#_OnIdle_`); typing the complete label after `#` filters it normally. Selecting a reply never overwrites other saved replies.
 
 ## Saving and organizing
 

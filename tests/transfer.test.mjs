@@ -23,7 +23,9 @@ test('import rejects cross-scope, wrong version, malformed JSON and invalid resp
   assert.throws(() => parseTransferFile(JSON.stringify({ version: 3, visibility: 'private', responses: example }), 'private'), /version 1/i);
   assert.throws(() => parseTransferFile(JSON.stringify(example), 'private'), /JSON archive object/);
   assert.throws(() => parseTransferFile(archive('private', []), 'private'), /no responses/i);
-  assert.throws(() => parseTransferFile(archive('private', [row('bad space', 'Hi')]), 'private'), /invalid shortcut/);
+  assert.deepEqual(parseTransferFile(archive('private', [row('auto pricing', 'Hi'), row('_OnIdle_', 'Still here?')]), 'private').responses,
+    [row('auto pricing', 'Hi'), row('_OnIdle_', 'Still here?')]);
+  assert.throws(() => parseTransferFile(archive('private', [row('bad/shortcut', 'Hi')]), 'private'), /invalid shortcut/);
   assert.throws(() => parseTransferFile(archive('private', [row('ok', '')]), 'private'), /1–10,000/);
   assert.throws(() => parseTransferFile(archive('private', [row('ok', 'x'.repeat(10001))]), 'private'), /1–10,000/);
   assert.throws(() => parseTransferFile(archive('private', Array.from({length:MAX_IMPORT_ROWS+1}, () => row('hi','x'))), 'private'), /up to 500/i);
@@ -75,4 +77,13 @@ test('import RPC batches are transactional, permissions-bound, and safe to retry
   assert.match(sql, /v_skipped := v_skipped \+ 1/);
   assert.match(sql, /insert into public\.canned_responses/);
   assert.match(sql, /jsonb_array_length\(p_responses\) not between 1 and 50/);
+});
+
+
+test('shortcut label migration keeps spaces and underscore-prefixed names through SQL import validation', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261122000001_preserve_original_shortcut_labels.sql', import.meta.url), 'utf8');
+  assert.match(sql, /alter table public\.shortcuts add constraint shortcut_name_valid/);
+  assert.match(sql, /name = btrim\(name\)/);
+  assert.match(sql, /or v_name <> pg_catalog\.btrim\(v_name\)/);
+  assert.match(sql, /security invoker set search_path = ''/);
 });

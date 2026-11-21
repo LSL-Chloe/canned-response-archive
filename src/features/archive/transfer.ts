@@ -45,8 +45,8 @@ export function parseTransferFile(raw: string, destination: Visibility): Transfe
     const row = unknownRow as Record<string, unknown>;
     if (typeof row.shortcut !== 'string') throw new Error(`Response ${index + 1} has no shortcut.`);
     const shortcut = row.shortcut.trim().replace(/^#/, '');
-    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(shortcut)) {
-      throw new Error(`Response ${index + 1} has an invalid shortcut (1–64 letters, numbers, - or _).`);
+    if (!/^[A-Za-z0-9_][A-Za-z0-9_ -]{0,63}$/.test(shortcut)) {
+      throw new Error(`Response ${index + 1} has an invalid shortcut (1–64 letters, numbers, spaces, - or _).`);
     }
     if (typeof row.body !== 'string' || !row.body.trim() || row.body.length > 10_000) {
       throw new Error(`Response ${index + 1} must contain 1–10,000 characters of text.`);

@@ -189,7 +189,7 @@ export default function LibraryWorkspace({
           <div className="archive-shortcut-pick">
             <span aria-hidden="true" className="archive-hash-symbol">#</span>
             <input id="archive-shortcut-name" value={shortcut} autoComplete="off" required
-              maxLength={65} pattern="#?[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}"
+              maxLength={65} pattern="#?[a-zA-Z0-9_][a-zA-Z0-9_ -]{0,63}"
               placeholder="Choose an existing shortcut or type a new one"
               onFocus={() => setShowExisting(true)}
               onChange={event => { setShortcut(event.target.value); setShowExisting(true); }} />
@@ -205,7 +205,7 @@ export default function LibraryWorkspace({
               </div>
             )}
           </div>
-          <p className="archive-hint">Use letters, numbers, underscores or hyphens (1–64 characters). Choosing an existing shortcut adds a new response to it.</p>
+          <p className="archive-hint">Use letters, numbers, spaces, underscores or hyphens (1–64 characters). Choosing an existing shortcut adds a new response to it.</p>
           <LiquidButton className="archive-button archive-button-primary" type="submit" disabled={saving || !body.trim() || !shortcut.trim()}>
             {saving ? 'Saving…' : 'Save response'}
           </LiquidButton>
@@ -275,7 +275,7 @@ export default function LibraryWorkspace({
                       <span aria-hidden="true" className="archive-hash-symbol">#</span>
                       <input id="archive-edit-shortcut" autoComplete="off"
                         value={editShortcut} maxLength={65} required
-                        pattern="#?[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}"
+                        pattern="#?[a-zA-Z0-9_][a-zA-Z0-9_ -]{0,63}"
                         onFocus={() => setShowEditExisting(true)}
                         onChange={event => { setEditShortcut(event.target.value); setShowEditExisting(true); }}
                         placeholder="New or existing shortcut" />
