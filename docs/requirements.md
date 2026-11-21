@@ -4,7 +4,7 @@ This document describes the behavior the archive currently aims to preserve. It 
 
 ## Finding a reply
 
-Anyone can open the search workspace and browse **Shared** responses. Typing `#` anywhere in the draft opens the shortcut picker; typing a matching shortcut **without** `#` at the start of the draft also opens it after at least two characters. Unrelated prose should not trigger shortcut suggestions. Both `follow_up` and `#follow_up` work in the library search. Press Enter or the right arrow to open a shortcut and then choose a reply. The popup scrolls when there are many results. Ctrl/Cmd+Z can undo the most recent insertion. The draft can be copied to the clipboard.
+Anyone can open the search workspace and browse **Shared** responses. Typing `#` anywhere in the draft opens the shortcut picker; typing a matching shortcut **without** `#` at the start of the draft also opens it after at least two characters (or one when the entire shortcut is a single character). Unrelated prose should not trigger shortcut suggestions. Both `follow_up` and `#follow_up` work in the library search. Press Enter or the right arrow to open a shortcut and then choose a reply. The popup scrolls when there are many results. Ctrl/Cmd+Z can undo the most recent insertion. The draft can be copied to the clipboard.
 
 The same shortcut can contain several separate responses. Shortcut labels preserve spaces and underscores as entered (e.g., `#auto pricing` or `#_OnIdle_`); typing the complete label after `#` filters it normally. Selecting a reply never overwrites other saved replies.
 

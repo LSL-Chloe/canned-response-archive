@@ -73,9 +73,14 @@ export function findPlainShortcutQuery(
   const start = value.search(/\S/);
   if (start < 0) return null;
   const query = value.slice(start, caret);
-  if (query.length < 2 || query.length > 64 ||
+  if (!query.length || query.length > 64 ||
       !/^[A-Za-z0-9_][A-Za-z0-9_ -]*$/.test(query) || query.endsWith(' ')) return null;
-  if (!records.some(record => record.shortcut.toLowerCase().startsWith(query.toLowerCase()))) return null;
+  const normalized = query.toLowerCase();
+  // A one-character prefix is ambiguous for ordinary typing; still allow it
+  // when an actual single-character shortcut exists.
+  if (!records.some(record => query.length === 1
+    ? record.shortcut.toLowerCase() === normalized
+    : record.shortcut.toLowerCase().startsWith(normalized))) return null;
   return { start, end: caret, query };
 }
 

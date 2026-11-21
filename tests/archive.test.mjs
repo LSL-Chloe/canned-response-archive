@@ -116,6 +116,8 @@ test('hashless shortcut searches work at the start of the draft without opening 
     ['Hello app',9],['#app',4],['app',1],['a',1]]) {
     assert.equal(findPlainShortcutQuery(text,caret,records),null, 'must not match ' + JSON.stringify(text));
   }
+  assert.deepEqual(findPlainShortcutQuery('a',1,[shared('one','a','Short reply')]),
+    { start:0,end:1,query:'a' }, 'an exact one-character shortcut should still work');
   assert.deepEqual(findSuggestions(records,'#app').map(x=>x.id), findSuggestions(records,'app').map(x=>x.id));
   assert.deepEqual(findSuggestions(records,'  #APP ').map(x=>x.id),['a','b','d']);
 });
