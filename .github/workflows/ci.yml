@@ -1,6 +1,7 @@
 name: Verify project
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:

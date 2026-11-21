@@ -100,3 +100,29 @@ Do not prefix these variables with `VITE_`: that prefix is for frontend-exposed 
 The normal workflow begins at Search. Saved responses live in Canned responses, while the profile menu opens Settings. The page supports dark and light liquid-glass themes, and its visual effects respect reduced-motion preferences.
 
 For a complete manual test, use [archive QA](archive-qa.md) and [authentication QA](auth-qa.md). For the trust boundaries, see [architecture](architecture.md) and [SECURITY.md](../SECURITY.md).
+
+## Cloudflare preview builds and dependency updates
+
+Cloudflare Workers Builds deploys `main` to the development Worker and attempts a
+separate **preview build** for non-production branches and pull requests. The
+`previews: {}` entry in `wrangler.jsonc` is required by `wrangler preview`;
+without it, GitHub may report **Workers Builds: canned-response-archive** as
+failed even when `npm run check` and the production deployment succeed.
+
+The Preview config is deliberately empty. **Previews do not inherit production
+secrets or database bindings**, so a preview can show the interface but will
+not have functional sign-in or saved responses until separate, test-only preview
+secrets are configured in Cloudflare. Never copy production credentials into
+the Previews Base environment just to make an automated check green.
+
+In the Cloudflare dashboard, the setting is under
+**Workers & Pages → canned-response-archive → Settings → Build → Branch control**.
+If branch preview deployments aren't needed, disable **Enable Preview Builds**
+there instead of enabling production data access. The production branch should
+remain `main`.
+
+Dependabot proposes patch/minor updates in groups. Major upgrades (for example
+a new Vite, TypeScript, or GitHub Actions major version) require manual,
+coordinated review to avoid incompatible dependency combinations. GitHub CI
+checks pull requests and `main` pushes, without duplicate checks for every
+feature-branch push.

@@ -10,6 +10,10 @@ test('Cloudflare Worker is configured for explicit API routes', () => {
   assert.equal(config.main, './worker/index.ts');
   assert.deepEqual(config.assets.run_worker_first, ['/api/*']);
   assert.equal(config.assets.not_found_handling, 'single-page-application');
+  // Workers Builds invokes `wrangler preview` on PR branches. Missing this
+  // block makes every Cloudflare branch build fail even when main deploys fine.
+  assert.deepEqual(config.previews, {});
+  assert.equal(JSON.stringify(config.previews).includes('SECRET'), false);
 });
 
 test('health endpoint exists and archive reads responses only through same-origin API', () => {
@@ -30,4 +34,12 @@ test('versioned database migrations and API documentation exist', () => {
   assert.ok(exists('supabase/migrations/20261120003644_index_shortcut_scope_fk.sql'));
   assert.ok(exists('supabase/migrations/20261120005428_auth_and_attribution.sql'));
   assert.ok(exists('docs/backend-api.md'));
+});
+
+test('dependency updates avoid incompatible major-version PRs and duplicate branch CI', () => {
+  const dependabot = read('.github/dependabot.yml');
+  const ci = read('.github/workflows/ci.yml');
+  assert.equal((dependabot.match(/version-update:semver-major/g) ?? []).length, 2);
+  assert.match(ci, /branches: \[main\]/);
+  assert.match(ci, /pull_request:/);
 });

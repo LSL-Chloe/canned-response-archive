@@ -39,3 +39,12 @@ Include the affected endpoint or file, expected behavior, observed behavior, and
 ## What is not yet guaranteed
 
 Automated checks cover logic and source-level protections, but do not prove the deployed environment is fully secure. Production readiness still requires dependency review, secret and history scanning, real-browser permission tests, operational monitoring, and backup drills.
+
+## Preview deployments
+
+Non-production Cloudflare Worker previews are isolated from production settings.
+The checked-in `previews: {}` entry only allows Wrangler to create previews;
+it does not grant them access to the production Supabase project. If preview
+features need database access, use a separate disposable test project with
+independent credentials and only test data. Do not promote preview secrets or
+public preview URLs as equivalent to production protections.
