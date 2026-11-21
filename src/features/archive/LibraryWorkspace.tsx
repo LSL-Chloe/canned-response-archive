@@ -58,7 +58,8 @@ export default function LibraryWorkspace({
   }, [agent, pendingAction, onHandled]);
 
   const shown = useMemo(() => {
-    const term = search.toLowerCase().trim();
+    // The leading hashtag is optional in saved-shortcut searches.
+    const term = search.toLowerCase().trim().replace(/^#/, '');
     return records
       .filter(item => scope === 'all' || (scope === 'mine' ? item.ownedByMe === true : item.visibility === scope))
       .filter(item => !term || item.shortcut.toLowerCase().includes(term) ||
