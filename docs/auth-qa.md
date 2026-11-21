@@ -1,46 +1,39 @@
-# Development authentication smoke test
+# Authentication testing checklist
 
-**Not the final login design.** This temporary form exists at
-`/dev/auth-test` on the Cloudflare development Worker. The homepage and
-planned search/library interface remain independent.
+Use a development database and test inbox. Never share real PINs, verification codes, or Worker secrets in a bug report.
 
-## Before first signup
+The normal account experience lives at **`/auth`**. A temporary diagnostic screen at **`/dev/auth-test`** is available in local development builds only; it is not part of the public production interface.
 
-- Confirm the development Supabase project is empty and use it only for test data.
-- Rotate the `PIN_PEPPER` if it was previously shared in any chat or screenshot;
-  generate a fresh cryptographically secure 32+ character secret **privately**.
-- Set all five Cloudflare **runtime** secrets on the deployed Worker and make
-  sure the deployment version that contains them is serving traffic.
-- The deployed Worker is named `canned-response-archive` (it is still our
-  development site; the Supabase development project is separate from production).
-- Do not paste your PIN, OTP or credentials into a chat, screenshot or repository.
+## First account and signup
 
-## Manual test
+1. On an empty development database, sign up with a test agent name and four-digit PIN.
+2. If using an email, complete the six-digit verification within ten minutes.
+3. Check that the first completed account receives the administrator role and later accounts receive the regular agent role.
+4. If you sign up without email, confirm that the UI explains PIN recovery is unavailable.
+5. Sign out, then sign in with the new account. The session should persist through a normal page refresh.
 
-1. Open `https://<development-worker>.workers.dev/dev/auth-test`.
-2. Select **Sign up**. Enter your intended development admin agent name,
-   your own inbox, and a four-digit PIN. Submitting begins pending signup.
-3. Open your email. Enter the six-digit OTP within 10 minutes.
-4. After verifying, confirm the page shows your agent name with **Administrator** role.
-5. Sign out; choose **Log in**, enter the same agent name and PIN.
-6. Sign out; choose **Recover PIN**, enter your verified email, confirm the
-   OTP, and choose a new PIN. Previous sessions should be revoked.
-7. Log in with the new PIN. Verify old PIN no longer works.
+**Do not expose an empty production database before the intended administrator has registered.**
 
-If no email is specified at signup, the account is created immediately
-but cannot recover a forgotten PIN using email.
+## Recovery and account settings
 
-Only a *completed* signup receives a role. The first account created in this
-development database receives the **development admin role**, not a future
-production admin role.
+1. Add or change a recovery email, and verify the change only takes effect after entering its OTP.
+2. Request PIN recovery using a verified email. Complete the challenge and sign back in with the new PIN.
+3. Confirm the old PIN is rejected and previously active sessions have been revoked.
+4. Change your PIN while signed in. The current session should stay active; other sessions should end.
+5. Try incorrect codes. An OTP should stop working after five failed attempts or expiry.
+6. Check login and send-code throttling. Repeated attempts must return rate-limit errors rather than allow unlimited guessing.
 
-## What these tests do not prove
+## Browser and security checks
 
-- They do not validate the final interface, real-time subscriptions,
-  response management screens, backup/restore, or production isolation.
-- The API health endpoint only confirms presence of three configuration
-  values; actual database access is separately tested using shared read.
-- Gmail delivery must be tested from your own inbox; automated tests mock
-  the sender and do not use your Gmail account.
+- HTTPS session cookies must be HttpOnly, Secure, and SameSite=Strict.
+- Mutating API routes should reject a mismatched Origin header.
+- Failed login messages should not reveal which account name is registered.
+- Private responses must not be exposed to guests or another user.
+- Shared response text and creator names are intentionally public and should contain test-safe text only.
+- The recovery-start response must not reveal whether an email is registered.
 
-The app is not yet appropriate for workplace use.
+## What this cannot establish
+
+A successful smoke test is not a penetration test. The four-digit PIN remains low-entropy, and real production use also needs independent infrastructure, logs, dependency checks, secret history review, backups, abuse protection, and ongoing monitoring.
+
+For the OTP sender itself, see [Gmail setup](gmail-otp-setup.md).

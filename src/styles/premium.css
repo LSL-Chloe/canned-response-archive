@@ -1594,3 +1594,20 @@
 @media(prefers-reduced-motion:reduce) {
   .archive-app .archive-avatar-gallery {scroll-behavior:auto}
 }
+
+/* Rendering cost: long lists stay fully styled but off-screen items are skipped
+ * until they approach the viewport. Browsers without content-visibility support
+ * keep the original presentation and scrolling behavior. */
+@supports (content-visibility: auto) {
+  .archive-app .archive-response-row {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 132px;
+  }
+  .archive-app .archive-avatar-choice {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 148px;
+  }
+}
+/* Keep the composited backdrop isolated from the workspace's scrolling
+ * contents; avoid invalidating translucent panels when a band drifts. */
+.optical-environment { contain: layout paint; }

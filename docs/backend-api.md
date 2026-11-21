@@ -1,80 +1,86 @@
-# Backend API — development-only
+# API reference
 
-The backend implements secure agent-name/PIN signup and login and optional-email OTP.
-The mailer cannot send real messages until the owner configures Google Apps Script and
-Cloudflare Worker secrets. There is **no live deployment** yet.
+The frontend communicates with the same-origin Cloudflare Worker under `/api`. Protected operations use the session cookie; the browser never sends a Supabase service key.
 
-## Authentication and profile API
+JSON API responses are marked `no-store`. Write requests require a same-origin `Origin` header and, when they contain a body, `application/json`. Invalid requests return a JSON error with an HTTP status.
 
-| Method | Endpoint | Who | Function |
-|---|---|---|---|
-| POST | `/api/auth/signup` | Guest | Signup with agent name, 4-digit PIN, optional email. No email = immediate account; email = pending verification. |
-| POST | `/api/otp/signup/verify` | Pending signup | `{challengeId,code}` completes signup, issues session. |
-| POST | `/api/auth/login` | Guest | Agent name and PIN. |
-| POST | `/api/auth/logout` | Signed in | Revoke session. |
-| GET | `/api/auth/me` | Everyone | Current user or null. |
-| PATCH | `/api/account/name` | Signed in | Rename own account. |
-| POST | `/api/account/pin` | Signed in | Current PIN and new PIN. |
-| GET | `/api/account/email` | Signed in | Own email and verification status. |
-| POST | `/api/otp/email/start` | Signed in | `{email}` sends verification to new email; does not change existing email yet. |
-| POST | `/api/otp/email/verify` | Signed in | `{challengeId,code}` atomically updates verified email. |
-| POST | `/api/otp/recovery/start` | Guest | `{email}` requests OTP; always returns same generic message and a challengeId, even for unknown accounts. |
-| POST | `/api/otp/recovery/verify` | Guest | `{challengeId,code,newPin}` resets PIN and revokes all sessions. |
+## Accounts and recovery
 
-OTP **send-request** limit: 3 per target (signup email, recovery email, or signed-in
-email-change account) in a 15-minute fixed window beginning with the first request.
-A separate limit of 20 OTP requests per IP address per hour remains in force.
-Rate-limit requests count even if the downstream mail sender later rejects an email.
-Previous one-hour target counters are not reused; the target key version was advanced
-to `v2` because the SQL rate-limit function preserves non-expired reset times.
-Incorrect-code verification limits are separate.
+| Method | Route | Access and behavior |
+| --- | --- | --- |
+| GET | `/api/health` | Public liveness check; does not reveal configured secrets |
+| POST | `/api/auth/signup` | Guest signup with agent name, four-digit PIN, and optional email |
+| POST | `/api/otp/signup/verify` | Completes a pending email-backed signup |
+| POST | `/api/auth/login` | Verifies agent name and PIN, then sets a session cookie |
+| GET | `/api/auth/me` | Current signed-in user, or `null` |
+| POST | `/api/auth/logout` | Revokes the current session |
+| PATCH | `/api/account/name` | Changes the signed-in user's display name |
+| POST | `/api/account/pin` | Changes PIN after verifying the current PIN; revokes other sessions |
+| GET | `/api/account/email` | Returns your account's recovery email and verification state |
+| POST | `/api/otp/email/start` | Sends a code to a new email address |
+| POST | `/api/otp/email/verify` | Confirms the code and updates the verified address |
+| POST | `/api/otp/recovery/start` | Sends a recovery code if a verified account exists; response is deliberately generic |
+| POST | `/api/otp/recovery/verify` | Validates the code, resets the PIN, and revokes existing sessions |
 
-Challenge responses return `{verificationRequired:true,challengeId,expiresInSeconds:600}`.
-OTP codes are six digits, expire after ten minutes and allow five incorrect attempts.
-Code hashes are HMAC-bound to challenge IDs and stored in Supabase without plaintext OTPs.
-Signup with email creates an account **only** after verified email confirmation.
-No-email signup still works but cannot self-recover a forgotten PIN.
+Email is optional for signup. Without a verified email, forgotten-PIN recovery is unavailable.
 
-The very first *completed* signup receives admin. Email verification for a pending
-signup must be completed before it can claim admin.
+OTP codes are six digits, expire after ten minutes, and allow at most five wrong submissions per challenge. Sending is limited to three requests per target in 15 minutes, with a separate hourly IP limit. Sign-in and other sensitive operations have their own rate limits.
 
-All modifying API routes require a same-origin `Origin` header and JSON bodies.
-Session cookies are HttpOnly, SameSite=Strict and Secure on HTTPS. The worker uses a
-server-side Supabase secret key, never exposed in frontend code.
+## Saved responses
 
-## Responses and admin API
+| Method | Route | Access and behavior |
+| --- | --- | --- |
+| GET | `/api/responses?scope=shared` | **Public:** returns the shared reply library, including creator display names |
+| GET | `/api/responses?scope=private` | Signed-in user, own private replies only |
+| GET | `/api/responses?scope=all` | Signed-in user, shared replies plus own private replies |
+| POST | `/api/responses` | Signed-in user creates a shared or private reply |
+| PATCH | `/api/responses/:id` | Owner edits their reply; admin can also edit shared replies |
+| DELETE | `/api/responses/:id` | Owner deletes their reply; admin can also delete shared replies |
+| GET | `/api/responses/export?scope=private` | Download your own private replies |
+| GET | `/api/responses/export?scope=shared` | Administrator only |
+| POST | `/api/responses/import` | Signed-in user for private imports; administrator for shared imports |
+| GET | `/api/admin/users` | Administrator-only account and response counts, without private text |
 
-| Method | Endpoint | Access |
-|---|---|---|
-| GET | `/api/responses?scope=shared` | Everyone |
-| GET | `/api/responses?scope=private` | Signed-in owner |
-| GET | `/api/responses?scope=all` | Signed-in: shared + own private |
-| POST | `/api/responses` | Any agent, shared or private |
-| PATCH | `/api/responses/:id` | Shared: creator or admin; Private: owner only. Updates body and optional shortcut of only the selected response. |
-| DELETE | `/api/responses/:id` | Admin or creator if shared, owner if private |
-| GET | `/api/responses/export?scope=shared` | Admin only |
-| GET | `/api/responses/export?scope=private` | Signed-in agent, own private responses only |
-| POST | `/api/responses/import` | Admin for shared, signed-in agent for own private |
-| GET | `/api/admin/users` | Admin only; user counts but no private text |
+Replies live under normalized `#shortcut` names. Several independent replies can share one shortcut. Creating another reply doesn't overwrite an existing one.
 
-The shared library shows `Created by` names; the central shortcut search UI should not.
+Exports use:
 
-Export is JSON `{version:1,visibility:"shared"|"private",responses:[{shortcut,body}]}`.
-Shared import/export is admin-only. Private import/export only accesses the logged-in
-agent's own private records. Imports **append**, never replace or merge; a response under
-an existing shortcut adds another independent response. Each import request accepts
-1–50 records (up to 10 requests per hour per account) and is sequential, **not atomic**.
-The frontend previews before confirming and splits uploads into appropriately sized
-requests. Always inspect the archive after a failed batch before retrying.
+```json
+{
+  "version": 1,
+  "visibility": "private",
+  "responses": [
+    { "shortcut": "follow_up", "body": "Just following up on our conversation." }
+  ]
+}
+```
 
-## Setup and limitations
+An import accepts 1–50 rows per request and is **append-only and non-atomic**. The browser previews larger JSON archives and submits bounded batches. A failed batch may already have saved some rows; check the library before retrying.
 
-See [Gmail OTP setup](gmail-otp-setup.md). Do not put `OTP_MAILER_SECRET`,
-`PIN_PEPPER`, or `SUPABASE_SECRET_KEY` in public GitHub files.
+## Profile pictures
 
-Schema migrations in `supabase/migrations` have already been applied to the development
-database; they must not be rerun there. A production database has not been created.
+| Method | Route | Access |
+| --- | --- | --- |
+| GET | `/api/account/avatar` | Signed-in user's selected image URL |
+| PATCH | `/api/account/avatar` | Signed-in user chooses or clears an allowed avatar URL |
+| POST | `/api/account/avatar/upload` | Signed-in user uploads a small JPEG prepared in the browser |
+| GET | `/api/avatars/search` | Signed-in, character and title search by source |
+| GET | `/api/avatars/characters` | Signed-in, characters associated with a title |
+| GET | `/api/avatars/popular` | Signed-in, optional popular-character suggestions |
+| GET | `/api/avatars/variations` | Signed-in, additional fan-wiki or anime artwork |
+| GET | `/api/avatars/booru-looks` | Signed-in, filtered general-rated artwork for one character |
+| GET | `/api/avatars/image` | Signed-in, allowlisted public image proxy for hosts that block direct loading |
 
-Still outstanding: real Gmail authorization and send test, deployment and live Worker
-integration tests, frontend/animations, robust backup and restore procedures, import
-transactionality and more thorough security tests.
+Most featured icons come from a bundled manifest and don't require a catalog request. External image providers are optional and can fail without preventing use of the rest of the archive.
+
+Uploaded pictures are publicly readable in the designated Supabase Storage bucket. The selected URL is stored on the account, not the image bytes.
+
+## Security notes for API consumers
+
+- Role checks happen in the Worker, not only in the UI.
+- Public shared responses must not contain confidential information.
+- Changing a reply's shortcut reassigns that one reply, leaving other replies under the original shortcut alone.
+- Rate limits use server-side hashed keys; they do not remove the risks of a four-digit PIN.
+- The service is under development. Before a public production rollout, review secrets, authentication strength, permissions, and external image usage.
+
+See [architecture](architecture.md) and [security](../SECURITY.md) for more context.

@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { ApiProblem, fetchFeed, login, logout, session } from './api';
-import type { Agent, ArchiveResponse } from './model';
+import { sameResponseList, type Agent, type ArchiveResponse } from './model';
 import SearchWorkspace from './SearchWorkspace';
-import LibraryWorkspace from './LibraryWorkspace';
-import SettingsWorkspace from './SettingsWorkspace';
-import TeamWorkspace from './TeamWorkspace';
+// Large secondary workspaces load only when needed, keeping the draft fast.
+const LibraryWorkspace = lazy(() => import('./LibraryWorkspace'));
+const SettingsWorkspace = lazy(() => import('./SettingsWorkspace'));
+const TeamWorkspace = lazy(() => import('./TeamWorkspace'));
 import Icon from '../../ui/Icon';
 import ThemeToggle from '../../ui/ThemeToggle';
 import OpticalBackdrop from '../../ui/OpticalBackdrop';
 import LiquidUnderlay from '../../ui/LiquidUnderlay';
 import { avatarImageSrc } from './avatarImages';
-import { featuredAvatars } from './curatedAvatarCatalog';
 import type { Theme } from '../../ui/theme';
 import { Glass } from '@samasante/liquid-glass';
 
@@ -101,18 +101,28 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   const [notice, setNotice] = useState('');
   const [problem, setProblem] = useState('');
   const requestSerial = useRef(0);
-  // Warm the fixed, lightweight avatar shelves after sign-in. Settings does not
-  // wait on this prefetch; thumbnails still have normal browser-cache semantics.
+  // Warm just the first visible row when the browser has spare capacity.
+  // The previous eager 45-image preload consumed data and image decode time on
+  // every sign-in, even when Settings was never opened.
   useEffect(() => {
-    if (!agent) return;
-    const saveData=(navigator as Navigator & {connection?:{saveData?:boolean}}).connection?.saveData;
-    if(saveData)return;
-    const warm=(urls:string[])=>{for(const url of urls){const image=new Image();image.decoding='async';image.src=url;}};
-    warm(featuredAvatars.anime.map(item=>item.imageUrl));
-    const later=window.setTimeout(()=>{
-      warm([...featuredAvatars.tv,...featuredAvatars.movie].map(item=>item.imageUrl));
-    },1000);
-    return ()=>window.clearTimeout(later);
+    if (!agent || document.hidden) return;
+    const connection=(navigator as Navigator & {connection?: {
+      saveData?: boolean; effectiveType?: string;
+    }}).connection;
+    if (connection?.saveData || /^(slow-2g|2g|3g)$/.test(connection?.effectiveType || '') ||
+        (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)) return;
+    const timer=window.setTimeout(() => {
+      if (document.hidden) return;
+      void import('./curatedAvatarCatalog').then(({ featuredAvatars }) => {
+        if (document.hidden) return;
+        for (const item of featuredAvatars.anime.slice(0,8)) {
+          const image=new Image();
+          image.decoding='async';
+          image.src=item.imageUrl;
+        }
+      });
+    },1800);
+    return () => window.clearTimeout(timer);
   },[agent?.id]);
 
   useEffect(() => {
@@ -132,8 +142,9 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
         agent ? fetchFeed('private') : Promise.resolve([] as ArchiveResponse[]),
       ]);
       if (serial !== requestSerial.current) return;
-      setShared(data[0]);
-      setPrivateRows(agent ? data[1] : []);
+      setShared(previous => sameResponseList(previous, data[0]) ? previous : data[0]);
+      const nextPrivate = agent ? data[1] : [];
+      setPrivateRows(previous => sameResponseList(previous, nextPrivate) ? previous : nextPrivate);
     } catch (error) {
       if (serial !== requestSerial.current) return;
       if (error instanceof ApiProblem && error.status === 401 && agent) {
@@ -178,7 +189,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
     };
   }, [refresh]);
 
-  const responses = [...shared, ...privateRows];
+  const responses = useMemo(() => [...shared, ...privateRows], [shared, privateRows]);
   const selectedTab = page === 'search' ? 0 : page === 'library' ? 1 : page === 'team' ? 2 : -1;
 
   function requireLogin(reason: 'private' | 'create' | 'transfer') {
@@ -251,12 +262,16 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
             <span className="archive-nav-label">Search workspace</span>
           </button>
           <button type="button" className={page === 'library' ? 'active' : ''} aria-current={page === 'library' ? 'page' : undefined}
+            onPointerEnter={() => { void import('./LibraryWorkspace'); }}
+            onFocus={() => { void import('./LibraryWorkspace'); }}
             onClick={() => navigate('library')} title="Canned responses">
             <span className="archive-nav-icon"><Icon name="library" size={20}/></span>
             <span className="archive-nav-label">Canned responses</span>
           </button>
           {agent?.role === 'admin' && (
             <button type="button" className={page === 'team' ? 'active' : ''} aria-current={page === 'team' ? 'page' : undefined}
+              onPointerEnter={() => { void import('./TeamWorkspace'); }}
+              onFocus={() => { void import('./TeamWorkspace'); }}
               onClick={() => navigate('team')} title="Team overview">
               <span className="archive-nav-icon"><Icon name="team" size={20}/></span>
               <span className="archive-nav-label">Team overview</span>
@@ -283,7 +298,10 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
                 </button>
                 {accountMenuOpen && (
                   <div className="archive-account-menu" role="menu">
-                    <button role="menuitem" type="button" onClick={() => navigate('settings')}><Icon name="settings" size={15}/> Settings</button>
+                    <button role="menuitem" type="button"
+                      onPointerEnter={() => { void import('./SettingsWorkspace'); }}
+                      onFocus={() => { void import('./SettingsWorkspace'); }}
+                      onClick={() => navigate('settings')}><Icon name="settings" size={15}/> Settings</button>
                     <button role="menuitem" type="button" onClick={() => void signOut()}><Icon name="logout" size={15}/> Sign out</button>
                   </div>
                 )}
@@ -302,12 +320,14 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
             </div>
           )}
           {page === 'search' && <SearchWorkspace responses={responses} loading={loading} onNotice={onNotice} onError={onError}/>}
-          {page === 'library' && <LibraryWorkspace agent={agent} records={responses} loading={loading}
-            pendingAction={pendingAction} onHandled={() => setPendingAction(null)} onRequireLogin={requireLogin}
-            reload={() => refresh()} onNotice={onNotice} onError={onError}/>}
-          {page === 'settings' && agent && <SettingsWorkspace agent={agent} onAgentChange={setAgent} avatarUrl={avatarUrl} onAvatarChange={setAvatarUrl}
-            onNotice={onNotice} onError={onError}/>}
-          {page === 'team' && agent?.role === 'admin' && <TeamWorkspace onError={onError}/>}
+          <Suspense fallback={<div className="archive-faint" role="status">Opening workspace…</div>}>
+            {page === 'library' && <LibraryWorkspace agent={agent} records={responses} loading={loading}
+              pendingAction={pendingAction} onHandled={() => setPendingAction(null)} onRequireLogin={requireLogin}
+              reload={() => refresh()} onNotice={onNotice} onError={onError}/>}
+            {page === 'settings' && agent && <SettingsWorkspace agent={agent} onAgentChange={setAgent} avatarUrl={avatarUrl} onAvatarChange={setAvatarUrl}
+              onNotice={onNotice} onError={onError}/>}
+            {page === 'team' && agent?.role === 'admin' && <TeamWorkspace onError={onError}/>}
+          </Suspense>
         </main>
       </div>
       {loginOpen && <LoginDialog intent={loginIntent} onClose={closeLogin} onSuccess={signedIn}/>}

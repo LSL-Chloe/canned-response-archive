@@ -110,7 +110,7 @@ export default function SettingsWorkspace({ agent, onAgentChange, avatarUrl, onA
           <input id="archive-setting-new-pin" type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4}
             autoComplete="new-password" value={newPin} onChange={event => setNewPin(event.target.value)} required />
           <LiquidButton type="submit" className="archive-button archive-button-primary" disabled={busy}>Change PIN</LiquidButton>
-          <p className="archive-hint">Forgot your current PIN? Sign out and use Recover PIN on the authentication test page.</p>
+          <p className="archive-hint">Forgot your current PIN? Sign out and choose Recover PIN on the sign-in page.</p>
         </form>
         <div className="archive-card archive-settings-form">
           <LiquidUnderlay radius={18}/>

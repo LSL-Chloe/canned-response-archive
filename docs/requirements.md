@@ -1,51 +1,49 @@
-# Approved functional requirements (captured November 2026)
+# Features and permissions
 
-## Guests
-- Open site with no login, search and copy shared canned responses.
-- Centered text entry accepts `#` and suggests shortcuts/responses.
-- Keyboard support: Up/Down, Enter, Escape, undo with Ctrl+Z (platform equivalents where appropriate).
-- Clicking Private or attempting to add responses prompts login/signup.
+This document describes the behavior the archive currently aims to preserve. It is useful when reviewing a proposed change or testing a new deployment.
 
-## Library
-- Left sidebar tabs: Search and Canned Responses.
-- Library filters: All, Shared, Private. For guests, All contains shared results only.
-- Add response: response text, shortcut, shared/private visibility. No group, suggest-events, or tags.
-- While entering a shortcut, suggest existing shortcuts; choosing one adds another response to its collection.
-- If no existing shortcut is selected, new valid shortcut creates a new collection.
-- Multiple responses may share one shortcut; never overwrite automatically.
-- Shared updates should appear for connected users without refresh.
+## Finding a reply
+
+Anyone can open the search workspace and browse **Shared** responses. Typing `#` in the draft opens the available shortcuts; typing more characters filters the shortcut names. Press Enter or the right arrow to open a shortcut and then choose a reply. The popup scrolls when there are many results. Ctrl/Cmd+Z can undo the most recent insertion. The draft can be copied to the clipboard.
+
+The same shortcut can contain several separate responses. Selecting a reply never overwrites other saved replies.
+
+## Saving and organizing
+
+Signed-in agents can create shared and private responses, edit or delete responses they own, and change one response's shortcut without changing other entries in the original group.
+
+The library has All, Shared, and Private views. A guest sees the shared material only. A user's private text stays private to that account, even from the administrator.
+
+Import and export use JSON. An import adds rows rather than replacing existing ones; the UI previews the file and warns that batch imports are not atomic.
 
 ## Accounts
-- Signup: unique agent name, 4-digit PIN, optional email.
-- If email is provided, verify via 6-digit OTP sent to new email.
-- Login uses agent name + PIN; optional email is for recovery, not login.
-- Without verified email, there is no self-service forgotten-PIN recovery. Clearly warn at signup.
-- Account settings: rename agent, add/change email with OTP to new address, change PIN with old PIN,
-  recover forgotten PIN via verified email.
-- Logged-in avatar/name at upper-right; Settings and Sign Out dropdown.
-- The first successfully created account is admin exactly once, tracked by immutable user ID,
-  not by mutable agent name or email.
-- No invite code or signup approval desired.
 
-## Hosting and workflow
-- React + TypeScript, Cloudflare Worker API, Supabase database/realtime.
-- Gmail + Apps Script intended for low-volume verification mail; secure integration to be designed.
-- Development and production use separate databases.
-- Design direction, animation choices, and visual references will be supplied later.
+An account has an agent name, a four-digit PIN, and an optional verified recovery email. Users can update their name, email and PIN from Settings. Recovery uses an emailed six-digit code when a verified email is present.
 
-## Admin and response permissions (confirmed)
-- Any authenticated agent can create Shared or Private responses.
-- Agents can edit and delete their own Private responses, including changing their shortcuts.
-- Agents can edit and delete their **own Shared** responses, including their shortcuts; they cannot manage other agents' Shared responses.
-- The admin can edit or delete **any Shared** response, but not read or manage another agent's Private response contents.
-- Editing the shortcut of one response must reassign only that response; other responses under its old shortcut remain untouched.
-- Only admin can import/export Shared responses. Agents can import/export **their own Private** responses.
-- The shared library displays "Created by {agent name}" below response text; the
-  main `#` search suggestion interface does **not** display creator names.
-- Admin section lists registered accounts, join dates, roles, shared counts, and private counts;
-  it does not expose private response text to the admin.
+The first completed signup becomes the administrator. This should happen in a controlled environment before opening registration to others.
 
-## Still to define
-- Additional admin moderation operations beyond current permissions.
-- Search ranking, shortcut character rules, and exact multi-response selection behavior.
-- Backup retention and restore process.
+Settings also allows uploading a custom profile image or choosing a character portrait. The first gallery tile is the custom-upload **+**. The default anime, TV, and movie icons remain available without a catalog API call; **Browse more** reveals additional choices.
+
+## Role summary
+
+| Action | Visitor | Agent | Administrator |
+| --- | --- | --- | --- |
+| View and copy shared replies | Yes | Yes | Yes |
+| Read your own private replies | No | Yes | Yes |
+| Read another user's private replies | No | No | No |
+| Create shared or private replies | No | Yes | Yes |
+| Edit or delete your own replies | No | Yes | Yes |
+| Edit or delete someone else's shared reply | No | No | Yes |
+| Import/export private replies | No | Own only | Own only |
+| Import/export the shared library | No | No | Yes |
+| View account counts | No | No | Yes |
+
+**Shared really means public to visitors.** Creator display names are included in the shared library, but not in the shortcut insertion popup.
+
+## Implementation and quality expectations
+
+The current stack is React, TypeScript, a Cloudflare Worker, and Supabase. Changes should preserve keyboard navigation, light/dark modes, responsiveness, source authorization, reduced-motion support, and the user's draft.
+
+The shared library currently refreshes through periodic API requests rather than a direct Realtime channel.
+
+Before a public production deployment, establish an independent production database, backups, secrets management, stronger authentication or an explicit risk acceptance, abuse controls, dependency audits, and repeatable browser/device QA.

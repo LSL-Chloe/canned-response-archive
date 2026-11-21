@@ -62,7 +62,7 @@ function PortraitImage({ url, label, inspectAnime = false, onReject }: {
 
   return (
     <img
-      src={attempt === 0 ? avatarImageSrc(url) : alternateAvatarImageSrc(url)}
+      src={attempt === 0 ? avatarImageSrc(url, true) : alternateAvatarImageSrc(url)}
       alt=""
       loading="lazy"
       decoding="async"

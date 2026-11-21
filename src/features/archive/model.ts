@@ -16,6 +16,25 @@ export interface ArchiveResponse {
   createdBy?: string;
   ownedByMe?: boolean;
 }
+/**
+ * Polling may return the same feed every five seconds. Reuse the previous
+ * array when nothing relevant changed so long lists and glass controls
+ * aren't needlessly reconciled on each background refresh.
+ */
+export function sameResponseList(left: ArchiveResponse[], right: ArchiveResponse[]): boolean {
+  if (left === right) return true;
+  if (left.length !== right.length) return false;
+  for (let i = 0; i < left.length; i += 1) {
+    const a = left[i]!;
+    const b = right[i]!;
+    if (a.id !== b.id || a.body !== b.body || a.shortcut !== b.shortcut ||
+        a.visibility !== b.visibility || a.updatedAt !== b.updatedAt ||
+        a.createdAt !== b.createdAt || a.createdBy !== b.createdBy ||
+        a.ownedByMe !== b.ownedByMe) return false;
+  }
+  return true;
+}
+
 export interface HashQuery {
   start: number;
   end: number;

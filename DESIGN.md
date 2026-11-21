@@ -1,42 +1,31 @@
-# DESIGN — Response Archive / Liquid Controls
+# Design principles
 
-**Status:** November 2026, development app. **Mode:** Operate.
+The archive should feel like a focused writing tool, not a dashboard that demands attention. Search, response text, and account actions remain visually clear; the atmosphere around them can feel softer and more tactile.
 
-The visual brief is based on the user's **Liquid Glass Switch**, **Dark Light Button UI Animation**, and rounded-rectangle tab navigation screenshots. The old “Frosted Instrument” visual system was rejected.
+## Light and dark
 
-## Primary interaction language
-- **Dark:** deep neutral mesh background with slow-moving muted optical bands, translucent navigation, refractive edges and matte content typography.
-- **Light:** pearl-grey woven mesh with lower-contrast travelling light and glossy neutral lenses, ink-dark readable text.
-- The theme switch is a **compact 84 × 34 px capsule** with a 38 px refractive puck, proportionate to the top bar.
-- Sidebar navigation uses a **single persistent glass selection** moving smoothly from tab to tab instead of mounting a new lens for each tab.
-- Sidebar collapse/expand animates width (420ms) and text opacity/width together. Mobile uses an icon rail and an accessible close backdrop when expanded.
-- Action buttons with high visual priority use the same SVG-displacement lens. Reading/editor surfaces stay opaque.
+Both themes use subdued neutral colors, a finely woven background, and restrained highlights. The UI is meant to feel familiar on a desktop and natural on a phone. The dark theme is deep graphite rather than pitch black; the light theme is a gentle pearl gray.
 
-## Real material technique
-`@samasante/liquid-glass` (MIT), already in the project, provides SVG-generated distortion maps: rim bending, curvature, chromatic dispersion, directional specular lighting and optional frost. Our lenses set `frost:0` and deliberately expose these optical properties; mere `backdrop-filter: blur` is **not** the design.
+## The glass treatment
 
-**Important limitation:** these are Apple-style controls for the web, **not Apple's native proprietary SwiftUI Liquid Glass components**. Browser rendering differences mean no cross-browser pixel-perfect clone of the Apple OS compositor is promised.
+Navigation, buttons, and selected controls use a refractive liquid-glass lens. This effect comes from [`@samasante/liquid-glass`](https://github.com/samasante/liquid-glass) and its SVG displacement maps, not from blur alone.
 
-## Functionality and accessibility
-- Keep the existing server-side auth and permission gates, response CRUD, keyboard `#` insertion and undo, ownership-based editing, private/shared scopes, import/export, and six-digit email OTP.
-- Refraction is decorative, not an action layer: underlying native buttons and keyboard focus remain functional.
-- Use the `role="switch"` control with `aria-checked` for theme; store only the light/dark preference.
-- `prefers-reduced-motion` disables the spring movement and `prefers-reduced-transparency` allows an opaque fallback.
-- Use legible text outside glass, with restrained scale and a single symbol/icon vocabulary.
+Text entry and response bodies remain legible on steadier surfaces. Decorative refraction sits behind text, never between a user and a control. These are web effects inspired by Apple's visual language, not Apple's native SwiftUI components, and appearance will differ between browsers.
 
-## Reference evidence
-- User-supplied tab navigation and light/dark switch screenshots
-- https://liquidglassdesign.com/gallery/liquid-glass-switch
-- https://liquidglassdesign.com/gallery/dark-light-button-ui-animation
-- https://github.com/samasante/liquid-glass/blob/main/examples/GlassSwitch.tsx
-- https://www.uilora.com/
-- https://uiverse.io/
+## Motion and performance
 
-## Verification before production rollout
-Capture desktop + 390px mobile in both modes; exercise sidebar toggling and selection, theme toggle, library tabs, primary buttons, live OTP, and permission regressions. GitHub build and unit tests alone cannot prove optical fidelity or touch smoothness.
+Small interactions should respond promptly. Sliding navigation, the theme switch, and subtle moving light are secondary to typing, copying, and choosing a response.
 
-## November 21 corrections
-- Removed decorative green connectivity dots, development badge, hashtag branding and oversized authentication marketing copy.
-- Added a subtle slow-moving woven monochrome background behind the real glass lenses in both modes; animation respects reduced motion.
-- Main team table, composer, library list, settings, import/export and account card now have bounded refractive underlays while their text remains above the shader.
-- Reduced heading scale, chrome height, panel padding and theme-control size to match the reference's smaller inset controls.
+Keep animation on composited properties where possible, avoid making whole lists repaint, and never create a fresh expensive glass shader for every response row. Off-screen rows may use browser rendering containment; hidden or unused avatar images should not monopolize bandwidth.
+
+The reduced-motion preference disables the ambient movement. Reduced-transparency preferences use less translucent surfaces. On constrained connections, avatar loading should favor visible images.
+
+## Accessibility
+
+Controls use native buttons and inputs where possible. Keyboard shortcut search supports arrows, Enter, Escape, and undo. Focus and selected states must remain visible in both themes. Important instructions are text, not light or color alone.
+
+## Visual regression checklist
+
+Before merging interface changes, check both themes at desktop and narrow mobile widths. Test a collapsed sidebar, long responses, Settings with many avatars, OTP forms, and keyboard navigation. Automated builds cannot measure touch latency or verify the optical appearance.
+
+The archive should remain recognizable and fluid even when a browser has to simplify how it renders the decorative effects.
