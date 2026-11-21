@@ -25,8 +25,8 @@ const css=`
  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 [data-liquid-glass]>[data-lg-layer]:not(svg),.liquid-underlay-fill{display:none!important}
 [data-lgx=flat]::after{display:none}
-.archive-sidebar[data-lgx]{box-shadow:inset -1px 0 0 var(--lg-r2)!important}
-.archive-topbar[data-lgx]{box-shadow:inset 0 -1px 0 var(--lg-r2)!important}
+.archive-sidebar[data-lgx]{box-shadow:inset -1px 0 0 var(--lg-r2),6px 0 18px -17px var(--lg-drop)!important}
+.archive-topbar[data-lgx]{box-shadow:inset 0 -1px 0 var(--lg-r2),0 8px 20px -18px var(--lg-drop)!important}
 .archive-composer,.archive-card,.archive-response-list,.auth-card{border-color:transparent!important;box-shadow:0 16px 36px -14px var(--lg-drop)!important}
 .archive-topbar::before{content:"";position:absolute;inset:0 0 -26px;z-index:-1;pointer-events:none;background:linear-gradient(var(--a-bg),transparent);opacity:0}
 @supports(animation-timeline:scroll()){.archive-topbar::before{animation:lgE linear both;animation-timeline:scroll(root);animation-range:0 90px}}
@@ -164,7 +164,26 @@ function bg(env){
  size();addEventListener('resize',size);
  const pt=e=>{tx=(e.clientX-W/2)/H;ty=(H/2-e.clientY)/H;act=performance.now()};
  addEventListener('pointermove',pt,{passive:true});
- addEventListener('pointerdown',e=>{pt(e);ks.set([tx,ty,T(),1],ki*4);ki=(ki+1)%6},{passive:true});
+ // A drag started on empty glass/background must not accidentally select
+ // the hint text as the pointer passes across it. Dragging from the actual
+ // text (or inside an editor) keeps normal browser text selection.
+ const selectableOrControl='a,button,input,textarea,select,option,label,h1,h2,h3,h4,h5,h6,p,span,kbd,small,strong,em,code,[contenteditable],[role="button"],[role="option"],[role="link"],[role="textbox"]';
+ let backgroundPointer=null;
+ const releaseBackground=e=>{if(!e||e.pointerId===backgroundPointer)backgroundPointer=null};
+ D.addEventListener('selectstart',e=>{if(backgroundPointer!==null)e.preventDefault()},true);
+ addEventListener('pointerup',releaseBackground,{passive:true});
+ addEventListener('pointercancel',releaseBackground,{passive:true});
+ addEventListener('blur',()=>releaseBackground(),{passive:true});
+ addEventListener('pointerdown',e=>{
+  pt(e);
+  const target=e.target;
+  const blank=e.pointerType==='mouse'&&e.isPrimary&&e.button===0&&target instanceof Element&&
+    !!target.closest('.archive-app,.auth-experience')&&!target.closest(selectableOrControl);
+  backgroundPointer=blank?e.pointerId:null;
+  // The optical ripple is a background interaction, not a click on labels
+  // or controls. No preventDefault on pointerdown, so inputs still blur.
+  if(blank){ks.set([tx,ty,T(),1],ki*4);ki=(ki+1)%6}
+ },{passive:true});
  c.addEventListener('webglcontextlost',e=>{e.preventDefault();ok=0;c.remove();G=null;setTimeout(scan,600)});
  (function loop(now){
   if(!ok)return;requestAnimationFrame(loop);if(D.hidden)return;
