@@ -32,7 +32,7 @@ The project was already **public on GitHub** at the time of review. Source avail
 ## Remaining work before calling it production-ready
 
 - Inspect Git history and secret-scanning results; a source review of the current branch cannot prove secrets were never committed.
-- Audit dependency advisories, add a generated and committed npm lockfile, and make production builds reproducible. Dependabot configuration is included to surface update proposals.
+- Keep the committed npm lockfile current and review dependency advisories when making upgrades. Dependabot proposes compatible updates for review.
 - Test the live Worker and Supabase grants with guest, regular-agent, and admin accounts. Include explicit forbidden API requests.
 - Run real-device performance profiling (slow Android, iPhone Safari, low-memory laptops) and check both themes, reduced motion, image failures, and long lists.
 - Validate restore procedures and retention of stale OTP, session, and rate-limit rows.
@@ -45,7 +45,7 @@ The goal is to keep the archive fast and easy to use **without mistaking green u
 ## Follow-up audit: 21 November 2026
 
 - **Credential history:** A read-only scan checked 58 recorded main-branch and pull-request-head commits through GitHub's commit patches. No real high-confidence tokens were identified; two Supabase-looking strings were documented example placeholders. This is limited to accessible commit patches, not all dangling Git objects, binary files, GitHub secret scanning alerts, or connected deployment settings.
-- **Reproducibility:** The repository still lacks a committed package-lock.json. Dependency versions can resolve differently across installations. Commit a tested lockfile before a production launch; do not manufacture one by hand.
+- **Reproducibility:** A lockfile was generated using npm's resolver and verified through `npm ci` and the full project checks. CI now uses `npm ci` instead of unconstrained dependency installation. Review lockfile changes alongside dependency updates.
 - **Vite:** The minimum supported release has been raised to 7.3.8, which includes the November 2026 development-server security fix (GHSA-p4f5-76q4-ffq7). Do not expose a local Vite dev server publicly.
 - **Automated review:** A new read-only GitHub Action checks reachable Git history for high-confidence credential patterns and runs npm audit separately on production and full dependency trees. The production audit fails on high/critical findings; development advisories are reported for review.
 - **Authentication:** The four-digit PIN, first-signup administrator bootstrap, and public Shared responses remain intentionally unchanged. A strong identity system and production operations require a separate product decision.

@@ -31,7 +31,7 @@ You'll need Node.js 22+, npm, a Supabase project, and the Cloudflare Worker deve
 ```bash
 git clone https://github.com/LSL-Chloe/canned-response-archive.git
 cd canned-response-archive
-npm install
+npm ci
 cp .dev.vars.example .dev.vars
 # Fill in the local-only credentials described in docs/setup.md
 npm run dev
@@ -48,7 +48,7 @@ npm run build
 npm run check
 ```
 
-The command `npm run check` runs all three checks. GitHub Actions runs it for incoming changes. Passing these checks does not replace a security audit or device testing.
+The command `npm run check` runs all three checks. GitHub Actions uses `npm ci` with the committed lockfile for repeatable installs and runs the checks for incoming changes. Passing these checks does not replace a security audit or device testing.
 
 ## Project guide
 

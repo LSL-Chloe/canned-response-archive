@@ -9,7 +9,7 @@ Install Node.js 22 or newer, then:
 ```bash
 git clone https://github.com/LSL-Chloe/canned-response-archive.git
 cd canned-response-archive
-npm install
+npm ci
 cp .dev.vars.example .dev.vars
 npm run dev
 ```
@@ -63,6 +63,8 @@ npm run build
 # Or run everything together:
 npm run check
 ```
+
+The repository includes `package-lock.json`. Use `npm ci` for a clean, reproducible install. If you intentionally change dependencies, update the lockfile using npm and commit it with the related `package.json` change.
 
 The automated tests cover input handling, shortcut behavior, permissions, OTP logic, migrations/configuration assumptions, and avatar selection. They do not replace real browser or live integration tests.
 

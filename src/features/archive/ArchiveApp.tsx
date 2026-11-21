@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
-import { ApiProblem, fetchFeed, login, logout, session } from './api';
+import { api, ApiProblem, fetchFeed, login, logout, session } from './api';
 import { sameResponseList, type Agent, type ArchiveResponse } from './model';
 import SearchWorkspace from './SearchWorkspace';
 // Large secondary workspaces load only when needed, keeping the draft fast.
@@ -170,7 +170,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   useEffect(() => {
     if (!agent) { setAvatarUrl(null); return; }
     let live = true;
-    void import('./api').then(({ api }) => api<{ avatarUrl: string | null }>('/api/account/avatar'))
+    void api<{ avatarUrl: string | null }>('/api/account/avatar')
       .then(result => { if (live) setAvatarUrl(result.avatarUrl); })
       .catch(() => { if (live) setAvatarUrl(null); });
     return () => { live = false; };
