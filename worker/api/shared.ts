@@ -77,8 +77,8 @@ export function pinInput(input: unknown): string {
 export function shortcutInput(input: unknown): string {
   if (typeof input !== 'string') return fail(400, 'invalid_shortcut', 'Invalid shortcut');
   const normalized = input.trim().replace(/^#/, '');
-  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(normalized)) {
-    return fail(400, 'invalid_shortcut', 'Use 1–64 letters, numbers, underscores or hyphens');
+  if (!/^[A-Za-z0-9_][A-Za-z0-9_ -]{0,63}$/.test(normalized)) {
+    return fail(400, 'invalid_shortcut', 'Use 1–64 letters, numbers, underscores, hyphens or spaces');
   }
   return normalized;
 }

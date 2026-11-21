@@ -41,7 +41,7 @@ OTP codes are six digits, expire after ten minutes, and allow at most five wrong
 | POST | `/api/responses/import` | Signed-in user for private imports; administrator for shared imports |
 | GET | `/api/admin/users` | Administrator-only account and response counts, without private text |
 
-Replies live under normalized `#shortcut` names. Several independent replies can share one shortcut. Creating another reply doesn't overwrite an existing one.
+Replies live under `#shortcut` names, with original internal spaces and underscores preserved (1–64 characters, case-insensitive uniqueness). Several independent replies can share one shortcut. Creating another reply doesn't overwrite an existing one.
 
 Exports use:
 

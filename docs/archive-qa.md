@@ -6,7 +6,7 @@ This is a practical walkthrough for testing the saved-response workflow in a rea
 
 1. Open the home page without signing in. Shared responses should load, and Private should require an account.
 2. Type `#` into the draft. Confirm the shortcut menu lists available shortcuts and scrolls within its own fixed-height area.
-3. Type a shortcut prefix, for example `#fol`, and check that only matching shortcut names remain.
+3. Type a shortcut prefix, for example `#fol`, and check that only matching shortcut names remain. Then test a multi-word shortcut such as `#auto pricing` and a leading-underscore shortcut such as `#_OnIdle_`.
 4. Press Enter or the right arrow to open a shortcut. The second level should show **all replies** saved under that shortcut.
 5. Insert a reply, then press Ctrl/Cmd+Z to restore the previous shortcut search.
 6. Copy the draft. The clipboard should contain the text you see, with no surprise changes.
