@@ -9,7 +9,7 @@ const records: [number,string,string,number,string][] = [[0,"Attack On Titan","A
 const categories:AvatarCategory[]=['anime','tv','movie'];
 export const curatedAvatars:CuratedAvatar[]=records.map(([c,franchise,title,repo,path],i)=>{
  const url=bases[repo as 0|1]+path.split('/').map(encodeURIComponent).join('/');
- return {id:'curated-'+i,kind:'avatar',title,franchise,category:categories[c]!,imageUrl:url,avatarUrl:url,pack:repo===0?'Fusion Profile Avatars':'Jellyfin Avatar Images'};
+ return {id:'curated-'+i,kind:'avatar' as const,title,franchise,category:categories[c]!,imageUrl:url,avatarUrl:url,pack:repo===0?'Fusion Profile Avatars':'Jellyfin Avatar Images'};
 }).concat(additionalCrunchyrollIcons.map(([franchise,title,path],index)=>{
  const url=bases[1]+path.split('/').map(encodeURIComponent).join('/');
  return {id:'crunchyroll-'+index,kind:'avatar' as const,title,franchise,category:'anime' as const,imageUrl:url,avatarUrl:url,pack:'Jellyfin Avatar Images · Crunchyroll'};
