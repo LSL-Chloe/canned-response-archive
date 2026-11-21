@@ -55,6 +55,7 @@ The command `npm run check` runs all three checks. GitHub Actions uses `npm ci` 
 | Document | What you'll find |
 | --- | --- |
 | [Setup](docs/setup.md) | Environment variables, local development, and deployment |
+| [Staging and safe releases](docs/staging-and-releases.md) | Develop branch, isolated Preview, test database, release gates, and rollback |
 | [How it fits together](docs/architecture.md) | Frontend, Worker, database, and data boundaries |
 | [API reference](docs/backend-api.md) | Endpoints, permissions, and rate limits |
 | [Features and permissions](docs/requirements.md) | What each role can do |
@@ -65,6 +66,10 @@ The command `npm run check` runs all three checks. GitHub Actions uses `npm ci` 
 | [Security](SECURITY.md) | Sensitive data, known limitations, and reporting concerns |
 | [Code review](docs/security-performance-review.md) | Audit findings, changes, and work left before production |
 | [Contributing](CONTRIBUTING.md) | Making and reviewing changes |
+
+## Redesigns without changing the live site
+
+New interface designs and other experiments should start from the permanent [`develop` branch](https://github.com/LSL-Chloe/canned-response-archive/tree/develop). The live site deploys from `main`. The Cloudflare Preview for `develop` needs its **own staging Supabase project and secrets** for login/data testing; it must never reuse the database serving the live site. See [Staging and safe releases](docs/staging-and-releases.md).
 
 ## A note about development
 

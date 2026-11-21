@@ -1,5 +1,5 @@
 # Keep the branch list focused on active work. This job will never remove
-# main, a protected branch, a branch with unmerged changes, or a changed head.
+# main, develop, a protected branch, a branch with unmerged changes, or a changed head.
 name: Prune merged PR branches
 
 on:
@@ -33,7 +33,7 @@ jobs:
           gh api --paginate "repos/$GH_REPO/pulls?state=closed&per_page=100" \
             --jq '.[] | select(.merged_at != null and .head.repo.full_name == .base.repo.full_name) | [.head.ref, .head.sha] | @tsv' |
           while IFS=$'\t' read -r branch merged_sha; do
-            [[ -n "$branch" && -n "$merged_sha" && "$branch" != "main" ]] || continue
+            [[ -n "$branch" && -n "$merged_sha" && "$branch" != "main" && "$branch" != "develop" ]] || continue
             current_sha="$(gh api "repos/$GH_REPO/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null || true)"
             [[ "$current_sha" == "$merged_sha" ]] || continue
             is_protected="$(gh api "repos/$GH_REPO/branches/$branch" --jq '.protected' 2>/dev/null || true)"
