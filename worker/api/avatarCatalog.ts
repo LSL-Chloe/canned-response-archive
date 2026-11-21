@@ -1,5 +1,5 @@
 import type { Env } from '../services/db.ts';
-import { findSafeAnimePortraits, type SafeAnimeAvatar } from './safeAnimePortraits.ts';
+import { findSafeAnimePortraits } from './safeAnimePortraits.ts';
 
 /** Only actual character artwork or in-character photos enter this catalog.
  * Movie/TV cast publicity headshots and posters are deliberately excluded.
