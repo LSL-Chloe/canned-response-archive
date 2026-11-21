@@ -242,7 +242,6 @@ export default function LibraryWorkspace({
       </div>
       {shown.length ? (
         <div className="archive-response-list">
-          <LiquidUnderlay radius={18}/>
           {shown.map(item => {
             const permission = canManageResponse(agent, item);
             return (

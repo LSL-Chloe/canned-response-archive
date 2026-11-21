@@ -29,3 +29,8 @@ Controls use native buttons and inputs where possible. Keyboard shortcut search 
 Before merging interface changes, check both themes at desktop and narrow mobile widths. Test a collapsed sidebar, long responses, Settings with many avatars, OTP forms, and keyboard navigation. Automated builds cannot measure touch latency or verify the optical appearance.
 
 The archive should remain recognizable and fluid even when a browser has to simplify how it renders the decorative effects.
+
+
+## Rendering very long lists
+
+Large lists use a translucent panel and optical edge rather than extending one SVG displacement filter across hundreds of responses. The full-height refraction texture can exceed device GPU limits and cause severe distortion deep into the page. Keep liquid-glass effects on bounded interactive controls and smaller cards; do not add a full-list filter back. Import file pickers should show one styled control while keeping the native file input keyboard accessible. Test the result in both themes and at high zoom.

@@ -31,15 +31,15 @@ The first completed signup claims the sole administrator role. Be sure to regist
 
 ## Keeping the interface current
 
-The client refreshes the response feed every five seconds while visible, and on returning focus. This is near-live polling, not a direct Supabase Realtime subscription. Response arrays are reused when their contents have not changed so polling doesn't force unnecessary UI work.
+The client refreshes the response feed every five seconds while visible, and on returning focus. This is near-live polling, not a direct Supabase Realtime subscription. Silent refreshes skip while a previous request is still in flight, so slow networks do not produce overlapping, perpetually superseded polling requests. Response arrays are reused when their contents have not changed so polling doesn't force unnecessary UI work.
 
 The compact composer groups replies by shortcut. The draft itself is held in React state and is not automatically uploaded as a saved response.
 
 ## Profile pictures
 
-Default character icons are indexed in frontend source files. Anime uses a curated collection; TV and Movies also include character icons from a separate streaming-service index. The browser can display these immediately without asking an API for a list.
+Default character icons are indexed in frontend source files. The Anime catalog contains the complete set of 470 images from a pinned revision of the Crunchyroll folder in `kalibrado/jf-avatars-images`, alongside the original Fusion icons; TV and Movies also include icons from a separate streaming-service index. Search filters by both franchise and character name. The picker paginates its larger gallery in 64-icon increments without querying the Worker for these static records.
 
-Additional character artwork comes from external APIs. Images are subject to per-image quality checks and strict URL host/path restrictions. Existing profile icons may load directly from public CDNs, with a Worker proxy fallback when necessary. Custom user uploads are cropped/compressed in the browser, sent to the authenticated Worker, and stored as public-read JPEG objects in Supabase Storage.
+Additional character artwork comes from external APIs. Images are subject to per-image quality checks and strict URL host/path restrictions. Static curated icon thumbnails prefer jsDelivr's CDN at exact pinned source revisions, with the original GitHub file as fallback; the selected avatar URL persisted to the database remains the original pinned GitHub URL. Other supported portraits may use a restricted Worker image route. The first eight gallery images receive higher loading priority, while lower rows remain lazy. Custom user uploads are cropped/compressed in the browser, sent to the authenticated Worker, and stored as public-read JPEG objects in Supabase Storage.
 
 Third-party icons may be removed or changed by their owners. Their presence on a public CDN is not permission to redistribute them.
 

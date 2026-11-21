@@ -46,3 +46,34 @@ test('large archive lists avoid needless repaints without disabling the glass UI
   assert.match(css, /archive-response-row/);
   assert.match(css, /optical-environment \{ contain: layout paint; \}/);
 });
+
+
+test('tall libraries never render one massive SVG displacement filter', () => {
+  const library = readFileSync(new URL('../src/features/archive/LibraryWorkspace.tsx', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../src/styles/premium.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(library, /className="archive-response-list">\s*<LiquidUnderlay/);
+  assert.match(css, /\.archive-app \.archive-response-list \{\s*background:var\(--liquid-panel-tint\)/);
+  assert.match(library, /<LiquidUnderlay radius=\{18\}\/>/, 'keep bounded form refraction');
+});
+
+test('pinned avatar display URLs use an edge CDN with original-source fallback', () => {
+  const raw = 'https://raw.githubusercontent.com/kalibrado/jf-avatars-images/b483c1a06325509237891f87920453b6ced31d00/images/Crunchyroll/1044-jujutsu-kaisen-satoru-gojo.png';
+  const cdn = alternateAvatarImageSrc(raw);
+  assert.match(cdn, /^https:\/\/cdn\.jsdelivr\.net\/gh\/kalibrado\/jf-avatars-images@b483c1a06325509237891f87920453b6ced31d00\//);
+  assert.equal(alternateAvatarImageSrc(cdn), raw, 'CDN failure must fall back to pinned GitHub source');
+  assert.equal(alternateAvatarImageSrc('https://cdn.jsdelivr.net/gh/other/project@aabbcc/image.png'),
+    'https://cdn.jsdelivr.net/gh/other/project@aabbcc/image.png');
+  const catalog = readFileSync(new URL('../src/features/archive/curatedAvatarCatalog.ts', import.meta.url), 'utf8');
+  assert.match(catalog, /imageUrl,avatarUrl:url/);
+  assert.match(catalog, /const cdnBases/);
+  const picker = readFileSync(new URL('../src/features/archive/AvatarPicker.tsx', import.meta.url), 'utf8');
+  assert.match(picker, /loading=\{priority \? 'eager' : 'lazy'\}/);
+  assert.match(picker, /fetchPriority=\{priority \? 'high' : 'auto'\}/);
+  assert.match(picker, /link\.rel = 'preconnect'/);
+});
+
+test('silent response polling skips slow overlapping requests', () => {
+ const app=readFileSync(new URL('../src/features/archive/ArchiveApp.tsx', import.meta.url), 'utf8');
+ assert.match(app,/if \(silent && refreshInFlight\.current\) return/);
+ assert.match(app,/refreshInFlight\.current = false/);
+});

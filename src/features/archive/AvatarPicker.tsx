@@ -33,10 +33,11 @@ const sources: { id: Source; label: string }[] = [
   { id: 'anime', label: 'Anime' }, { id: 'tv', label: 'TV series' }, { id: 'movie', label: 'Movies' },
 ];
 
-function PortraitImage({ url, label, inspectAnime = false, onReject }: {
+function PortraitImage({ url, label, inspectAnime = false, priority = false, onReject }: {
   url: string;
   label: string;
   inspectAnime?: boolean;
+  priority?: boolean;
   onReject?: (url: string) => void;
 }) {
   const [attempt, setAttempt] = useState(0);
@@ -64,7 +65,8 @@ function PortraitImage({ url, label, inspectAnime = false, onReject }: {
     <img
       src={attempt === 0 ? avatarImageSrc(url, true) : alternateAvatarImageSrc(url)}
       alt=""
-      loading="lazy"
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
       decoding="async"
       className={inspectAnime ? quality === 'pending' || quality === 'reject'
         ? 'archive-anime-portrait-pending'
@@ -106,6 +108,15 @@ async function compressAvatar(file: File): Promise<string> {
 }
 
 export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onError }: Props) {
+  // Warm the CDN connection only when Settings actually mounts this gallery.
+  // Keep image files lazy and defer all but the first visible icons.
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = 'https://cdn.jsdelivr.net';
+    document.head.appendChild(link);
+    return () => { link.remove(); };
+  }, []);
   const [source, setSource] = useState<Source>('anime');
   const [query, setQuery] = useState('');
   const [term, setTerm] = useState('');
@@ -400,7 +411,7 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
               className="archive-avatar-tile" title={'Use '+item.title}
               onClick={()=>item.avatarUrl&&void selectAvatar(item.avatarUrl)}>
               <span className="archive-avatar-tile-image">
-                {item.imageUrl ? <PortraitImage url={item.imageUrl} label={item.title}
+                {item.imageUrl ? <PortraitImage url={item.imageUrl} label={item.title} priority={index < 8}
                   inspectAnime={source==='anime' && !item.pack} onReject={rejectImage}/> :
                   <span className="archive-avatar-image-fallback" aria-hidden="true">◯</span>}
               </span>

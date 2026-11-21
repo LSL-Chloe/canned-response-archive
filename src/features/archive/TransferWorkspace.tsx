@@ -166,10 +166,15 @@ export default function TransferWorkspace({ agent, onClose, reload, onNotice, on
         <div className="archive-transfer-column">
           <h3>Import {scope === 'shared' ? 'shared' : 'private'} responses</h3>
           <p>Select a Canned Response Archive JSON export. The file is checked locally before upload.</p>
-          <label htmlFor="archive-import-file" className="archive-transfer-file-label">Choose JSON file</label>
-          <input id="archive-import-file" type="file" accept=".json,application/json" disabled={busy}
-            onChange={event => void handleFile(event)} />
-          {selectedName && <p className="archive-hint">Selected: {selectedName}</p>}
+          <div className="archive-transfer-file-row">
+            <label htmlFor="archive-import-file" className="archive-transfer-file-label">Choose JSON file</label>
+            <input id="archive-import-file" className="sr-only archive-transfer-input" type="file"
+              accept=".json,application/json" disabled={busy} aria-describedby="archive-import-filename"
+              onChange={event => void handleFile(event)} />
+            <span id="archive-import-filename" className="archive-transfer-file-name" aria-live="polite">
+              {selectedName || 'No file selected'}
+            </span>
+          </div>
           {validationError && <p className="archive-transfer-error" role="alert">{validationError}</p>}
         </div>
       </div>
