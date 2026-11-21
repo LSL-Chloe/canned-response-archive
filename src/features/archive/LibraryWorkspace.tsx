@@ -14,9 +14,9 @@ interface Props {
   agent: Agent | null;
   records: ArchiveResponse[];
   loading: boolean;
-  pendingAction: 'private' | 'create' | 'transfer' | null;
+  pendingAction: 'private' | 'mine' | 'create' | 'transfer' | null;
   onHandled: () => void;
-  onRequireLogin: (reason: 'private' | 'create' | 'transfer') => void;
+  onRequireLogin: (reason: 'private' | 'mine' | 'create' | 'transfer') => void;
   reload: () => Promise<void>;
   onNotice: (message: string) => void;
   onError: (message: string) => void;
@@ -51,6 +51,7 @@ export default function LibraryWorkspace({
   useEffect(() => {
     if (!agent || !pendingAction) return;
     if (pendingAction === 'private') setScope('private');
+    if (pendingAction === 'mine') setScope('mine');
     if (pendingAction === 'create') setCreating(true);
     if (pendingAction === 'transfer') setTransferOpen(true);
     onHandled();
@@ -88,7 +89,7 @@ export default function LibraryWorkspace({
   }
   function chooseScope(next: LibraryScope) {
     if ((next === 'private' || next === 'mine') && !agent) {
-      onRequireLogin('private');
+      onRequireLogin(next === 'mine' ? 'mine' : 'private');
       return;
     }
     setScope(next);

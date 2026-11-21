@@ -28,6 +28,9 @@ test('By me is an owner-filtered view; creator IDs control permissions, not disp
   const lib = read('src/features/archive/LibraryWorkspace.tsx');
   assert.match(lib, /scope === 'mine' \? item\.ownedByMe === true/);
   assert.match(lib, /By me/);
+  assert.match(lib, /onRequireLogin\(next === 'mine' \? 'mine' : 'private'\)/);
+  const app = read('src/features/archive/ArchiveApp.tsx');
+  assert.match(app, /type LoginIntent = 'private' \| 'mine'/);
   assert.match(lib, /canManageResponse\(agent, item\)\.delete/);
 });
 

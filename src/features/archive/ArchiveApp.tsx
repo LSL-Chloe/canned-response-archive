@@ -15,7 +15,7 @@ import type { Theme } from '../../ui/theme';
 import { Glass } from '@samasante/liquid-glass';
 
 type Page = 'search' | 'library' | 'team' | 'settings';
-type LoginIntent = 'private' | 'create' | 'transfer' | null;
+type LoginIntent = 'private' | 'mine' | 'create' | 'transfer' | null;
 
 function LoginDialog({
   intent, onClose, onSuccess,
@@ -58,6 +58,7 @@ function LoginDialog({
         <p>{intent === 'private' ? 'Your private responses are only available after signing in.' :
           intent === 'create' ? 'Sign in to save a new shared or private response.' :
           intent === 'transfer' ? 'Sign in to import or export your private responses. Shared imports and exports are admin-only.' :
+          intent === 'mine' ? 'Sign in to see your own shared and private responses together.' :
             'Sign in to access your own responses and account tools.'}</p>
         <form className="archive-login-form" onSubmit={submit}>
           <label htmlFor="archive-login-name">Agent name</label>
@@ -200,7 +201,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   const responses = useMemo(() => [...shared, ...privateRows], [shared, privateRows]);
   const selectedTab = page === 'search' ? 0 : page === 'library' ? 1 : page === 'team' ? 2 : -1;
 
-  function requireLogin(reason: 'private' | 'create' | 'transfer') {
+  function requireLogin(reason: 'private' | 'mine' | 'create' | 'transfer') {
     setLoginIntent(reason);
     setPendingAction(reason);
     setLoginOpen(true);
