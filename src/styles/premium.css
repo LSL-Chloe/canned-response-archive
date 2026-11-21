@@ -1747,7 +1747,7 @@
 .archive-app .archive-edit-label {font-size:12px;font-weight:750;line-height:1.35;color:var(--a-text)}
 
 
-/* STAGING GLASS POLISH: independent hover previews, soft shell edges, aligned rail icons. */
+/* STAGING GLASS POLISH: seamless shell and aligned rail icons. */
 /* The rail and top bar form one continuous shell. Rounding their shared
    corner made an accidental notch in the junction shown in staging. */
 .archive-app{--shell-header-height:62px}
@@ -1770,52 +1770,4 @@
 .archive-app[data-theme].is-sidebar-collapsed .archive-nav .archive-nav-icon{margin-inline:auto}
 .archive-app[data-theme].is-sidebar-collapsed .archive-nav .archive-nav-label{
   flex:0 0 0;max-width:0;min-width:0;
-}
-
-/* Other segmented controls retain the lighter hover/focus preview.
-   Sidebar navigation intentionally uses only its selected glass pill. */
-.archive-app .archive-tabs::before,
-.archive-app .archive-visibility-options::before,
-.archive-app .archive-transfer-scope::before,
-.auth-experience .auth-mode-tabs::before{
-  content:"";position:absolute;z-index:1;pointer-events:none;
-  background:color-mix(in srgb,var(--liquid-selection-fill) 58%,transparent);
-  border:1px solid color-mix(in srgb,var(--glass-line) 55%,transparent);
-  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--glass-highlight) 58%,transparent),
-    0 3px 10px rgba(0,0,0,.07);
-  opacity:var(--hover-visible,0);
-  transition:transform .27s cubic-bezier(.16,1,.3,1),opacity .13s ease;
-}
-.archive-app .archive-tabs::before{
-  top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/4);border-radius:999px;
-  transform:translate3d(calc(var(--hover-slot,0) * 100%),0,0);
-}
-.archive-app .archive-visibility-options::before,
-.archive-app .archive-transfer-scope::before{
-  top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/2);border-radius:18px;
-  transform:translate3d(calc(var(--hover-slot,0) * 100%),0,0);
-}
-.archive-app .archive-transfer-scope:has(>button:only-of-type)::before{width:calc(100% - 8px)}
-.auth-experience .auth-mode-tabs::before{
-  top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/2);border-radius:24px;
-  transform:translate3d(calc(var(--hover-slot,0) * 100%),0,0);
-}
-/* Explicit slots keep movement continuous as the pointer changes options;
-   an active button never receives a redundant hover lens. */
-.archive-app .archive-tabs:has(>button:nth-of-type(1):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:0;--hover-visible:1}
-.archive-app .archive-tabs:has(>button:nth-of-type(2):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:1;--hover-visible:1}
-.archive-app .archive-tabs:has(>button:nth-of-type(3):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:2;--hover-visible:1}
-.archive-app .archive-tabs:has(>button:nth-of-type(4):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:3;--hover-visible:1}
-.archive-app .archive-visibility-options:has(>button:nth-of-type(1):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:0;--hover-visible:1}
-.archive-app .archive-visibility-options:has(>button:nth-of-type(2):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:1;--hover-visible:1}
-.archive-app .archive-transfer-scope:has(>button:nth-of-type(1):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:0;--hover-visible:1}
-.archive-app .archive-transfer-scope:has(>button:nth-of-type(2):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:1;--hover-visible:1}
-.auth-experience .auth-mode-tabs:has(>button:nth-of-type(1):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:0;--hover-visible:1}
-.auth-experience .auth-mode-tabs:has(>button:nth-of-type(2):is(:hover,:focus-visible):not(.active):not(:disabled)){--hover-slot:1;--hover-visible:1}
-
-/* Preserve visible keyboard focus and avoid creating hover animation on touch. */
-@media(prefers-reduced-motion:reduce){
-  .archive-app .archive-tabs::before,
-  .archive-app .archive-visibility-options::before,.archive-app .archive-transfer-scope::before,
-  .auth-experience .auth-mode-tabs::before{transition:none!important}
 }

@@ -50,36 +50,34 @@ test('background ripples do not start accidental text selection', () => {
   assert.doesNotMatch(layer, /user-select:none!important/, 'Do not disable text selection globally');
 });
 
-test('single selected sidebar lens and lightweight hover previews elsewhere', () => {
+test('only active selection lenses remain across navigation and option groups', () => {
   const css = read('src/styles/premium.css');
   const nav = read('src/features/archive/ArchiveApp.tsx');
   const lib = read('src/features/archive/LibraryWorkspace.tsx');
   const auth = read('src/features/auth/AuthPage.tsx');
   const transfer = read('src/features/archive/TransferWorkspace.tsx');
-  for (const [group, last] of [
-    ['archive-tabs', 4], ['archive-visibility-options', 2],
-    ['archive-transfer-scope', 2],
-    ['auth-mode-tabs', 2],
+
+  // Do not accidentally reintroduce the mouse-following second glass pill.
+  assert.doesNotMatch(css, /--hover-slot|--hover-visible/);
+  for (const group of [
+    'archive-nav', 'archive-tabs', 'archive-visibility-options',
+    'archive-transfer-scope', 'auth-mode-tabs',
   ]) {
-    assert.ok(css.includes(group + ':has(>button:nth-of-type(' + last + ')'),
-      'Hover preview needs a slot for ' + group);
+    assert.ok(!css.includes(group + ':has(>button:nth-of-type(1):is(:hover,:focus-visible)'),
+      'No duplicate pointer preview on ' + group);
+    assert.ok(!css.includes(group + ':has(>button:nth-of-type(2):is(:hover,:focus-visible)'),
+      'No duplicate keyboard/pointer preview on ' + group);
+    assert.ok(!css.includes(group + '::before'),
+      'No ghost overlay pseudo-element on ' + group);
   }
-  assert.match(css, /:is\(:hover,:focus-visible\):not\(\.active\):not\(:disabled\)/);
-  assert.match(css, /--hover-visible,0/, 'No ghost preview without pointer or keyboard hover');
-  assert.match(css, /--hover-slot,0/, 'Preview should slide between options');
-  // The shared chrome cannot form an isolated rounded notch at the junction.
+
+  // Preserve the selected-state lenses and the continuous header/sidebar seam.
   assert.match(css, /\.archive-app \.archive-sidebar,\.archive-app \.archive-topbar\{border-radius:0\}/);
-  assert.match(css, /--shell-header-height:62px/, 'Desktop rail divider aligns with the header');
-  assert.match(css, /--shell-header-height:59px/, 'Phone rail divider aligns with the smaller header');
-  assert.match(css, /\.archive-app \.archive-sidebar::before\{/, 'Rail continues the topbar divider');
-  assert.match(css, /top:calc\(var\(--shell-header-height\) - 1px\)/);
-  assert.doesNotMatch(css, /\.archive-app \.archive-nav::before/, 'No second visible pill in the sidebar');
-  assert.doesNotMatch(css, /\.archive-app \.archive-nav:has\(>button:nth-of-type/, 'No nav ghost hover lens');
-  assert.match(css, /\.archive-app \.archive-nav button:hover\{color:var\(--a-text\)\}/,
-    'Navigation hover still provides subtle text feedback');
+  assert.match(css, /--shell-header-height:62px/);
+  assert.match(css, /--shell-header-height:59px/);
+  assert.match(css, /\.archive-app \.archive-sidebar::before\{/);
   assert.match(css, /is-sidebar-collapsed \.archive-nav button\{[\s\S]*?justify-content:center/);
-  assert.match(css, /prefers-reduced-motion:reduce/);
-  // Preview is CSS-only; the existing click-selected glass lens stays in place.
+  assert.match(css, /\.archive-app \.archive-nav button:hover\{color:var\(--a-text\)\}/);
   assert.match(nav, /<Glass className="archive-nav-selection"/);
   assert.match(lib, /<Glass className="archive-tabs-lens"/);
   assert.match(lib, /<Glass className="archive-visibility-lens"/);
