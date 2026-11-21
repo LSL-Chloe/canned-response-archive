@@ -22,7 +22,12 @@ function sourceUrl(value: unknown): string | null {
     url.pathname.startsWith('/eueueue292/Fusion-Profile-Avatars/d45287304717a441095003633a6643d6bae66289/') ||
     url.pathname.startsWith('/kalibrado/jf-avatars-images/b483c1a06325509237891f87920453b6ced31d00/')
   ) && /\.(png|jpe?g|webp)$/i.test(url.pathname);
-  if (url.protocol !== 'https:' || !(allowed || rawRepo) || url.username || url.password || url.port) {
+  // Netflix's public avatar CDN has dynamic shard hostnames. Restrict this
+  // exception to the exact PNG-avatar path and its three-digit revision key.
+  const netflixIcon = /^occ-0-[0-9]+-[0-9]+\.1\.nflxso\.net$/i.test(url.hostname) &&
+    /^\/dnm\/api\/v6\/vN7bi_My87NPKvsBoib006Llxzg\/[A-Za-z0-9_-]{90,}\.png$/.test(url.pathname) &&
+    url.searchParams.size === 1 && /^[a-f0-9]{3}$/i.test(url.searchParams.get('r') || '');
+  if (url.protocol !== 'https:' || !(allowed || rawRepo || netflixIcon) || url.username || url.password || url.port) {
     fail(400, 'invalid_avatar', 'This image source is not supported');
   }
   return url.toString();

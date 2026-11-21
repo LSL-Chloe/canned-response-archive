@@ -4,6 +4,7 @@ import LiquidButton from '../../ui/LiquidButton';
 import { avatarImageSrc, alternateAvatarImageSrc } from './avatarImages';
 import { assessAnimePortraitImage, type AnimePortraitQuality } from './avatarQuality';
 import { featuredAvatars, searchCuratedAvatars, curatedAvatarsForTitle, curatedAvatars, alternateCuratedAvatars } from './curatedAvatarCatalog';
+import { streamingAvatars, streamingPreview, streamingCategory, searchStreamingAvatars, streamingAvatarsForTitle, otherStreamingLooks } from './streamingAvatarCatalog';
 
 type Source = 'anime' | 'tv' | 'movie';
 type Entry = {
@@ -111,6 +112,8 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   const [items, setItems] = useState<Entry[]>([]);
   const [remoteKey, setRemoteKey] = useState('');
   const [showAdditional, setShowAdditional] = useState(false);
+  const [showFullCatalog, setShowFullCatalog] = useState(false);
+  const [catalogLimit, setCatalogLimit] = useState(64);
   // Block only the individual image URLs that fail the pixel-based quality test.
   // This is not a provider blacklist: other portraits from the same API remain.
   const [rejectedImages, setRejectedImages] = useState<Set<string>>(() => new Set());
@@ -172,7 +175,8 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   async function openTitle(title: Entry, nextPage=1) {
     // Prefer the actual square icon pack for any known franchise. Going into
     // "One Piece" must NOT replace its curated icons with pale Kitsu line art.
-    if (nextPage===1 && curatedAvatarsForTitle(source,title.title).length) {
+    if (nextPage===1 && (curatedAvatarsForTitle(source,title.title).length ||
+        streamingAvatarsForTitle(source,title.title).length)) {
       setSelectedTitle(title);
       setItems([]);
       setHasMore(false);
@@ -212,12 +216,18 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   }
   async function showMore(item:Entry) {
     const curated = curatedAvatars.find(avatar => avatar.id === item.id);
-    if (!curated && !item.wiki && !item.malId && !item.booruTag) return;
+    const streaming = streamingAvatars.find(avatar => avatar.id === item.id);
+    if (!curated && !streaming && !item.wiki && !item.malId && !item.booruTag) return;
     setMoreFrom(item);
     setMoreItems([]);
     setMoreError('');
     if (curated) {
       setMoreItems(alternateCuratedAvatars(curated).filter(avatar => avatar.id !== item.id));
+      setMoreBusy(false);
+      return;
+    }
+    if (streaming) {
+      setMoreItems(otherStreamingLooks(streaming).filter(avatar => avatar.id !== item.id));
       setMoreBusy(false);
       return;
     }
@@ -269,6 +279,7 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   function resetNavigation() {
     setSelectedTitle(null);setPage(1);setHasMore(false);
     setMoreFrom(null);setMoreItems([]);setSearchError('');setShowAdditional(false);
+    setShowFullCatalog(false);setCatalogLimit(64);
   }
   function changeSource(next:Source) {
     if (next===source) return;
@@ -277,9 +288,17 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
     resetNavigation();
   }
   const queryText=query.trim();
-  const localMatches=queryText.length>=2
+  const streamed=streamingCategory(source);
+  const curatedMatches=queryText.length>=2
     ? searchCuratedAvatars(source,queryText)
     : featuredAvatars[source];
+  const streamMatches=queryText.length>=2
+    ? searchStreamingAvatars(source,queryText,200)
+    : showFullCatalog ? streamed.slice(0,catalogLimit) : streamingPreview[source];
+  // The original 15 chosen PFPs always appear first. Show more character icons
+  // immediately below them, without an API request or choosing a title.
+  const localMatches=[...curatedMatches,...streamMatches].filter((item,index,array)=>
+    array.findIndex(candidate=>candidate.imageUrl===item.imageUrl)===index);
   const apiMatches=remoteKey===source+':'+queryText.toLowerCase() && queryText.length>=2
     ? items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl))
     : [];
@@ -296,10 +315,15 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   const optionalAdditions=extraFromApi.filter(item=>item.provider!=='safebooru');
   function hasMoreLooks(item:Entry):boolean {
     const local=curatedAvatars.find(icon=>icon.id===item.id);
+    const streaming=streamingAvatars.find(icon=>icon.id===item.id);
     return !!(item.wiki || item.malId || item.booruTag ||
-      (local&&alternateCuratedAvatars(local).length>1));
+      (local&&alternateCuratedAvatars(local).length>1) ||
+      (streaming&&otherStreamingLooks(streaming).length>1));
   }
-  const curatedSeries=selectedTitle ? curatedAvatarsForTitle(source,selectedTitle.title) : [];
+  const curatedSeries=selectedTitle
+    ? [...curatedAvatarsForTitle(source,selectedTitle.title),
+       ...streamingAvatarsForTitle(source,selectedTitle.title)]
+    : [];
   const candidatePortraits=selectedTitle
     ? curatedSeries.length ? curatedSeries : items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl))
     : [...localMatches,...safeAdditions,
@@ -376,6 +400,17 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
           </div>
         ))}
       </div>
+      {showFeatured && streamed.length > streamingPreview[source].length &&
+        <button type="button" className="archive-avatar-expand-results"
+          onClick={() => {
+            if (!showFullCatalog) {setShowFullCatalog(true);setCatalogLimit(64);}
+            else if (catalogLimit < streamed.length) setCatalogLimit(value=>value+64);
+            else {setShowFullCatalog(false);setCatalogLimit(64);}
+          }}>
+          {showFullCatalog
+            ? catalogLimit<streamed.length ? 'Show more character icons' : 'Back to featured icons'
+            : 'Browse ' + streamed.length + ' additional character icons'}
+        </button>}
       {!showFeatured && loading && <p className="archive-hint" role="status">Looking for more portraits…</p>}
       {hiddenAdditional>0 &&
         <button type="button" className="archive-avatar-expand-results"
