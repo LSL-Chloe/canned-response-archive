@@ -288,17 +288,29 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
     resetNavigation();
   }
   const queryText=query.trim();
-  const streamed=streamingCategory(source);
+  // Anime keeps ONLY the original, curated avatar pack. The newer Netflix-style
+  // anime additions were unrelated to the requested characters. Reveal the
+  // older anime icons in batches instead of sourcing the new streaming pack.
+  const animeExtras=source==='anime'
+    ? curatedAvatars.filter(icon=>icon.category==='anime' &&
+        !featuredAvatars.anime.some(featured=>featured.imageUrl===icon.imageUrl))
+    : [];
+  const streamed=source==='anime' ? [] : streamingCategory(source);
   const curatedMatches=queryText.length>=2
     ? searchCuratedAvatars(source,queryText)
-    : featuredAvatars[source];
-  const streamMatches=queryText.length>=2
-    ? searchStreamingAvatars(source,queryText,200)
-    : showFullCatalog ? streamed.slice(0,catalogLimit) : streamingPreview[source];
-  // The original 15 chosen PFPs always appear first. Show more character icons
-  // immediately below them, without an API request or choosing a title.
+    : source==='anime' && showFullCatalog
+      ? [...featuredAvatars.anime,...animeExtras.slice(0,catalogLimit)]
+      : featuredAvatars[source];
+  const streamMatches=source==='anime' ? []
+    : queryText.length>=2
+      ? searchStreamingAvatars(source,queryText,200)
+      : showFullCatalog ? streamed.slice(0,catalogLimit) : streamingPreview[source];
+  // Custom PFP + always leads; original 15 featured icons follow, then only
+  // the selected category's additional pictures. Never mix in Netflix anime.
   const localMatches=[...curatedMatches,...streamMatches].filter((item,index,array)=>
     array.findIndex(candidate=>candidate.imageUrl===item.imageUrl)===index);
+  const browseTotal=source==='anime' ? animeExtras.length : streamed.length;
+  const browsePreview=source==='anime' ? 0 : streamingPreview[source].length;
   const apiMatches=remoteKey===source+':'+queryText.toLowerCase() && queryText.length>=2
     ? items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl))
     : [];
@@ -322,7 +334,7 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   }
   const curatedSeries=selectedTitle
     ? [...curatedAvatarsForTitle(source,selectedTitle.title),
-       ...streamingAvatarsForTitle(source,selectedTitle.title)]
+       ...(source==='anime' ? [] : streamingAvatarsForTitle(source,selectedTitle.title))]
     : [];
   const candidatePortraits=selectedTitle
     ? curatedSeries.length ? curatedSeries : items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl))
@@ -400,16 +412,16 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
           </div>
         ))}
       </div>
-      {showFeatured && streamed.length > streamingPreview[source].length &&
+      {showFeatured && browseTotal > browsePreview &&
         <button type="button" className="archive-avatar-expand-results"
           onClick={() => {
             if (!showFullCatalog) {setShowFullCatalog(true);setCatalogLimit(64);}
-            else if (catalogLimit < streamed.length) setCatalogLimit(value=>value+64);
+            else if (catalogLimit < browseTotal) setCatalogLimit(value=>value+64);
             else {setShowFullCatalog(false);setCatalogLimit(64);}
           }}>
           {showFullCatalog
-            ? catalogLimit<streamed.length ? 'Show more character icons' : 'Back to featured icons'
-            : 'Browse ' + streamed.length + ' additional character icons'}
+            ? catalogLimit < browseTotal ? 'Show more character icons' : 'Back to featured icons'
+            : 'Browse ' + browseTotal + ' additional character icons'}
         </button>}
       {!showFeatured && loading && <p className="archive-hint" role="status">Looking for more portraits…</p>}
       {hiddenAdditional>0 &&

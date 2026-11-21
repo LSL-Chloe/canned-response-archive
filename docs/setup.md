@@ -142,24 +142,30 @@ before making a public redistribution or commercial avatar service.
 
 ## Expanded profile-icon packs (2026-11-21)
 
-The icon picker now indexes 928 **named character profile icons** from
+The icon picker now indexes **857 named TV and movie character profile icons** from
 `Angel2mp3/Bring-Back-Netflix-Icons` (GitHub source script blob
 `f5649af92b6b090a505ca712254821f2d4c73ea7`). Each record includes
 the specific character name, its film or series, and a publicly reachable
-Netflix CDN profile-icon URL. The index is partitioned into 71 anime,
-741 TV-series, and 116 movie icons; celebrity, generic and miscellaneous
-non-character categories were excluded. Sample images were checked against
-Netflix's image CDN (KPop Demon Hunters, Rebel Moon, The Sea Beast, Vivo,
-Stranger Things, Castlevania, Arcane, The Witcher) before adding the index.
+Netflix CDN profile-icon URL. The index is partitioned into 741 TV-series
+and 116 movie icons; celebrity, generic, non-character and all 71
+Netflix-sourced *anime* icons were excluded. The anime Netflix set was removed
+after user testing because its icons did not fit the anime library's style.
+Sample images were checked against Netflix's image CDN (KPop Demon Hunters,
+Rebel Moon, The Sea Beast, Vivo, Stranger Things, Arcane, The Witcher).
 
 The existing custom-upload (+) and first 15 default curated icons remain
-unchanged. Each tab now offers sixteen extra character pictures instantly,
-followed by a **Browse more character icons** control that reveals its full
-indexed catalog in batches of 64. Search locally merges both named icon packs,
-prioritizes curated icons, then may add individually quality-checked external
-image search results. Clicking a known title shows its indexed character icons
-immediately without relying on a remote cast/headshot API. No poster artwork,
-actor publicity headshots, or site-wide disclaimer has been introduced.
+unchanged. The TV and Movies tabs offer sixteen extra streaming character icons
+immediately, followed by a **Browse more character icons** control that reveals
+their full indexed catalog in batches of 64. **Anime shows its original 15
+featured icons first, without any new Netflix anime additions.** Its own
+**Browse more character icons** button reveals the rest of the original curated
+anime collection in batches of 64, not the unrelated streaming pack.
+Search locally merges curated + streaming packs only for TV and Movies. Anime
+search and anime title browsing use their original curated entries plus
+previously supported live character-artwork sources; the image-quality checks
+remain active. Clicking a known TV/movie title shows its indexed character icons
+without requiring a cast/headshot API. No movie posters, unrelated actor
+headshots or site-wide disclaimer have been introduced.
 
 Netflix/CDN icons are owned by their original rights holders and can disappear
 or change as remote assets. Their availability from a public CDN is **not**
