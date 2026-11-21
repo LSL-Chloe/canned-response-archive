@@ -1,0 +1,171 @@
+/* Liquid Glass for Response Archive — drop-in. Add before </body>:  <script defer src="/liquid-glass.js"></script>
+   Layout/DOM untouched. Visual layer only. */
+(()=>{
+if(window.__LG)return;window.__LG=1;
+const D=document,R=D.documentElement,M=q=>matchMedia(q).matches;
+const mem=navigator.deviceMemory||4,cores=navigator.hardwareConcurrency||4;
+let tier=mem<=2||cores<=4?0:mem<=4||cores<=6?1:2;           // 0 low-end · 1 mid · 2 high
+const calm=M('(prefers-reduced-motion:reduce)');
+if(M('(prefers-reduced-transparency:reduce)')||navigator.connection?.saveData)tier=0;
+const refract=CSS.supports('backdrop-filter','url(#a)');      // true lensing needs Chromium
+R.dataset.lg=tier;
+
+/* ───────── MATERIAL (CSS) ───────── */
+const css=`
+:root{--spring:linear(0,.18,.55,.86,1.04,1.1,1.08,1.04,1.01,.995,.998,1);--la:315deg}
+:is(.archive-app,.auth-experience)[data-theme=light]{--lg-tint:rgba(255,255,255,.14);--lg-r1:rgba(255,255,255,.98);--lg-r2:rgba(255,255,255,.38);--lg-sh:rgba(28,40,58,.22);--lg-drop:rgba(40,56,80,.2);--lg-sat:1.55;--lg-br:1.05}
+:is(.archive-app,.auth-experience)[data-theme=dark]{--lg-tint:rgba(255,255,255,.05);--lg-r1:rgba(255,255,255,.66);--lg-r2:rgba(255,255,255,.13);--lg-sh:rgba(0,0,0,.55);--lg-drop:rgba(0,0,0,.45);--lg-sat:1.4;--lg-br:1.22}
+:where([data-lgx]){position:relative}
+[data-liquid-glass],[data-lgx]{background:var(--lg-tint)!important;border-color:transparent!important;
+ -webkit-backdrop-filter:var(--lg-bf,saturate(var(--lg-sat)) brightness(var(--lg-br)))!important;
+ backdrop-filter:var(--lg-bf,saturate(var(--lg-sat)) brightness(var(--lg-br)))!important;
+ box-shadow:inset 0 -9px 16px -11px var(--lg-sh),inset 0 1px 0 var(--lg-r2),0 10px 26px -10px var(--lg-drop)!important}
+[data-liquid-glass]::after,[data-lgx]::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1.25px;z-index:3;
+ background:conic-gradient(from var(--la),var(--lg-r1),transparent 24%,var(--lg-r2) 50%,transparent 74%,var(--lg-r1));
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+[data-liquid-glass]>[data-lg-layer]:not(svg),.liquid-underlay-fill{display:none!important}
+[data-lgx=flat]::after{display:none}
+.archive-sidebar[data-lgx]{box-shadow:inset -1px 0 0 var(--lg-r2)!important}
+.archive-topbar[data-lgx]{box-shadow:inset 0 -1px 0 var(--lg-r2)!important}
+.archive-composer,.archive-card,.archive-response-list,.auth-card{border-color:transparent!important;box-shadow:0 16px 36px -14px var(--lg-drop)!important}
+.archive-topbar::before{content:"";position:absolute;inset:0 0 -26px;z-index:-1;pointer-events:none;background:linear-gradient(var(--a-bg),transparent);opacity:0}
+@supports(animation-timeline:scroll()){.archive-topbar::before{animation:lgE linear both;animation-timeline:scroll(root);animation-range:0 90px}}
+@keyframes lgE{to{opacity:.8}}
+/* fluid spring motion (compositor-only transforms) */
+.archive-nav-selection,.archive-tabs-lens,.auth-tabs-lens,.archive-visibility-lens{transition:transform .62s var(--spring),opacity .15s!important}
+.liquid-theme-switch .liquid-switch-thumb{transition:transform .58s var(--spring),scale .3s var(--spring)!important}
+.liquid-theme-switch:active .liquid-switch-thumb{scale:1.3 1.14!important}
+.liquid-action,.archive-button,.archive-sign-in-link{transition:transform .4s var(--spring)!important}
+.liquid-action:active,.archive-button:active,.archive-sign-in-link:active{transform:scale(.95)!important}
+.archive-sidebar{transition-timing-function:cubic-bezier(.16,1,.3,1)!important;contain:layout style}
+.archive-suggestion-list,.archive-avatar-gallery{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.lg-gl>.optical-weave,.lg-gl>.optical-caustic{display:none}
+:is(.archive-app,.auth-experience)[data-theme=light]{--lg-trk:rgba(255,255,255,.34);--lg-ts:rgba(40,55,75,.2)}
+:is(.archive-app,.auth-experience)[data-theme=dark]{--lg-trk:rgba(0,0,0,.28);--lg-ts:rgba(0,0,0,.55)}
+/* bars/containers must NOT own a backdrop-filter, or the lenses inside them can't see the background */
+[data-lgx=flat],[data-lgx=nb]{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+[data-lgx=flat]{background:color-mix(in srgb,var(--a-surface) 28%,transparent)!important}
+[data-lgx=nb]{background:color-mix(in srgb,var(--a-surface) 55%,transparent)!important}
+.archive-nav[data-lgx],.archive-tabs[data-lgx],.archive-visibility-options[data-lgx],.archive-transfer-scope[data-lgx]{background:var(--lg-trk)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:inset 0 2px 7px var(--lg-ts),inset 0 -1px 0 var(--lg-r2)!important}
+.archive-sidebar{border-right-color:transparent!important}
+.archive-app button,.liquid-action,.archive-sign-in-link{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.liquid-action:hover,.archive-button:hover,.archive-sign-in-link:hover{transform:translateY(-1px) scale(1.03)!important}
+html[data-lg="0"] [data-liquid-glass]::after,html[data-lg="0"] [data-lgx]::after{background:var(--lg-r2)}
+`;
+const st=D.createElement('style');st.textContent=css;D.head.append(st);
+
+/* ───────── REFRACTION MAPS (SVG displacement, per element, cached) ─────────
+   Convex-squircle bezel → outward-pointing vectors, strongest at the rim, 0 in the centre. */
+const NS='http://www.w3.org/2000/svg',svg=D.createElementNS(NS,'svg');
+svg.setAttribute('width',0);svg.setAttribute('height',0);svg.style.cssText='position:absolute;pointer-events:none';
+const defs=D.createElementNS(NS,'defs');svg.append(defs);D.body.append(svg);
+const maps=new Map();let uid=0;
+function mapURL(w,h,r,b){
+ const k=[w,h,r,b].join(),hit=maps.get(k);if(hit)return hit;
+ const s=Math.max(1,Math.sqrt(w*h/30000)),cw=Math.max(2,Math.round(w/s)),ch=Math.max(2,Math.round(h/s));
+ const c=D.createElement('canvas');c.width=cw;c.height=ch;const x=c.getContext('2d'),im=x.createImageData(cw,ch),a=im.data;
+ const hw=cw/2,hh=ch/2,rr=Math.min(r/s,hw,hh),bb=Math.max(1,Math.min(b/s,hw,hh));
+ for(let j=0;j<ch;j++)for(let i=0;i<cw;i++){
+  const px=i+.5-hw,py=j+.5-hh,qx=Math.abs(px)-(hw-rr),qy=Math.abs(py)-(hh-rr),ox=Math.max(qx,0),oy=Math.max(qy,0),ol=Math.hypot(ox,oy);
+  const depth=-(ol+Math.min(Math.max(qx,qy),0)-rr),sx=px<0?-1:1,sy=py<0?-1:1;
+  let nx,ny;if(ol>0){nx=sx*ox/ol;ny=sy*oy/ol}else if(qx>qy){nx=sx;ny=0}else{nx=0;ny=sy}
+  const t=Math.min(1,Math.max(0,depth/bb)),m=t>=1?0:(1-t)*(1-t),o=(j*cw+i)*4;
+  a[o]=128+127*nx*m;a[o+1]=128+127*ny*m;a[o+2]=128;a[o+3]=255;
+ }
+ x.putImageData(im,0,0);const u=c.toDataURL();
+ if(maps.size>60)maps.delete(maps.keys().next().value);maps.set(k,u);return u;
+}
+function apply(el){
+ if(!refract||tier<1||!el.isConnected)return;
+ const w=el.offsetWidth,h=el.offsetHeight;if(!w||!h)return;
+ const lens=Math.min(w,h)<=80;
+ if(!lens&&tier<2){el.style.removeProperty('--lg-bf');return}
+ const r=Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius)||14,w/2,h/2);
+ const id=el._lgid||(el._lgid='lgf'+ ++uid);let f=D.getElementById(id);
+ if(!f){f=D.createElementNS(NS,'filter');f.id=id;f.setAttribute('color-interpolation-filters','sRGB');f.setAttribute('filterUnits','userSpaceOnUse');f.setAttribute('primitiveUnits','userSpaceOnUse');
+  f.innerHTML='<feImage preserveAspectRatio="none" result="m"/><feDisplacementMap in="SourceGraphic" in2="m" xChannelSelector="R" yChannelSelector="G"/>';defs.append(f)}
+ f.setAttribute('x',0);f.setAttribute('y',0);f.setAttribute('width',w);f.setAttribute('height',h);
+ const im=f.firstChild;im.setAttribute('x',0);im.setAttribute('y',0);im.setAttribute('width',w);im.setAttribute('height',h);
+ im.setAttribute('href',mapURL(w,h,r,lens?Math.min(18,h*.45):24));
+ f.lastChild.setAttribute('scale',lens?Math.min(42,h*.85):15);
+ el.style.setProperty('--lg-bf',`url(#${id}) saturate(var(--lg-sat)) brightness(var(--lg-br))`);
+}
+const ro=new ResizeObserver(es=>es.forEach(e=>{const t=e.target;clearTimeout(t._lt);t._lt=setTimeout(()=>apply(t),t._lg2?140:0);t._lg2=1}));
+
+/* ───────── WIRING (React-safe: attributes only, re-scanned on DOM change) ───────── */
+const GROUPS=[
+ ['.archive-sidebar,.archive-topbar','flat'],
+ ['.archive-nav,.archive-tabs,.archive-visibility-options,.archive-transfer-scope','css'],
+ ['.archive-dialog,.archive-selection-toolbar,.archive-team-table-wrap,.archive-suggestion-popover','nb'],
+ ['.archive-sign-in-link,.archive-account-button,.archive-button:not(.liquid-action-button)','css'],
+ ['.archive-account-menu,.archive-message,.archive-tabs-lens,.auth-tabs-lens,.archive-visibility-lens,.otp-core-lens','']];
+let G=null,q=0,bT=0;
+const busy=(ms=480)=>{R.dataset.busy='';clearTimeout(bT);bT=setTimeout(()=>delete R.dataset.busy,ms)};
+addEventListener('scroll',()=>busy(160),{passive:true,capture:true});
+function scan(){
+ GROUPS.forEach(([s,v])=>D.querySelectorAll(s).forEach(e=>e.hasAttribute('data-lgx')||e.setAttribute('data-lgx',v)));
+ D.querySelectorAll('[data-liquid-glass],[data-lgx=""]').forEach(e=>{if(!e._lg){e._lg=1;ro.observe(e)}});
+ const app=D.querySelector('.archive-app');if(app&&!app._lgo){app._lgo=1;new MutationObserver(()=>busy()).observe(app,{attributes:true,attributeFilter:['class']})}
+ const env=D.querySelector('.optical-environment');
+ if(env){if(!G&&!calm)G=bg(env);else if(G&&!G.isConnected){env.prepend(G);env.classList.add('lg-gl')}}
+}
+new MutationObserver(()=>{cancelAnimationFrame(q);q=requestAnimationFrame(scan)}).observe(D.body,{childList:true,subtree:true});
+
+/* ───────── REACTIVE 3D BACKGROUND (WebGL2, one fullscreen triangle) ───────── */
+const VS='#version 300 es\nvoid main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);gl_Position=vec4(p*2.-1.,0,1);}';
+const FS=`#version 300 es
+precision highp float;uniform vec2 uR,uM;uniform float uT,uD;uniform vec4 uK[6];out vec4 o;
+void main(){
+ vec2 uv=(gl_FragCoord.xy-.5*uR)/uR.y;
+ float rip=0.;vec2 wv=vec2(0.);
+ for(int i=0;i<6;i++){vec4 k=uK[i];float age=uT-k.z;if(k.w>0.&&age<3.5){vec2 d=uv-k.xy;float r=length(d),e=(r-age*.55)*7.,w=exp(-age*1.3)*exp(-e*e);rip+=w;wv+=normalize(d+1e-4)*w*.05;}}
+ vec2 p=uv+wv;float f=0.;vec2 gr=vec2(0.);
+ for(int i=0;i<6;i++){
+  float fi=float(i),ph=fi*1.7;
+  vec2 c=vec2(sin(uT*.17+ph*1.3)*.75+cos(uT*.11+ph)*.2,cos(uT*.13+ph*.8)*.42+sin(uT*.19+ph)*.15);
+  c+=uM*(.08+fi*.05);if(i==0)c=mix(c,uM,.65);
+  float r=.2+.05*sin(uT*.4+ph);vec2 d=p-c;float q=dot(d,d)+.004,s=r*r/q;f+=s;gr+=-2.*s*d/q;
+ }
+ float h=smoothstep(.7,1.9,f);vec3 n=normalize(vec3(-gr*.045,1.));
+ vec3 L=normalize(vec3(uM.x-.4,uM.y+.6,.9));
+ float dif=clamp(dot(n,L),0.,1.),spc=pow(clamp(dot(reflect(-L,n),vec3(0,0,1)),0.,1.),24.),rim=pow(1.-n.z,2.)*h;
+ vec3 bg=mix(vec3(.902,.91,.922),vec3(.047,.05,.067),uD);
+ vec3 t1=mix(vec3(.70,.76,.95),vec3(.20,.25,.44),uD),t2=mix(vec3(.95,.80,.86),vec3(.31,.19,.31),uD);
+ vec3 tc=mix(t1,t2,smoothstep(-.6,.6,uv.x+sin(uT*.2)*.3));
+ float cal=mix(.4,1.,smoothstep(.1,.8,abs(uv.x)));
+ vec3 dl=(tc-bg)*h*(mix(.4,.27,uD)+mix(.36,.28,uD)*dif)+mix(vec3(.09),vec3(.07,.08,.11),uD)*(spc*h+rim*.6)-(1.-uD)*rim*.04;
+ vec3 col=bg+dl*cal+mix(vec3(.05),vec3(.05,.06,.09),uD)*rip;
+ col+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-.5)/255.;
+ o=vec4(col,1.);}`;
+function bg(env){
+ const c=D.createElement('canvas');c.style.cssText='position:absolute;inset:0;width:100%;height:100%';
+ const gl=c.getContext('webgl2',{antialias:false,alpha:false,powerPreference:'low-power',desynchronized:true});if(!gl)return null;
+ const sh=(t,s)=>{const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);return x},p=gl.createProgram();
+ gl.attachShader(p,sh(gl.VERTEX_SHADER,VS));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(p);
+ if(!gl.getProgramParameter(p,gl.LINK_STATUS))return null;gl.useProgram(p);
+ const u=n=>gl.getUniformLocation(p,n),uR=u('uR'),uM=u('uM'),uT=u('uT'),uD=u('uD'),uK=u('uK');
+ env.prepend(c);env.classList.add('lg-gl');
+ const base=[.25,.35,.5][tier];let sc=base,ud=0,W,H,mx=0,my=0,tx=0,ty=0,act=0,prev=0,ki=0,fr=0,ms=0,la=-1,dk=0,n=0,ok=1;
+ const ks=new Float32Array(24),t0=performance.now(),T=()=>(performance.now()-t0)/1e3;
+ const size=()=>{W=innerWidth;H=innerHeight;c.width=Math.max(2,W*sc|0);c.height=Math.max(2,H*sc|0);gl.viewport(0,0,c.width,c.height)};
+ size();addEventListener('resize',size);
+ const pt=e=>{tx=(e.clientX-W/2)/H;ty=(H/2-e.clientY)/H;act=performance.now()};
+ addEventListener('pointermove',pt,{passive:true});
+ addEventListener('pointerdown',e=>{pt(e);ks.set([tx,ty,T(),1],ki*4);ki=(ki+1)%6},{passive:true});
+ c.addEventListener('webglcontextlost',e=>{e.preventDefault();ok=0;c.remove();G=null;setTimeout(scan,600)});
+ (function loop(now){
+  if(!ok)return;requestAnimationFrame(loop);if(D.hidden)return;
+  const idle=now-act>4000,min=idle||tier===0||'busy' in R.dataset?32:15;if(now-prev<min)return;
+  const gap=now-prev,dt=Math.min(.1,gap/1e3);prev=now;if(gap<250){ms+=gap;fr++}
+  if(fr>=45){const avg=ms/fr;fr=ms=0;                          // adapt resolution only; never stop the loop
+   if(avg>min*1.6&&sc>.18){sc*=.8;size()}else if(avg<min*1.15&&sc<base){sc=Math.min(base,sc*1.12);size()}}
+  const k=1-Math.exp(-dt*5);mx+=(tx-mx)*k;my+=(ty-my)*k;
+  if(!(n++%30))dk=D.querySelector('.archive-app,.auth-experience')?.dataset.theme==='dark'?1:0;
+  gl.uniform2f(uR,c.width,c.height);gl.uniform2f(uM,mx*(H/c.height*c.height/H),my);gl.uniform1f(uT,T());ud+=(dk-ud)*(1-Math.exp(-dt*7));gl.uniform1f(uD,ud);gl.uniform4fv(uK,ks);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  if(tier===2){const a=Math.round((Math.atan2(mx,my)*57.296+360)%360/4)*4;if(a!==la){la=a;R.style.setProperty('--la',a+'deg')}} // rim light follows cursor
+ })(0);
+ return c;
+}
+scan();
+})();
