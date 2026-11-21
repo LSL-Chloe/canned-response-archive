@@ -88,9 +88,10 @@ export function bulkDeleteResponses(ids: string[]): Promise<{ deleted: number }>
 export function deleteResponse(id: string): Promise<{ deleted: true }> {
   return api(`/api/responses/${id}`, { method: 'DELETE' });
 }
-export async function login(agentName: string, pin: string): Promise<Agent> {
+/** Supports either an agent name or an already verified email. */
+export async function login(identifier: string, pin: string): Promise<Agent> {
   const data = await api<{ user: Agent }>('/api/auth/login', {
-    method: 'POST', body: JSON.stringify({ agentName, pin }),
+    method: 'POST', body: JSON.stringify({ identifier, pin }),
   });
   return data.user;
 }

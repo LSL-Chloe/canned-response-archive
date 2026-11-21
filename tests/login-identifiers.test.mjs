@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { loginIdentifierInput } from '../worker/api/auth.ts';
 import api from '../worker/index.ts';
@@ -109,4 +110,13 @@ test('legacy agentName API requests never reinterpret names containing @ as emai
     assert.equal(lookup.query.get('agent_name_key'), 'eq.qa@ops');
     assert.equal(lookup.query.has('email'), false);
   });
+});
+
+
+test('frontend auth helpers send the same identifier field for names and emails', () => {
+  const helper = readFileSync(new URL('../src/features/archive/api.ts', import.meta.url), 'utf8');
+  const page = readFileSync(new URL('../src/features/auth/AuthPage.tsx', import.meta.url), 'utf8');
+  assert.match(helper, /JSON\.stringify\(\{ identifier, pin \}\)/);
+  assert.match(page, /JSON\.stringify\(\{ identifier: name\.trim\(\), pin \}\)/);
+  assert.match(page, /maxLength=\{mode === 'login' \? 254 : 48\}/);
 });
