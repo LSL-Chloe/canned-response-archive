@@ -41,3 +41,15 @@ The project was already **public on GitHub** at the time of review. Source avail
 - Set up monitoring, abuse protection, and regular credential rotation policies for a separate production environment.
 
 The goal is to keep the archive fast and easy to use **without mistaking green unit tests for complete security verification**.
+
+## Follow-up audit: 21 November 2026
+
+- **Credential history:** A read-only scan checked 58 recorded main-branch and pull-request-head commits through GitHub's commit patches. No real high-confidence tokens were identified; two Supabase-looking strings were documented example placeholders. This is limited to accessible commit patches, not all dangling Git objects, binary files, GitHub secret scanning alerts, or connected deployment settings.
+- **Reproducibility:** The repository still lacks a committed package-lock.json. Dependency versions can resolve differently across installations. Commit a tested lockfile before a production launch; do not manufacture one by hand.
+- **Vite:** The minimum supported release has been raised to 7.3.8, which includes the November 2026 development-server security fix (GHSA-p4f5-76q4-ffq7). Do not expose a local Vite dev server publicly.
+- **Automated review:** A new read-only GitHub Action checks reachable Git history for high-confidence credential patterns and runs npm audit separately on production and full dependency trees. The production audit fails on high/critical findings; development advisories are reported for review.
+- **Authentication:** The four-digit PIN, first-signup administrator bootstrap, and public Shared responses remain intentionally unchanged. A strong identity system and production operations require a separate product decision.
+- **Images and API rights:** The bundled Netflix character icons and anime artwork are not automatically licensed by being publicly reachable. TMDB's free noncommercial API requires visible in-app attribution in an About/Credits area, and public publication needs a rights review. Do not mistake a source repository's code license for a license to its images.
+- **Low-end performance:** Lazy loading and the reduced initial JS bundle are verified by CI build artifacts, but real-device FPS, interaction latency, battery use and authenticated browser journeys have not been measured. They need physical or reproducible device testing.
+
+Official sources: https://github.com/vitejs/vite/security/advisories/GHSA-p4f5-76q4-ffq7 ; https://developer.themoviedb.org/docs/faq ; https://help.netflix.com/en/node/24852

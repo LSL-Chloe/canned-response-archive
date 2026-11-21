@@ -1,0 +1,46 @@
+name: Security audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  history:
+    name: Historical credential patterns
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Include previously merged PR heads when available
+        run: |
+          git fetch --no-tags origin '+refs/pull/*/head:refs/remotes/origin/audit-pr/*' \
+            || echo "PR refs unavailable; scanning checkout history only"
+      - name: Scan history without printing secret values
+        run: node scripts/scan-history.mjs
+
+  dependencies:
+    name: Dependency vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Resolve dependencies for an advisory check
+        run: npm install --package-lock-only --ignore-scripts --no-fund --no-audit
+      - name: Audit production dependencies
+        run: |
+          npm audit --json --omit=dev > prod-audit.json || true
+          node scripts/report-dependency-audit.mjs prod-audit.json production
+      - name: Audit production and development dependencies
+        if: always()
+        run: |
+          npm audit --json > all-audit.json || true
+          node scripts/report-dependency-audit.mjs all-audit.json all
