@@ -55,7 +55,7 @@ Exports use:
 }
 ```
 
-An import accepts 1–50 rows per request and is **append-only and non-atomic**. The browser previews larger JSON archives and submits bounded batches. A failed batch may already have saved some rows; check the library before retrying.
+An import accepts 1–50 rows per request. Each batch is **transactional** and skips exact shortcut/text pairs already present in the selected scope, so it can be safely retried after a connection failure. Different replies under the same shortcut remain separate. Larger JSON archives are previewed and submitted in bounded batches; an interruption between batches may leave confirmed batches saved, but reuploading the original file does not duplicate those rows.
 
 ## Profile pictures
 
