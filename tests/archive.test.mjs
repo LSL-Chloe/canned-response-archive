@@ -100,7 +100,7 @@ test('archive wires UI to same-origin APIs and separates private from public fee
   assert.match(library, /updateResponse\(editing\.id, editBody, editShortcut\.trim\(\), editVisibility\)/);
   assert.match(library, /Created by/);
   assert.doesNotMatch(search, /createdBy/);
-  assert.match(library, /onRequireLogin\('private'\)/);
+  assert.match(library, /onRequireLogin\(next === 'mine' \? 'mine' : 'private'\)/);
   assert.match(library, /onRequireLogin\('create'\)/);
   assert.doesNotMatch(app + api + library + search, /SUPABASE_SECRET_KEY|PIN_PEPPER|OTP_MAILER_SECRET/);
 });
