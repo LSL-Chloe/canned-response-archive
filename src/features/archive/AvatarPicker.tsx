@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { api } from './api';
 import LiquidButton from '../../ui/LiquidButton';
 import { avatarImageSrc, alternateAvatarImageSrc } from './avatarImages';
-import { featuredAvatars, searchCuratedAvatars, curatedAvatars, alternateCuratedAvatars } from './curatedAvatarCatalog';
+import { featuredAvatars, searchCuratedAvatars, curatedAvatarsForTitle, curatedAvatars, alternateCuratedAvatars } from './curatedAvatarCatalog';
 
 type Source = 'anime' | 'tv' | 'movie';
 type Entry = {
@@ -118,6 +118,16 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   }, [source,term,selectedTitle]);
 
   async function openTitle(title: Entry, nextPage=1) {
+    // Prefer the actual square icon pack for any known franchise. Going into
+    // "One Piece" must NOT replace its curated icons with pale Kitsu line art.
+    if (nextPage===1 && curatedAvatarsForTitle(source,title.title).length) {
+      setSelectedTitle(title);
+      setItems([]);
+      setHasMore(false);
+      setPage(1);
+      setSearchError('');
+      return;
+    }
     if (loading) return;
     setLoading(true);
     setSearchError('');
@@ -215,14 +225,19 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
     ? items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl))
     : [];
   // Favor real streaming-style PFPs; reveal raw database art when necessary.
-  const extraFromApi=apiMatches.filter(item=>!localMatches.some(local=>
-    local.title.toLowerCase()===item.title.toLowerCase() && local.imageUrl===item.imageUrl));
+  // Kitsu's anime character images are often white-background catalog art.
+  // Never append those to a populated streaming-style anime icon collection.
+  // For less common anime with no curated pack, keep the API fallback available.
+  const extraFromApi=(source==='anime' && localMatches.length>0 ? [] : apiMatches)
+    .filter(item=>!localMatches.some(local=>
+      local.title.toLowerCase()===item.title.toLowerCase() && local.imageUrl===item.imageUrl));
   function hasMoreLooks(item:Entry):boolean {
     const local=curatedAvatars.find(icon=>icon.id===item.id);
     return !!(item.wiki || item.malId || (local&&alternateCuratedAvatars(local).length>1));
   }
+  const curatedSeries=selectedTitle ? curatedAvatarsForTitle(source,selectedTitle.title) : [];
   const portraits=selectedTitle
-    ? items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl))
+    ? curatedSeries.length ? curatedSeries : items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl))
     : [...localMatches,...(localMatches.length===0||showAdditional?extraFromApi:[])];
   const hiddenAdditional=!selectedTitle && localMatches.length>0 && !showAdditional
     ? extraFromApi.length : 0;
@@ -344,10 +359,6 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
           {!moreBusy && !moreError && !moreItems.length &&
             <p className="archive-hint">No additional portraits are available for this character.</p>}
         </div>}
-      <p className="archive-avatar-attribution">
-        Featured icons from community avatar packs; additional character artwork from AniList,
-        Kitsu, Jikan and fan wikis. Art belongs to its respective rights holders.
-      </p>
-    </section>
+     </section>
   );
 }
