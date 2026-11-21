@@ -99,3 +99,14 @@ test('unverified or unrecognized email cannot log in and never reveals account d
     assert.equal(nameResponse.status, 200, 'old agent-name login must still work without a verified email');
   });
 });
+
+
+test('legacy agentName API requests never reinterpret names containing @ as email', async () => {
+  await withFakeDatabase(true, async seen => {
+    const result = await api.fetch(loginRequest({ agentName: 'QA@Ops', pin: '0042' }), env);
+    assert.equal(result.status, 401);
+    const lookup = seen.find(x => x.route === '/rest/v1/agents');
+    assert.equal(lookup.query.get('agent_name_key'), 'eq.qa@ops');
+    assert.equal(lookup.query.has('email'), false);
+  });
+});
