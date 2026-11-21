@@ -17,7 +17,7 @@ export function alternateAvatarImageSrc(value: string): string {
     const url = new URL(value);
     if (url.protocol !== 'https:' || url.hostname !== 'raw.githubusercontent.com') return value;
     const match = url.pathname.match(/^\/(eueueue292\/Fusion-Profile-Avatars|kalibrado\/jf-avatars-images)\/([a-f0-9]{40})\/(.+)$/);
-    if (!match || !/\.(?:png|jpe?g|webp)$/i.test(match[3])) return value;
+    if (!match || !/\.(?:png|jpe?g|webp)$/i.test(match[3] || '')) return value;
     return 'https://cdn.jsdelivr.net/gh/' + match[1] + '@' + match[2] + '/' + match[3];
   } catch { return value; }
 }
