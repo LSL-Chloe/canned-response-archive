@@ -5,10 +5,10 @@ This is a practical walkthrough for testing the saved-response workflow in a rea
 ## Guest experience
 
 1. Open the home page without signing in. Shared responses should load, and Private should require an account.
-2. Type `#` into the draft. Confirm the shortcut menu lists available shortcuts and scrolls within its own fixed-height area.
-3. Type a shortcut prefix, for example `#fol`, and check that only matching shortcut names remain. Then test a multi-word shortcut such as `#auto pricing` and a leading-underscore shortcut such as `#_OnIdle_`.
+2. Type `#` into the draft. Confirm the shortcut menu lists available shortcuts and scrolls within its own fixed-height area. Then clear the draft and type a matching shortcut prefix **without #**, e.g. `app`: the same shortcut should appear. Ordinary unrelated sentences should not open the menu.
+3. Type a shortcut prefix, for example `#fol`, and check that only matching shortcut names remain. Repeat without the hash, and test multi-word shortcuts such as `auto pricing` / `#auto pricing`, and leading-underscore shortcuts `_OnIdle_` / `#_OnIdle_`. In Canned responses, search for both `#follow_up` and `follow_up`: the results must match.
 4. Press Enter or the right arrow to open a shortcut. The second level should show **all replies** saved under that shortcut.
-5. Insert a reply, then press Ctrl/Cmd+Z to restore the previous shortcut search.
+5. Insert a reply with `#`, then press Ctrl/Cmd+Z to restore the previous shortcut search. Repeat without `#`, confirming the original text, selection and cursor position are restored and unrelated draft text is not overwritten.
 6. Copy the draft. The clipboard should contain the text you see, with no surprise changes.
 7. Open Canned responses. Shared entries may show creator display names; the shortcut insertion popup should not.
 

@@ -63,9 +63,30 @@ export function findHashQuery(value: string, caret: number): HashQuery | null {
   };
 }
 
+/** The draft may begin with a shortcut without '#'. Do not show
+ * suggestions for unrelated prose, multi-line messages, or partial words
+ * in the middle of a draft. A real matching shortcut is required. */
+export function findPlainShortcutQuery(
+  value: string, caret: number, records: ArchiveResponse[],
+): HashQuery | null {
+  if (!Number.isInteger(caret) || caret !== value.length || value.includes('\n')) return null;
+  const start = value.search(/\S/);
+  if (start < 0) return null;
+  const query = value.slice(start, caret);
+  if (!query.length || query.length > 64 ||
+      !/^[A-Za-z0-9_][A-Za-z0-9_ -]*$/.test(query) || query.endsWith(' ')) return null;
+  const normalized = query.toLowerCase();
+  // A one-character prefix is ambiguous for ordinary typing; still allow it
+  // when an actual single-character shortcut exists.
+  if (!records.some(record => query.length === 1
+    ? record.shortcut.toLowerCase() === normalized
+    : record.shortcut.toLowerCase().startsWith(normalized))) return null;
+  return { start, end: caret, query };
+}
+
 /** A bare # shows EVERY response, not just nine. Typing matches shortcut prefixes only. */
 export function findSuggestions(records: ArchiveResponse[], rawQuery: string): ArchiveResponse[] {
-  const query = rawQuery.toLowerCase().replace(/^#/, '');
+  const query = rawQuery.toLowerCase().trim().replace(/^#/, '');
   return records
     .filter(record => record.shortcut.toLowerCase().startsWith(query))
     .sort((a, b) => {

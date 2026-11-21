@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import {
-  findHashQuery, findSuggestions, insertSuggestion, shortcutOptions, canManageResponse,
+  findHashQuery, findPlainShortcutQuery, findSuggestions, insertSuggestion, shortcutOptions, canManageResponse,
 } from '../src/features/archive/model.ts';
 
 const shared = (id, shortcut, body, createdBy = 'Chloe') => ({
@@ -103,4 +103,32 @@ test('archive wires UI to same-origin APIs and separates private from public fee
   assert.match(library, /onRequireLogin\(next === 'mine' \? 'mine' : 'private'\)/);
   assert.match(library, /onRequireLogin\('create'\)/);
   assert.doesNotMatch(app + api + library + search, /SUPABASE_SECRET_KEY|PIN_PEPPER|OTP_MAILER_SECRET/);
+});
+
+
+test('hashless shortcut searches work at the start of the draft without opening on unrelated prose', () => {
+  assert.deepEqual(findPlainShortcutQuery('app',3,records), { start:0,end:3,query:'app' });
+  assert.deepEqual(findPlainShortcutQuery('  app',5,records), { start:2,end:5,query:'app' });
+  assert.deepEqual(findPlainShortcutQuery('followup',8,records), { start:0,end:8,query:'followup' });
+  const withSpaces = [...records, shared('e','auto pricing','We can help')];
+  assert.deepEqual(findPlainShortcutQuery('auto pricing',12,withSpaces), { start:0,end:12,query:'auto pricing' });
+  for (const [text,caret] of [['Hi',2],['unknown',7],['app ',4],['app\n',4],
+    ['Hello app',9],['#app',4],['app',1],['a',1]]) {
+    assert.equal(findPlainShortcutQuery(text,caret,records),null, 'must not match ' + JSON.stringify(text));
+  }
+  assert.deepEqual(findPlainShortcutQuery('a',1,[shared('one','a','Short reply')]),
+    { start:0,end:1,query:'a' }, 'an exact one-character shortcut should still work');
+  assert.deepEqual(findSuggestions(records,'#app').map(x=>x.id), findSuggestions(records,'app').map(x=>x.id));
+  assert.deepEqual(findSuggestions(records,'  #APP ').map(x=>x.id),['a','b','d']);
+});
+
+test('composer and library both honor optional hashtag searches without harming draft undo', () => {
+  const search = file('src/features/archive/SearchWorkspace.tsx');
+  const library = file('src/features/archive/LibraryWorkspace.tsx');
+  assert.match(search, /findHashQuery\(draft, caret\) \?\? findPlainShortcutQuery\(draft, caret, responses\)/);
+  assert.match(search, /findPlainShortcutQuery\(draft, position, responses\)/);
+  assert.match(search, /lastInsert\.current/);
+  assert.match(search, /setSelectedShortcut\(previous\.selectedShortcut\)/);
+  assert.match(library, /search\.toLowerCase\(\)\.trim\(\)\.replace\(\/\^#\/, ''\)/);
+  assert.deepEqual(insertSuggestion('app',{start:0,end:3,query:'app'},'Hello.'),{value:'Hello. ',caret:7});
 });

@@ -8,14 +8,14 @@ The project began as a personal tool for handling repetitive support and workpla
 
 ## How it works
 
-Suppose you regularly explain how to reset an account password. Save that explanation under `#password_reset`. The next time you need it, type `#password` in the draft field, open the shortcut, choose the saved reply, and copy your finished message.
+Suppose you regularly explain how to reset an account password. Save that explanation under `#password_reset`. The next time you need it, start the draft with `password` or `#password`, open the shortcut, choose the saved reply, and copy your finished message. You can still type `#password` inside an existing message.
 
 A shortcut can contain **several different replies**, so you can keep variations without overwriting anything. Changing one reply from Shared to Private (or back) moves only that reply; its original creator remains its owner.
 
-- **Search and draft:** Type `#` to browse shortcuts. Filter by name, press Enter or the right arrow to open one, then select a reply. Undo insertion with Ctrl/Cmd+Z.
+- **Search and draft:** Start typing a known shortcut with or without `#`, or use `#` anywhere to browse shortcuts. The library search also accepts both forms. Filter by name, press Enter or the right arrow to open one, then select a reply. Undo insertion with Ctrl/Cmd+Z.
 - **Your library:** Save, search, edit, and delete responses. Use **All**, **Shared**, **Private**, or **By me** to see just the replies you personally created, across both scopes. Change a reply's visibility while editing without moving its neighbors, or use **Select → Select all → Delete selected** for bulk cleanup. Agents can manage their own responses; admins can also manage anyone's shared replies.
 - **Move your data:** Export responses to JSON or import an existing archive. Imports append new entries rather than replace them.
-- **Account and appearance:** Sign in with an agent name and four-digit PIN. An optional verified email supports PIN recovery; Settings also offers light/dark themes and a character avatar picker (including a 470-image Crunchyroll collection, plus TV and movie characters). Thumbnails load on demand, with a CDN and source fallback.
+- **Account and appearance:** Sign in with your agent name **or verified email address** and the same four-digit PIN. Email is optional at signup; a verified email also supports PIN recovery, while an account without email can continue signing in by agent name. Settings also offers light/dark themes and a character avatar picker (including a 470-image Crunchyroll collection, plus TV and movie characters). Thumbnails load on demand, with a CDN and source fallback.
 - **Team overview:** Administrators can see user and response counts, and manage shared responses. They cannot read another person's private response text.
 
 **Please know what “Shared” means:** shared response text and creator display names are deliberately available to people visiting the site **without signing in**. Never place passwords, personal data, customer secrets, or confidential internal material in Shared responses. Private responses are returned only to their owner.

@@ -10,7 +10,8 @@ The normal account experience lives at **`/auth`**. A temporary diagnostic scree
 2. If using an email, complete the six-digit verification within ten minutes.
 3. Check that the first completed account receives the administrator role and later accounts receive the regular agent role.
 4. If you sign up without email, confirm that the UI explains PIN recovery is unavailable.
-5. Sign out, then sign in with the new account. The session should persist through a normal page refresh.
+5. Sign out, then sign in with the new account using its agent name. If it has a verified email, sign out again and use that email (including uppercase letters) with the **same PIN**. The session should persist through a normal page refresh.
+6. Verify the form's single name/email field stays readable and accepts long email addresses on narrow screens. An account without a verified email must still sign in by name but not by email. A wrong PIN must fail for both forms, with a generic error and without exposing which identifier is registered.
 
 **Do not expose an empty production database before the intended administrator has registered.**
 
@@ -21,13 +22,13 @@ The normal account experience lives at **`/auth`**. A temporary diagnostic scree
 3. Confirm the old PIN is rejected and previously active sessions have been revoked.
 4. Change your PIN while signed in. The current session should stay active; other sessions should end.
 5. Try incorrect codes. An OTP should stop working after five failed attempts or expiry.
-6. Check login and send-code throttling. Repeated attempts must return rate-limit errors rather than allow unlimited guessing.
+6. Check login and send-code throttling. Alternate incorrect PIN guesses between name and verified email for the same account: both must count against **one** per-account limit. Repeated attempts must return rate-limit errors rather than allow unlimited guessing.
 
 ## Browser and security checks
 
 - HTTPS session cookies must be HttpOnly, Secure, and SameSite=Strict.
 - Mutating API routes should reject a mismatched Origin header.
-- Failed login messages should not reveal which account name is registered.
+- Failed login messages should not reveal whether a name or email address is registered, verified, or disabled.
 - Private responses must not be exposed to guests or another user.
 - Shared response text and creator names are intentionally public and should contain test-safe text only.
 - The recovery-start response must not reveal whether an email is registered.

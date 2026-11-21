@@ -81,7 +81,7 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
     void run(async () => {
       if (mode === 'login') {
         const data = await api<AuthReply>('/api/auth/login', {
-          method: 'POST', body: JSON.stringify({ agentName: name.trim(), pin }),
+          method: 'POST', body: JSON.stringify({ identifier: name.trim(), pin }),
         });
         setPin('');
         if (!data.user) throw new Error('Sign in did not return an account.');
@@ -232,13 +232,16 @@ export default function AuthPage({ theme, onThemeToggle }: { theme: Theme; onThe
                 <form className="auth-fields" onSubmit={start}>
                   {mode !== 'recover' && (
                     <div className="auth-field">
-                      <label htmlFor="auth-name">Agent name</label>
+                      <label htmlFor="auth-name">{mode === 'login' ? 'Agent name or verified email' : 'Agent name'}</label>
                       <div className="auth-input-wrap"><Icon name="team" size={17}/>
                         <input id="auth-name" value={name} onChange={event => setName(event.target.value)}
-                          autoComplete="username" minLength={2} maxLength={48} placeholder="Your agent name" required/>
+                          autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                          minLength={2} maxLength={mode === 'login' ? 254 : 48}
+                          placeholder={mode === 'login' ? 'Agent name or email address' : 'Your agent name'} required/>
                       </div>
                     </div>
                   )}
+                  {mode === 'login' && <p className="auth-field-helper">Forgot your agent name? Use your verified email and the same PIN.</p>}
                   {(mode === 'signup' || mode === 'recover') && (
                     <div className="auth-field">
                       <label htmlFor="auth-email">Email address {mode === 'signup' && <span>(optional)</span>}</label>

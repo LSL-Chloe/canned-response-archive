@@ -1,6 +1,6 @@
 import LiquidButton from '../../ui/LiquidButton';
 import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { findHashQuery, findShortcutGroups, insertSuggestion, type ArchiveResponse } from './model';
+import { findHashQuery, findPlainShortcutQuery, findShortcutGroups, insertSuggestion, type ArchiveResponse } from './model';
 import LiquidUnderlay from '../../ui/LiquidUnderlay';
 
 interface Props {
@@ -37,7 +37,7 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
     field.style.overflowY = fullHeight > 216 ? 'auto' : 'hidden';
   }, [draft]);
 
-  const token = findHashQuery(draft, caret);
+  const token = findHashQuery(draft, caret) ?? findPlainShortcutQuery(draft, caret, responses);
   const groups = useMemo(
     () => token ? findShortcutGroups(responses, token.query) : [],
     [responses, token?.query, token?.start, token?.end],
@@ -74,7 +74,8 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
     setHighlight(Math.max(0, previous));
   }
   function useResponse(item: ArchiveResponse) {
-    const found = findHashQuery(draft, input.current?.selectionStart ?? caret);
+    const position = input.current?.selectionStart ?? caret;
+    const found = findHashQuery(draft, position) ?? findPlainShortcutQuery(draft, position, responses);
     if (!found) return;
     const inserted = insertSuggestion(draft, found, item.body);
     lastInsert.current = {
@@ -143,19 +144,19 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
     <section className="archive-search-view" aria-label="Shortcut search">
       <div className="archive-search-intro">
         <h1>Search responses</h1>
-        <p>Type <kbd>#</kbd> in your draft to find a saved shortcut.</p>
+        <p>Start with a shortcut name, with or without <kbd>#</kbd>. Use <kbd>#</kbd> anywhere in a message.</p>
       </div>
       <div className="archive-composer">
         <LiquidUnderlay radius={18}/>
         <textarea
           ref={input}
-          aria-label="Message draft with hashtag shortcuts"
+          aria-label="Message draft with optional hashtag shortcuts"
           aria-autocomplete="list"
           aria-expanded={open}
           aria-controls="archive-suggestions"
           aria-activedescendant={open && activeIndex >= 0 ? `archive-option-${activeIndex}` : undefined}
           value={draft}
-          placeholder={loading ? 'Loading responses…' : 'Write a message, or type # to find a response…'}
+          placeholder={loading ? 'Loading responses…' : 'Write a message, or find a shortcut with or without #…'}
           spellCheck
           rows={2}
           onFocus={() => setFocused(true)}
@@ -181,7 +182,7 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
                   onMouseDown={event => event.preventDefault()} onClick={goBack}
                   aria-label="Back to shortcuts">‹ <strong>#{current.name}</strong></button>
               ) : (
-                <span>{token?.query ? `Shortcuts matching #${token.query}` : 'All shortcuts'}</span>
+                <span>{token?.query ? `Shortcuts matching ${token.query}` : 'All shortcuts'}</span>
               )}
               <span className="archive-faint">
                 {current ? `${current.responses.length} saved responses · Enter to insert · ← back` :
@@ -222,7 +223,7 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
           </div>
         )}
         <div className="archive-composer-bottom">
-          <span className="archive-composer-hint"><kbd>#</kbd> Shortcuts
+          <span className="archive-composer-hint"><kbd>#</kbd> Optional for shortcut search
             <span className="archive-hint-desktop"> · <kbd>Enter</kbd> open · <kbd>Ctrl</kbd> + <kbd>Z</kbd> undo</span>
           </span>
           <LiquidButton className="archive-button archive-button-primary" type="button"

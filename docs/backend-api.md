@@ -11,7 +11,7 @@ JSON API responses are marked `no-store`. Write requests require a same-origin `
 | GET | `/api/health` | Public liveness check; does not reveal configured secrets |
 | POST | `/api/auth/signup` | Guest signup with agent name, four-digit PIN, and optional email |
 | POST | `/api/otp/signup/verify` | Completes a pending email-backed signup |
-| POST | `/api/auth/login` | Verifies agent name and PIN, then sets a session cookie |
+| POST | `/api/auth/login` | Accepts `{"identifier":"name-or-verified-email","pin":"0042"}` and sets a session cookie. Legacy `agentName` is still supported for backward compatibility. |
 | GET | `/api/auth/me` | Current signed-in user, or `null` |
 | POST | `/api/auth/logout` | Revokes the current session |
 | PATCH | `/api/account/name` | Changes the signed-in user's display name |
@@ -22,7 +22,7 @@ JSON API responses are marked `no-store`. Write requests require a same-origin `
 | POST | `/api/otp/recovery/start` | Sends a recovery code if a verified account exists; response is deliberately generic |
 | POST | `/api/otp/recovery/verify` | Validates the code, resets the PIN, and revokes existing sessions |
 
-Email is optional for signup. Without a verified email, forgotten-PIN recovery is unavailable.
+Email is optional for signup. Without a verified email, forgotten-PIN recovery and email-based sign-in are unavailable; the agent name still works. For email sign-in, the Worker requires `email_verified_at` on the matching account, normalizes email case, verifies the same PIN, and returns the same generic invalid-credentials error for missing/unverified accounts or wrong PIN. The shared per-account rate limit is keyed to the immutable agent ID, preventing bypass by switching from name to email.
 
 OTP codes are six digits, expire after ten minutes, and allow at most five wrong submissions per challenge. Sending is limited to three requests per target in 15 minutes, with a separate hourly IP limit. Sign-in and other sensitive operations have their own rate limits.
 

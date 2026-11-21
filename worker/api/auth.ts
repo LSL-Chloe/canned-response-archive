@@ -2,11 +2,19 @@ import { database, queryTable, callRpc, type Env } from '../services/db.ts';
 import { hashPin, verifyPin } from '../auth/crypto.ts';
 import { cookieHeader, createSession, getSession, ipOf, requireRateLimit, revokeSession } from '../auth/session.ts';
 import { fail, json, nameInput, pinInput, readJson } from './shared.ts';
-import { beginEmailSignup } from './otp.ts';
+import { beginEmailSignup, emailInput } from './otp.ts';
 
-type Agent = { id: string; agent_name: string; role: 'admin' | 'agent'; disabled_at?: string | null };
+type Agent = { id: string; agent_name: string; role: 'admin' | 'agent'; disabled_at?: string | null; email_verified_at?: string | null };
 type Credential = { pin_hash: string };
-const errorMessage = 'Invalid agent name or PIN';
+const errorMessage = 'Invalid agent name, email or PIN';
+
+/** Validate both user-facing aliases; legacy clients may still send agentName. */
+export function loginIdentifierInput(value: unknown): { kind: 'name' | 'email'; key: string } {
+  if (typeof value !== 'string' || !value || value.trim() !== value || value.length > 254)
+    return fail(400, 'invalid_login', 'Enter an agent name or verified email');
+  if (value.includes('@')) return { kind: 'email', key: emailInput(value) };
+  return { kind: 'name', key: nameInput(value).toLowerCase() };
+}
 
 export async function handleAuth(request: Request, env: Env, path: string): Promise<Response> {
   if (path === '/api/auth/me' && request.method === 'GET') {
@@ -39,21 +47,39 @@ export async function handleAuth(request: Request, env: Env, path: string): Prom
 
   if (path === '/api/auth/login' && request.method === 'POST') {
     const data = await readJson(request);
-    const agentName = nameInput(data.agentName);
+    // Older integrations supplied agentName even when that name happened
+    // to contain '@'. Preserve that exact legacy behavior; only the new
+    // identifier field auto-detects a verified email address.
+    const identity = data.identifier === undefined
+      ? { kind: 'name' as const, key: nameInput(data.agentName).toLowerCase() }
+      : loginIdentifierInput(data.identifier);
     const pin = pinInput(data.pin);
-    const key = agentName.toLocaleLowerCase('en-US');
     const ip = ipOf(request);
-    if (!await requireRateLimit(env, `login:account:${key}`, 8, 900) ||
-        !await requireRateLimit(env, `login:ip:${ip}`, 50, 900)) {
+    // Always cap IP attempts before looking up any account. Each real account
+    // shares ONE rate-limit bucket across both login aliases, preventing
+    // doubled PIN guessing via name + email.
+    if (!await requireRateLimit(env, `login:ip:${ip}`, 50, 900)) {
       return fail(429, 'rate_limited', 'Too many attempts. Try again later.');
     }
     const found = await queryTable<Agent>(env, 'agents', {
-      select: 'id,agent_name,role,disabled_at', agent_name_key: `eq.${key}`, limit: '1',
+      select: 'id,agent_name,role,disabled_at,email_verified_at',
+      ...(identity.kind === 'email'
+        ? { email: `eq.${identity.key}`, email_verified_at: 'not.is.null' }
+        : { agent_name_key: `eq.${identity.key}` }),
+      limit: '1',
     });
     const agent = found[0];
-    const credential = agent ? (await queryTable<Credential>(env, 'agent_credentials', {
-      select: 'pin_hash', agent_id: `eq.${agent.id}`, limit: '1',
-    }))[0] : null;
+    const accountBucket = agent && !agent.disabled_at
+      ? `login:account:id:${agent.id}`
+      : `login:unknown:${identity.kind}:${identity.key}`;
+    if (!await requireRateLimit(env, accountBucket, 8, 900)) {
+      return fail(429, 'rate_limited', 'Too many attempts. Try again later.');
+    }
+    const credential = agent && !agent.disabled_at
+      ? (await queryTable<Credential>(env, 'agent_credentials', {
+        select: 'pin_hash', agent_id: `eq.${agent.id}`, limit: '1',
+      }))[0]
+      : null;
     if (!agent || agent.disabled_at || !credential || !await verifyPin(pin, credential.pin_hash, env.PIN_PEPPER!)) {
       return fail(401, 'invalid_credentials', errorMessage);
     }
