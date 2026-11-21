@@ -168,7 +168,8 @@ test('curated profile-picture shelves render immediately without a public API re
   assert.match(catalog, /alternateCuratedAvatars/);
   assert.match(picker, /const localMatches/);
   assert.match(picker, /showAdditional/);
-  assert.match(app, /warm\(featuredAvatars\.anime/);
+  assert.match(app, /import\('\.\/curatedAvatarCatalog'\)/);
+  assert.match(app, /featuredAvatars\.anime\.slice\(0,8\)/);
   assert.match(server, /raw\.githubusercontent\.com/);
   assert.match(images, /alternateAvatarImageSrc/);
 });
