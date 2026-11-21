@@ -13,7 +13,9 @@ Apply them in timestamp order to a **new** project, using a migration tool or pr
 7. `20261122000001_preserve_original_shortcut_labels.sql` — allow and preserve spaces/leading underscores in shortcut names.
 8. `20261122010100_response_management.sql` — atomic reply visibility changes and permission-checked bulk deletion of up to 100 IDs per request.
 
-The project's existing **development** database has applied the migrations through shortcut label preservation. Check the live migration history before applying the new response-management migration. File timestamps in Git are a source ordering guide; a Supabase project's applied migration versions can differ. Do not blindly reapply older schema changes. A new production database should be created, migrated, and tested separately.
+The connected **development** database has applied all eight migrations, including response management (recorded as version `20261121203646`). The two new RPCs were verified as `SECURITY INVOKER`, executable by `service_role` only, and inaccessible to `anon` / `authenticated`. A disposable transactional test checked scope conversion, original-owner preservation, shared-feed synchronization, and mixed-permission bulk rejection. All disposable writes were rolled back; existing archive counts were unchanged.
+
+File timestamps in Git are a source ordering guide; a Supabase project's applied migration versions can differ. Do not blindly reapply historical schema changes. A new production database should be created, migrated, and tested separately.
 
 The shared-response feed is deliberately readable to anonymous visitors; credentials and private data are protected by server-only access and database permissions. The avatar storage bucket is public-read, so uploaded pictures must not be sensitive.
 
