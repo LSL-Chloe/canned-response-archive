@@ -253,6 +253,73 @@ export async function handleResponses(request: Request, env: Env, path: string):
     return json({ imported: result.imported, skipped: result.skipped, visibility: scope }, 201);
   }
 
+  if (path.startsWith('/api/admin/users/') && request.method === 'DELETE') {
+    if (!signed) return fail(401, 'login_required', 'Sign in to manage agents');
+    if (signed.agent.role !== 'admin') return fail(403, 'forbidden', 'Administrator access required');
+    const id = path.slice('/api/admin/users/'.length);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return fail(400, 'invalid_agent', 'Choose a valid agent');
+    }
+    if (id.toLowerCase() === signed.agent.id.toLowerCase()) {
+      return fail(403, 'self_delete_forbidden', 'You cannot delete your own administrator account');
+    }
+    const body = await readJson(request);
+    if (typeof body.confirmName !== 'string' || body.confirmName.length < 2 || body.confirmName.length > 48) {
+      return fail(400, 'confirmation_required', 'Type the agent name to confirm deletion');
+    }
+    if (!await requireRateLimit(env, `admin:delete:${signed.agent.id}`, 10, 3600)) {
+      return fail(429, 'rate_limited', 'Too many account deletions. Try again later.');
+    }
+    const target = (await queryTable<{ avatar_url: string | null }>(env, 'agents', {
+      select: 'avatar_url', id: `eq.${id}`, limit: '1',
+    }))[0];
+    const localAvatar = target?.avatar_url?.startsWith(
+      `${env.SUPABASE_URL}/storage/v1/object/public/archive-avatars/${id}/avatar.jpg`,
+    ) ?? false;
+    try {
+      // This is a single SQL transaction, including all owned responses,
+      // related shortcuts, and revocation of the deleted account's sessions.
+      const result = await callRpc<{ deleted: true; deleted_responses: number; preserved_shared_shortcuts: number }>(
+        env, 'admin_delete_agent', {
+          p_actor_id: signed.agent.id, p_target_id: id, p_confirm_agent_name: body.confirmName,
+        },
+      );
+      let avatarCleanupFailed = false;
+      if (localAvatar) {
+        // Use the Storage API rather than deleting storage.objects metadata.
+        // A cleanup error must not imply the already committed account still exists.
+        try {
+          const avatarEndpoint = new URL('/storage/v1/object/archive-avatars', env.SUPABASE_URL);
+          const headers = new Headers({
+            apikey: env.SUPABASE_SECRET_KEY!, 'Content-Type': 'application/json',
+          });
+          if (env.SUPABASE_SECRET_KEY!.startsWith('eyJ')) {
+            headers.set('Authorization', 'Bearer ' + env.SUPABASE_SECRET_KEY);
+          }
+          const removed = await fetch(avatarEndpoint, {
+            method: 'DELETE', headers, body: JSON.stringify({ prefixes: [id + '/avatar.jpg'] }),
+          });
+          avatarCleanupFailed = !removed.ok;
+        } catch {
+          avatarCleanupFailed = true;
+        }
+      }
+      if (avatarCleanupFailed) console.warn('Deleted account avatar cleanup was unsuccessful');
+      return json({ ...result, avatarCleanupFailed });
+    } catch (error) {
+      if (error instanceof DatabaseError && error.code === '42501') {
+        return fail(403, 'forbidden', 'This administrator cannot delete that account');
+      }
+      if (error instanceof DatabaseError && error.code === 'P0002') {
+        return fail(404, 'not_found', 'Agent no longer exists');
+      }
+      if (error instanceof DatabaseError && error.code === '22023') {
+        return fail(409, 'confirmation_mismatch', 'Agent name has changed. Refresh and confirm again.');
+      }
+      throw error;
+    }
+  }
+
   if (path === '/api/admin/users' && request.method === 'GET') {
     if (!signed) return fail(401, 'login_required', 'Sign in to view user statistics');
     if (signed.agent.role !== 'admin') return fail(403, 'forbidden', 'Administrator access required');
