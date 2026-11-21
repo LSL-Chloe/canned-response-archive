@@ -12,8 +12,11 @@ test('Cloudflare Worker is configured for explicit API routes', () => {
   assert.equal(config.assets.not_found_handling, 'single-page-application');
   // Workers Builds invokes `wrangler preview` on PR branches. Missing this
   // block makes every Cloudflare branch build fail even when main deploys fine.
-  assert.deepEqual(config.previews, {});
-  assert.equal(JSON.stringify(config.previews).includes('SECRET'), false);
+  // Preview may declare a public staging URL, but must not expose backend secrets
+  // or override the live Worker's bindings at the top level.
+  assert.equal(config.previews?.vars?.SUPABASE_URL, 'https://vfxjiecelhlqryxlymsv.supabase.co');
+  assert.equal(config.vars?.SUPABASE_URL, undefined);
+  assert.doesNotMatch(JSON.stringify(config.previews), /SUPABASE_SECRET_KEY|PIN_PEPPER|OTP_MAILER_SECRET|TMDB_READ_ACCESS_TOKEN/);
 });
 
 test('health endpoint exists and archive reads responses only through same-origin API', () => {
