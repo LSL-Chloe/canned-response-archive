@@ -5,7 +5,7 @@ import { hashPin, verifyPin, sha256 } from '../worker/auth/crypto.ts';
 import { cookieHeader } from '../worker/auth/session.ts';
 import {
   canDeleteResponse, canEditResponse, shortcutInput, bodyInput,
-  nameInput, pinInput, ApiError,
+  nameInput, pinInput, ApiError, readJson, readLimitedBytes,
 } from '../worker/api/shared.ts';
 
 const env = { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SECRET_KEY: 'sb_secret_test', PIN_PEPPER: '0123456789abcdef0123456789abcdef' };
@@ -90,4 +90,21 @@ test('backend requires a matching Origin header on all writes', async () => {
   });
   const response = await api.fetch(request, env);
   assert.equal(response.status, 403);
+});
+
+test('JSON reader enforces size while streaming rather than after reading an unbounded body', async () => {
+  const chunks = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array(135_000));
+      controller.enqueue(new Uint8Array(135_000));
+      controller.close();
+    },
+  });
+  await assert.rejects(readLimitedBytes(chunks, 250_000),
+    error => error instanceof ApiError && error.status === 413);
+  const request = new Request('https://example.test/api/responses', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: 'Hello 👋' }),
+  });
+  assert.deepEqual(await readJson(request), { text: 'Hello 👋' });
 });

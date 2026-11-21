@@ -1,6 +1,6 @@
 import { database, queryTable, type Env } from '../services/db.ts';
 import { getSession, requireRateLimit } from '../auth/session.ts';
-import { fail, json, readJson } from './shared.ts';
+import { fail, json, readJson, readLimitedBytes } from './shared.ts';
 import { popular, search, characterList, variations, type AvatarSource } from './avatarCatalog.ts';
 import { moreSafeAnimePortraits } from './safeAnimePortraits.ts';
 
@@ -54,9 +54,10 @@ export async function handleAvatars(request: Request, env: Env, path: string, ur
     }
     const limit = 2_500_000;
     if (Number(response.headers.get('Content-Length') || 0) > limit) fail(413, 'image_too_large', 'Portrait is too large');
-    const body = await response.arrayBuffer();
-    if (body.byteLength > limit) fail(413, 'image_too_large', 'Portrait is too large');
-    return new Response(body, {
+    // The upstream can omit Content-Length or lie about its size.
+    // Stream with a strict cap instead of buffering an unlimited response.
+    const bytes = await readLimitedBytes(response.body, limit);
+    return new Response(bytes, {
       status: 200, headers: {
         'Content-Type': mime, 'Cache-Control': 'private, max-age=86400',
         'X-Content-Type-Options': 'nosniff',

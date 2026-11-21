@@ -16,19 +16,52 @@ export class ApiError extends Error {
 export function fail(status: number, code: string, message: string): never {
   throw new ApiError(status, code, message);
 }
+/**
+ * Enforce byte limits while reading streams, not after a potentially unbounded
+ * request or upstream image has already consumed Worker memory.
+ */
+export async function readLimitedBytes(stream: ReadableStream<Uint8Array> | null, maxBytes: number): Promise<Uint8Array> {
+  if (!stream) return new Uint8Array();
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        void reader.cancel().catch(() => {});
+        return fail(413, 'too_large', 'Request or image is too large');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
 export async function readJson(request: Request): Promise<Record<string, unknown>> {
   if (!(request.headers.get('Content-Type') ?? '').toLowerCase().startsWith('application/json')) {
     fail(415, 'json_required', 'Send JSON data');
   }
-  if (Number(request.headers.get('Content-Length') ?? '0') > 250_000) fail(413, 'too_large', 'Request is too large');
-  const text = await request.text();
-  if (text.length > 250_000) fail(413, 'too_large', 'Request is too large');
+  const maxBytes = 250_000;
+  if (Number(request.headers.get('Content-Length') ?? '0') > maxBytes) fail(413, 'too_large', 'Request is too large');
+  const bytes = await readLimitedBytes(request.body, maxBytes);
   try {
-    const data: unknown = JSON.parse(text);
+    const data: unknown = JSON.parse(new TextDecoder().decode(bytes));
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid JSON object');
     return data as Record<string, unknown>;
   } catch { return fail(400, 'bad_json', 'Invalid JSON object'); }
 }
+
 export function nameInput(input: unknown): string {
   if (typeof input !== 'string' || input.trim() !== input || input.length < 2 || input.length > 48) {
     return fail(400, 'invalid_agent_name', 'Agent name must be between 2 and 48 characters');

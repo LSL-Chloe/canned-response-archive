@@ -21,12 +21,12 @@ The project was already **public on GitHub** at the time of review. Source avail
 
 1. The health endpoint now returns minimal liveness information rather than advertising whether backend credentials exist.
 2. The legacy authentication QA component is imported only in local development, keeping it out of normal production routing.
-3. API JSON includes a no-referrer policy and continues to avoid cacheable sensitive responses.
-4. Five-second feed polling now reuses unchanged response arrays instead of causing needless React tree updates.
+3. API JSON includes a no-referrer policy and continues to avoid cacheable sensitive responses. Both incoming JSON and remote avatar streams now enforce byte limits *while streaming*, rather than after unbounded body buffering.
+4. Five-second feed polling now reuses unchanged response arrays and memoizes the merged feed, avoiding needless React reconciliation and repeated shortcut grouping.
 5. Eager avatar warm-up is bounded and skips lower-capability or data-saving devices. Large Library, Team, and Settings workspaces are lazy-loaded, with preloading on navigation hover/focus; the full avatar catalog no longer blocks the initial search page.
 6. Curated public icons load directly from their pinned image sources in the picker, with the existing allowlisted Worker proxy as fallback. This avoids a database-backed authentication lookup for every gallery icon.
 7. Long response rows and avatar grids use rendering containment where the browser supports it; the same liquid-glass controls and animations remain.
-8. Automated tests cover the response-list comparison, image URL choice and fallback, the development-only route, and the performance safeguards.
+8. Automated tests cover the response-list comparison, streamed request limits, image URL choice and fallback, the development-only route, and the performance safeguards.
 9. Public-facing documentation has been rewritten to describe the actual application, its permissions, and deployment steps rather than earlier design phases.
 
 ## Remaining work before calling it production-ready

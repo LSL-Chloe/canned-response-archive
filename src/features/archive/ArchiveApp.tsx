@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { ApiProblem, fetchFeed, login, logout, session } from './api';
 import { sameResponseList, type Agent, type ArchiveResponse } from './model';
 import SearchWorkspace from './SearchWorkspace';
@@ -189,7 +189,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
     };
   }, [refresh]);
 
-  const responses = [...shared, ...privateRows];
+  const responses = useMemo(() => [...shared, ...privateRows], [shared, privateRows]);
   const selectedTab = page === 'search' ? 0 : page === 'library' ? 1 : page === 'team' ? 2 : -1;
 
   function requireLogin(reason: 'private' | 'create' | 'transfer') {

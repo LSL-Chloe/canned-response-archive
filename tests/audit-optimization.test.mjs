@@ -39,6 +39,7 @@ test('large archive lists avoid needless repaints without disabling the glass UI
   const app = readFileSync(new URL('../src/features/archive/ArchiveApp.tsx', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../src/styles/premium.css', import.meta.url), 'utf8');
   assert.match(app, /sameResponseList\(previous, data\[0\]\)/);
+  assert.match(app, /responses = useMemo\(/);
   assert.match(app, /featuredAvatars\.anime\.slice\(0,8\)/);
   assert.match(css, /content-visibility: auto/);
   assert.match(css, /archive-avatar-choice/);
