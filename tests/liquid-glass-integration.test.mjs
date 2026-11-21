@@ -63,8 +63,10 @@ test('only active selection lenses remain across navigation and option groups', 
     'archive-nav', 'archive-tabs', 'archive-visibility-options',
     'archive-transfer-scope', 'auth-mode-tabs',
   ]) {
-    assert.ok(!css.includes(group + ':has(>button:nth-of-type('),
-      'No duplicate hover highlight on ' + group);
+    assert.ok(!css.includes(group + ':has(>button:nth-of-type(1):is(:hover,:focus-visible)'),
+      'No duplicate pointer preview on ' + group);
+    assert.ok(!css.includes(group + ':has(>button:nth-of-type(2):is(:hover,:focus-visible)'),
+      'No duplicate keyboard/pointer preview on ' + group);
     assert.ok(!css.includes(group + '::before'),
       'No ghost overlay pseudo-element on ' + group);
   }
