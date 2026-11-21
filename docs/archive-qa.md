@@ -29,7 +29,7 @@ This is a practical walkthrough for testing the saved-response workflow in a rea
 
 While the tab is visible, the app refreshes its response lists approximately every five seconds. A newly saved reply should be visible without a manual page reload. When nothing has changed, the interface should not jump or reset its draft, menu selection, or scroll position.
 
-Scroll long libraries (including 200+ responses) and galleries on a lower-powered phone if available. In both themes, verify no large coloured/refraction artifacts appear when scrolling very far down, row actions remain aligned, the sidebar stays anchored, and the response list still looks translucent. The background, theme switch, and bounded glass effects should remain responsive. The first screen should not download every avatar in the catalog. Test keyboard focus on the hidden-native file picker and a long selected filename.
+Scroll long libraries (including 200+ responses), larger Team tables, and galleries on a lower-powered phone if available. In both themes, verify no large coloured/refraction artifacts appear when scrolling very far down, row actions remain aligned, the sidebar stays anchored, and the response list still looks translucent. The background, theme switch, and bounded glass effects should remain responsive. The first screen should not download every avatar in the catalog. Test keyboard focus on the hidden-native file picker and a long selected filename.
 
 ## API permission checks
 

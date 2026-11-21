@@ -1649,3 +1649,10 @@
 @media(max-width:400px) {
   .archive-app .archive-transfer-file-row { gap:7px; }
 }
+
+/* The Team table may also grow with the number of agents. Avoid stretching
+ * one SVG glass texture down an unbounded table while keeping its panel tint. */
+.archive-app .archive-team-table-wrap {
+  background:var(--liquid-panel-tint);
+  border-color:var(--glass-line);
+}

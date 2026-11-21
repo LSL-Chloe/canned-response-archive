@@ -50,8 +50,10 @@ test('large archive lists avoid needless repaints without disabling the glass UI
 
 test('tall libraries never render one massive SVG displacement filter', () => {
   const library = readFileSync(new URL('../src/features/archive/LibraryWorkspace.tsx', import.meta.url), 'utf8');
+  const team = readFileSync(new URL('../src/features/archive/TeamWorkspace.tsx', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../src/styles/premium.css', import.meta.url), 'utf8');
   assert.doesNotMatch(library, /className="archive-response-list">\s*<LiquidUnderlay/);
+  assert.doesNotMatch(team, /<LiquidUnderlay/, 'the Team table must avoid an unbounded SVG filter');
   assert.match(css, /\.archive-app \.archive-response-list \{\s*background:var\(--liquid-panel-tint\)/);
   assert.match(library, /<LiquidUnderlay radius=\{18\}\/>/, 'keep bounded form refraction');
 });
