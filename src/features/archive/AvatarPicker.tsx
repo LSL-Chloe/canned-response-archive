@@ -223,8 +223,8 @@ export default function AvatarPicker({ avatarUrl, onAvatarChange, onNotice, onEr
   }
   const portraits=selectedTitle
     ? items.filter(item=>item.kind==='avatar' && Boolean(item.avatarUrl))
-    : [...localMatches,...(localMatches.length<8||showAdditional?extraFromApi:[])];
-  const hiddenAdditional=!selectedTitle && localMatches.length>=8 && !showAdditional
+    : [...localMatches,...(localMatches.length===0||showAdditional?extraFromApi:[])];
+  const hiddenAdditional=!selectedTitle && localMatches.length>0 && !showAdditional
     ? extraFromApi.length : 0;
   const showFeatured=queryText.length<2 && !selectedTitle;
   return (
