@@ -1,3 +1,4 @@
+import { additionalCrunchyrollIcons } from './additionalCrunchyrollCatalog';
 // Static, source-attributed character icons. These remain remote to avoid copying copyrighted artwork.
 // Individual images are served by their original public GitHub repositories.
 export type AvatarCategory = 'anime'|'tv'|'movie';
@@ -9,7 +10,10 @@ const categories:AvatarCategory[]=['anime','tv','movie'];
 export const curatedAvatars:CuratedAvatar[]=records.map(([c,franchise,title,repo,path],i)=>{
  const url=bases[repo as 0|1]+path.split('/').map(encodeURIComponent).join('/');
  return {id:'curated-'+i,kind:'avatar',title,franchise,category:categories[c]!,imageUrl:url,avatarUrl:url,pack:repo===0?'Fusion Profile Avatars':'Jellyfin Avatar Images'};
-});
+}).concat(additionalCrunchyrollIcons.map(([franchise,title,path],index)=>{
+ const url=bases[1]+path.split('/').map(encodeURIComponent).join('/');
+ return {id:'crunchyroll-'+index,kind:'avatar' as const,title,franchise,category:'anime' as const,imageUrl:url,avatarUrl:url,pack:'Jellyfin Avatar Images · Crunchyroll'};
+}));
 const featuredPaths = {"anime":["images/Crunchyroll/1056-black-clover-asta.png","images/Crunchyroll/1057-black-clover-yuno.png","images/Crunchyroll/1058-black-clover-noelle.png","images/Crunchyroll/1044-jujutsu-kaisen-satoru-gojo.png","images/Crunchyroll/1041-jujutsu-kaisen-yuji-itadori.png","images/Crunchyroll/1045-jujutsu-kaisen-ryomen-sukuna.png","images/Crunchyroll/1043-jujutsu-kaisen-nobara-kugisaki.png","images/Crunchyroll/100008-spy-x-family-anya-1.png","images/Crunchyroll/1037-tokyo-revengers-mikey.jpg","images/Crunchyroll/1038-tokyo-revengers-draken.jpg","images/Crunchyroll/100001-the-rising-of-the-shield-hero-naofumi.png","images/Crunchyroll/100002-the-rising-of-the-shield-hero-raphtalia.png","images/Crunchyroll/1046-dr-stone-senku.png","images/Crunchyroll/1036-tokyo-revengers-takemichi.jpg","images/Crunchyroll/1042-jujutsu-kaisen-megumi-fushigoro.png"],"tv":["Stranger Things/Eleven.PNG","Stranger Things/Steve Harrington.PNG","Stranger Things/Dustin Henderson.PNG","Stranger Things/Max Mayfield.PNG","Stranger Things/Jim Hopper.PNG","Stranger Things/Will Byers.PNG","Stranger Things/Mike Wheeler.PNG","Stranger Things/Nancy Wheeler.PNG","Stranger Things/Lucas Sinclair.PNG","Stranger Things/Robin Buckley.PNG","Stranger Things/Joyce Byers.PNG","Stranger Things/Erica Sinclair.PNG","Stranger Things/Jonathan Byers.PNG","Stranger Things/Billy Hargrove.PNG","Stranger Things/The Demogorgon.PNG"],"movie":["Disney+/Marvel/Iron Man.JPG","Disney+/Marvel/Loki.JPG","Disney+/Marvel/Black Panther.JPG","Disney+/Marvel/Hulk.JPG","Disney+/Marvel/Groot.JPG","Disney+/Marvel/Black Widow.JPG","Disney+/Marvel/Ant-Man.JPG","Disney+/Marvel/Rocket.JPG","Disney+/Marvel/Hawkeye.JPG","Harry Potter/Harry Potter.JPG","Harry Potter/Hermione Granger.JPG","Harry Potter/Severus Snape.JPG","Disney+/Animation/elsa.JPG","Disney+/Animation/moana.JPG","Disney+/Animation/mulan.JPG"]};
 export const featuredAvatars:Record<AvatarCategory,CuratedAvatar[]> = {anime:[],tv:[],movie:[]};
 for(const category of categories){
