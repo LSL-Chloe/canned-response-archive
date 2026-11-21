@@ -79,9 +79,12 @@ export async function handleResponses(request: Request, env: Env, path: string):
     // Use immutable agent IDs, not creator display names (which users may later change).
     const ownedShared = new Set<string>();
     if (signed && shared.length) {
+      // Query the viewer's own shared IDs directly. Sending hundreds of
+      // response IDs in one GET query string exceeds proxy URL limits on
+      // larger libraries and makes the By me tab disappear unexpectedly.
       const mine = await queryTable<{ id: string }>(env, 'canned_responses', {
-        select: 'id', id: `in.(${shared.map(row => row.response_id).join(',')})`,
-        visibility: 'eq.shared', owner_id: `eq.${signed.agent.id}`, limit: '1000',
+        select: 'id', visibility: 'eq.shared', owner_id: `eq.${signed.agent.id}`,
+        order: 'created_at.desc', limit: '1000',
       });
       mine.forEach(row => ownedShared.add(row.id));
     }
@@ -169,7 +172,7 @@ export async function handleResponses(request: Request, env: Env, path: string):
     const shortcut = shortcutInput(data.shortcut);
     const visibility = visibilityInput(data.visibility ?? item.visibility);
     try {
-      const updated = await callRpc<CanonicalResponse>(env, 'update_archive_response', {
+      const updated = await callRpc<{ id: string; visibility: 'shared' | 'private' }>(env, 'update_archive_response', {
         p_actor_id: signed.agent.id,
         p_response_id: id,
         p_body: body,

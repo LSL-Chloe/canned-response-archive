@@ -79,7 +79,9 @@ begin
    returning r.* into v_result;
 
   -- The existing sync_shared_response_feed trigger synchronizes the anonymous\n  -- feed on both visibility transitions.
-  return pg_catalog.to_jsonb(v_result);
+  -- Do not return the private reply text or owner ID to an admin after
+  -- moving another agent's Shared response to Private.
+  return pg_catalog.jsonb_build_object('id',v_result.id,'visibility',v_result.visibility);
 end;
 $$;
 
