@@ -91,31 +91,35 @@ export default function TransferWorkspace({ agent, onClose, reload, onNotice, on
     if (!preview || !rows.length || busy || exceedsHourlyBatchLimit || (scope === 'shared' && !canShared)) return;
     if (!window.confirm(
       `Import ${rows.length} NEW ${scope} responses from ${selectedName}?\n\n` +
-      'Existing responses will not be overwritten. Duplicate shortcuts or text will be added as additional responses. ' +
-      'This import is not atomic: if it fails partway, some entries may already be saved.',
+      'Existing exact shortcut-and-text matches will be skipped, while different replies under the same shortcut remain separate. ' +
+      'Each batch is atomic, and interrupted imports can be retried safely.',
     )) return;
     setBusy(true);
     setCompleted(0);
-    let saved = 0;
+    let processed = 0;
+    let imported = 0;
+    let skipped = 0;
     try {
       for (const batch of batches) {
         const result = await importResponses(scope, batch);
-        if (result.imported !== batch.length || result.visibility !== scope) {
+        if (result.imported + result.skipped !== batch.length || result.visibility !== scope) {
           throw new Error('The server did not confirm the expected import count.');
         }
-        saved += batch.length;
-        setCompleted(saved);
+        processed += batch.length;
+        imported += result.imported;
+        skipped += result.skipped;
+        setCompleted(processed);
       }
       setPreview(null);
       setSelectedName('');
-      onNotice(`Imported ${saved} new ${scope} responses. Existing responses were kept.`);
+      onNotice(`Imported ${imported} new ${scope} responses; skipped ${skipped} already present.`);
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Import request failed.';
       onError(
-        `Import interrupted after ${saved} confirmed responses. ` +
-        'The failing batch may have been partially saved; check the library before attempting it again. ' + reason,
+        `Import stopped after ${processed} confirmed entries. ` +
+        'The current batch is transactional, but a disconnected request might have committed. ' +
+        'You can reupload the same file: matching shortcut/text entries will be skipped. ' + reason,
       );
-      // The current batch might have succeeded in part. Do not offer a one-click retry.
       setPreview(null);
       setSelectedName('');
     } finally {
@@ -190,9 +194,10 @@ export default function TransferWorkspace({ agent, onClose, reload, onNotice, on
             Split this archive into smaller JSON files before importing.
           </p>}
           <p className="archive-transfer-warning">
-            Import only adds responses; it never replaces or merges existing text. Duplicate entries may be created.
-            Imports run in batches of at most 50 and are <strong>not atomic</strong>. A failed batch may leave some responses saved.
-            The backend currently permits up to 10 import requests per hour per account.
+            Each import keeps different replies under the same shortcut, but skips exact shortcut/text duplicates
+            already saved in the selected location. Each batch of up to 50 is <strong>atomic</strong>;
+            if the connection fails, reuploading the file safely skips entries that already exist.
+            The backend permits up to 10 import requests per hour per account.
           </p>
           <div className="archive-transfer-preview-actions">
             <LiquidButton type="button" className="archive-button archive-button-primary" disabled={busy || exceedsHourlyBatchLimit}

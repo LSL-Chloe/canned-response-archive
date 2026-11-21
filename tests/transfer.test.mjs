@@ -53,10 +53,26 @@ test('archive controls reserve Shared transfer for administrators and require lo
   assert.match(transfer, /canShared &&/);
   assert.match(transfer, /Review before importing/);
   assert.match(transfer, /window.confirm/);
-  assert.match(transfer, /not atomic/);
+  assert.match(transfer, /<strong>atomic<\/strong>/);
+  assert.match(transfer, /result\.imported \+ result\.skipped/);
+  assert.match(server, /import_responses_batch/);
+  assert.doesNotMatch(server, /for \(const entry of validated\)/);
   assert.match(api, /\/api\/responses\/export\?scope=/);
   assert.match(api, /\/api\/responses\/import/);
   assert.match(server, /scope === 'shared' && signed.agent.role !== 'admin'/);
   assert.match(server, /if \(!signed\) return fail\(401, 'login_required', 'Sign in to import'\)/);
   assert.match(server, /owner_id: `eq\.\$\{signed\.agent\.id\}`/);
+});
+
+test('import RPC batches are transactional, permissions-bound, and safe to retry', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261122000000_atomic_import_batches.sql', import.meta.url), 'utf8');
+  assert.match(sql, /language plpgsql security invoker set search_path = ''/);
+  assert.match(sql, /revoke all on function public\.import_responses_batch\(uuid, text, jsonb\) from public, anon, authenticated/);
+  assert.match(sql, /grant execute on function public\.import_responses_batch\(uuid, text, jsonb\) to service_role/);
+  assert.match(sql, /p_visibility = 'shared' and v_role <> 'admin'/);
+  assert.match(sql, /pg_advisory_xact_lock/);
+  assert.match(sql, /r\.body = v_body/);
+  assert.match(sql, /v_skipped := v_skipped \+ 1/);
+  assert.match(sql, /insert into public\.canned_responses/);
+  assert.match(sql, /jsonb_array_length\(p_responses\) not between 1 and 50/);
 });

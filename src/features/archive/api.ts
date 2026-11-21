@@ -102,7 +102,7 @@ export async function getTeam(): Promise<TeamAgent[]> {
 export function exportResponses(visibility: Visibility): Promise<TransferFile> {
   return api<TransferFile>(`/api/responses/export?scope=${visibility}`);
 }
-export function importResponses(visibility: Visibility, responses: TransferRow[]): Promise<{ imported: number; visibility: Visibility }> {
+export function importResponses(visibility: Visibility, responses: TransferRow[]): Promise<{ imported: number; skipped: number; visibility: Visibility }> {
   return api('/api/responses/import', {
     method: 'POST', body: JSON.stringify({ visibility, responses }),
   });

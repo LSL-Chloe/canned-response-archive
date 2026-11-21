@@ -220,13 +220,14 @@ export async function handleResponses(request: Request, env: Env, path: string):
     if (!await requireRateLimit(env, `import:${signed.agent.id}`, 10, 3600)) {
       return fail(429, 'rate_limited', 'Too many imports. Try again later.');
     }
-    // V1 import is sequential and is NOT atomic. UI must preview and disclose this.
-    let imported = 0;
-    for (const entry of validated) {
-      await addResponse(env, signed.agent.id, entry.shortcut, entry.body, scope);
-      imported += 1;
-    }
-    return json({ imported, visibility: scope }, 201);
+    // One Postgres transaction per batch. Retries skip exact shortcut/body pairs
+    // already present, including responses saved by older partial imports.
+    const result = await callRpc<{ imported: number; skipped: number }>(env, 'import_responses_batch', {
+      p_agent_id: signed.agent.id,
+      p_visibility: scope,
+      p_responses: validated,
+    });
+    return json({ imported: result.imported, skipped: result.skipped, visibility: scope }, 201);
   }
 
   if (path === '/api/admin/users' && request.method === 'GET') {
