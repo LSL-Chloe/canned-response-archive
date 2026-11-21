@@ -1,5 +1,5 @@
 import LiquidButton from '../../ui/LiquidButton';
-import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { findHashQuery, findPlainShortcutQuery, findShortcutGroups, insertSuggestion, type ArchiveResponse } from './model';
 import LiquidUnderlay from '../../ui/LiquidUnderlay';
 
@@ -131,6 +131,16 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
       }
     }
   }
+  function onCopyDraft(event: ClipboardEvent<HTMLTextAreaElement>) {
+    // Only substitute the full draft when nothing is selected. Preserve the
+    // browser's normal Ctrl/Cmd+C behavior for highlighted text.
+    if (!draft || event.currentTarget.selectionStart !== event.currentTarget.selectionEnd) return;
+    if (!event.clipboardData) return;
+    event.clipboardData.setData('text/plain', draft);
+    event.preventDefault();
+    onNotice('Draft copied to clipboard.');
+  }
+
   async function copyDraft() {
     try {
       await navigator.clipboard.writeText(draft);
@@ -173,6 +183,7 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
             if (lastInsert.current?.after !== value) lastInsert.current = null;
           }}
           onKeyDown={onKeyDown}
+          onCopy={onCopyDraft}
         />
         {open && (
           <div className="archive-suggestion-popover">
@@ -224,7 +235,7 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
         )}
         <div className="archive-composer-bottom">
           <span className="archive-composer-hint"><kbd>#</kbd> Optional for shortcut search
-            <span className="archive-hint-desktop"> · <kbd>Enter</kbd> open · <kbd>Ctrl</kbd> + <kbd>Z</kbd> undo</span>
+            <span className="archive-hint-desktop"> · <kbd>Enter</kbd> open · <kbd>Ctrl</kbd> + <kbd>Z</kbd> undo · <kbd>Ctrl</kbd> + <kbd>C</kbd> copy</span>
           </span>
           <LiquidButton className="archive-button archive-button-primary" type="button"
             disabled={!draft} onClick={() => void copyDraft()}>Copy draft</LiquidButton>
