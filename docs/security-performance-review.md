@@ -62,4 +62,12 @@ The goal is to keep the archive fast and easy to use **without mistaking green u
 - **Documentation:** Updated the long-library, import transaction, and image-fallback QA instructions and architecture descriptions.
 - **Limitations:** This is a source-level review and automated build/test validation, not an interactive browser/GPU benchmark or proof that all future bugs have been eliminated. Real-device scroll profiling, third-party image availability, public content rights, and stronger authentication remain to be addressed deliberately.
 
+## Response management follow-up: 22 November 2026
+
+- Added a **By me** library filter, using existing viewer-specific ownership flags rather than matching editable display names. No extra private feed is exposed.
+- Editing can switch Shared ↔ Private alongside a reply's text and shortcut. A service-role-only SQL function locks the row and preserves the **original owner ID**, even when an administrator moves somebody else's Shared reply to Private. Trigger-maintained Shared feed rows are added or removed in the same database transaction.
+- Added confirmed bulk deletion, with a maximum of 100 unique IDs per atomic transaction. The Worker validates the signed-in actor and rate limit; Postgres rechecks both ownership and live visibility while holding row locks. Unprivileged agents cannot delete another agent's shared or private replies; admins can delete shared replies but not others' private replies.
+- Library selection is restricted to the current filter's manageable rows. Four-way tabs and select controls reuse compositor-friendly transforms and native checkbox controls rather than many new glass surfaces; reduced-motion and low-data preferences remain supported.
+- The new migration must be deployed **before** publishing the Worker features. Code review and automated tests do not replace real-account API permission tests, physical device animation profiling, and backup/restore validation.
+
 Official sources: https://github.com/vitejs/vite/security/advisories/GHSA-p4f5-76q4-ffq7 ; https://developer.themoviedb.org/docs/faq ; https://help.netflix.com/en/node/24852

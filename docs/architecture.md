@@ -17,7 +17,7 @@ A Shared response becomes part of `shared_response_feed`, which is designed for 
 
 Private responses remain in the canonical `canned_responses` table and are served through owner-filtered Worker queries. The administrator cannot use the API to read another user's private text. Database row-level security and grants prevent clients from querying protected tables with anonymous credentials.
 
-Saved responses may share a shortcut. Editing a reply's shortcut reassigns that reply, not the entire shortcut collection.
+Saved responses may share a shortcut. Editing a reply's shortcut or Shared/Private visibility reassigns only that reply, not the entire shortcut collection. The By me filter is assembled from the session-specific ownership flags, combining own Shared and Private records without requesting anybody else's private text.
 
 ## Accounts, recovery, and sessions
 
@@ -28,6 +28,12 @@ Session tokens are random and only their SHA-256 hashes are stored. HTTPS cookie
 Adding a verified recovery email is optional. Signup, recovery, and email changes use six-digit, short-lived codes. The code digest and completion state are kept server-side, with transactional consumption through the database.
 
 The first completed signup claims the sole administrator role. Be sure to register the intended administrator before exposing an empty installation.
+
+## Editing visibility and deleting multiple replies
+
+A PATCH to one response performs an atomic Postgres RPC: validate the request, lock the current canonical row, recheck the actor's role/ownership, find or create the target shortcut in the correct visibility scope, and update text/shortcut/visibility together. Existing database triggers maintain the public Shared feed. If an admin moves another agent's Shared reply to Private, the reply and its private shortcut retain the original creator's owner ID, preventing the administrator from gaining access to their private content.
+
+Bulk delete accepts a bounded list of UUIDs. The Worker validates distinct IDs and a rate limit; a separate service-role-only, security-invoker Postgres RPC locks all selected response rows and verifies that every row is owned by the actor or is Shared and the actor is admin. It then deletes all rows in that batch in one transaction. A selection larger than 100 is split across transactions in the UI; a partial network failure requires reloading before choosing again. No anonymous database policy or client secret was added.
 
 ## Keeping the interface current
 

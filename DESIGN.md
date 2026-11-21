@@ -34,3 +34,7 @@ The archive should remain recognizable and fluid even when a browser has to simp
 ## Rendering very long lists
 
 Large lists use a translucent panel and optical edge rather than extending one SVG displacement filter across hundreds of responses. The full-height refraction texture can exceed device GPU limits and cause severe distortion deep into the page. Keep liquid-glass effects on bounded interactive controls and smaller cards; do not add a full-list filter back. Import file pickers should show one styled control while keeping the native file input keyboard accessible. Test the result in both themes and at high zoom.
+
+## Response management and motion
+
+The library filter has four equally sized tab targets (**All / Shared / Private / By me**). Its sliding glass lens uses a short transform-only transition; do not animate layout or recreate four expensive optical filters. Selection checkboxes are native form controls, not new liquid-glass SVGs for every row. A bulk action bar wraps instead of overflowing on narrow screens. Confirm destructive operations and show progress for batched deletes. Respect reduced-motion mode and do not promise a particular refresh rate: measure performance on the target hardware at full list length.
