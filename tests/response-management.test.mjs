@@ -67,10 +67,10 @@ test('visibility transitions and 100-item deletes run in locked SQL transactions
   assert.match(sql, /where r\.id = any\(p_ids\) order by r\.id for update/);
   assert.match(sql, /where r\.owner_id <> p_actor_id/);
   assert.match(sql, /v_requested not between 1 and 100/);
-  for (const fn of ['update_archive_response\(uuid,uuid,text,text,text\)', 'delete_archive_responses_batch\(uuid,uuid\[\]\)']) {
-    assert.match(sql, new RegExp('revoke all on function public\\.' + fn + '[\\s\\S]*?from public, anon, authenticated'));
-    assert.match(sql, new RegExp('grant execute on function public\\.' + fn + '[\\s\\S]*?to service_role'));
-  }
+  assert.match(sql, /revoke all on function public\.update_archive_response\(uuid,uuid,text,text,text\)[\s\S]*?from public, anon, authenticated/);
+  assert.match(sql, /grant execute on function public\.update_archive_response\(uuid,uuid,text,text,text\)[\s\S]*?to service_role/);
+  assert.match(sql, /revoke all on function public\.delete_archive_responses_batch\(uuid,uuid\[\]\)[\s\S]*?from public, anon, authenticated/);
+  assert.match(sql, /grant execute on function public\.delete_archive_responses_batch\(uuid,uuid\[\]\)[\s\S]*?to service_role/);
 });
 
 test('edit UI changes destination, select all works only for manageable visible rows', () => {
