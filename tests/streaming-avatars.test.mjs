@@ -76,3 +76,23 @@ test('desktop rail stays sticky when the Settings page is taller than the viewpo
  assert.match(css,/height:100dvh/);
  assert.match(css,/align-self:flex-start/);
 });
+
+
+test('the entire pinned Crunchyroll folder is in Anime exactly once, grouped by anime and character', () => {
+ const anime=curatedAvatars.filter(x=>x.category==='anime');
+ const originals=anime.filter(x=>x.imageUrl.includes('/kalibrado/jf-avatars-images/') &&
+   x.imageUrl.includes('/images/Crunchyroll/'));
+ assert.equal(originals.length,470,'470 distinct Crunchyroll folder assets must be available');
+ assert.equal(new Set(originals.map(x=>x.imageUrl)).size,470,'no duplicate Crunchyroll images');
+ assert.ok(anime.length>=673,'retain the original 305 anime icons and add 368 new icons');
+ assert.equal(featuredAvatars.anime.length,15,'preserve the original featured row');
+ const lock=originals.filter(x=>x.franchise==='Blue Lock');
+ assert.ok(lock.length>=20,'group Blue Lock icons by series rather than under generic Anime');
+ assert.ok(lock.some(x=>/Isagi/i.test(x.title)),'characters must be named');
+ assert.ok(searchCuratedAvatars('anime','apothecary maomao').some(x=>x.franchise==='The Apothecary Diaries'));
+ assert.ok(searchCuratedAvatars('anime','mushoku rudeus').some(x=>x.title.toLowerCase().includes('rudeus')));
+ assert.ok(searchCuratedAvatars('anime','crunchyroll classic').some(x=>x.title.includes('Hime')));
+ assert.ok(curatedAvatarsForTitle('anime','One Piece').length>=40);
+ assert.ok(originals.every(x=>x.imageUrl.endsWith('.png')||/\.(?:jpg|jpeg|webp)$/i.test(x.imageUrl)));
+ assert.ok(!originals.some(x=>x.imageUrl.includes('nflxso.net')),'do not mix in Netflix anime');
+});
