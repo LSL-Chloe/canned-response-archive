@@ -56,7 +56,9 @@ test('input validation preserves shortcut semantics', () => {
   assert.equal(bodyInput('Valid response'), 'Valid response');
   assert.equal(nameInput('Agent Alice'), 'Agent Alice');
   assert.equal(pinInput('0042'), '0042');
-  assert.throws(() => shortcutInput('#bad short cut'), ApiError);
+  assert.equal(shortcutInput('#bad short cut'), 'bad short cut');
+  assert.equal(shortcutInput('#_OnIdle_'), '_OnIdle_');
+  assert.throws(() => shortcutInput('#bad/short cut'), ApiError);
   assert.throws(() => pinInput('01234'), ApiError);
   assert.throws(() => bodyInput(''), ApiError);
   assert.throws(() => nameInput(' A '), ApiError);
