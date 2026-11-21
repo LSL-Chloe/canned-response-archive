@@ -101,6 +101,8 @@ Do not prefix these variables with `VITE_`: that prefix is for frontend-exposed 
 
 The normal workflow begins at Search. Saved responses live in Canned responses, while the profile menu opens Settings. The page supports dark and light liquid-glass themes, and its visual effects respect reduced-motion preferences.
 
+The current development Worker also serves the custom domain [archiveresp.dpdns.org](https://archiveresp.dpdns.org/). Domain registration and DNS changes are administered outside this repository; deploying this code alone does not register or attach that hostname. The site uses a CDN-first preview for static curated avatar images and falls back to the original pinned GitHub image if the CDN is unavailable. Chrome's network/proxy restrictions may still affect third-party images independently of the Worker.
+
 For a complete manual test, use [archive QA](archive-qa.md) and [authentication QA](auth-qa.md). For the trust boundaries, see [architecture](architecture.md) and [SECURITY.md](../SECURITY.md).
 
 ## Cloudflare preview builds and dependency updates

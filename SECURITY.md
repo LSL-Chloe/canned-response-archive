@@ -10,6 +10,8 @@ Canned Response Archive is a personal/development project, not a certified secur
 
 **Custom profile pictures are publicly readable.** The uploaded image's Supabase Storage URL can be accessed by anyone who knows it. Do not use private or sensitive images.
 
+**Avatar thumbnails are fetched from third parties.** The static public collections use pin-locked jsDelivr thumbnail URLs with the corresponding GitHub file as a fallback. Browsers visiting the avatar picker connect to those services and may expose the visitor's IP address and normal HTTP metadata to them. Do not treat artwork found on public CDNs as licensed for redistribution.
+
 ## Authentication boundaries
 
 Accounts use a four-digit PIN. Although PIN verifiers are salted and protected with a server-side pepper and login attempts are rate-limited, four digits are still a low-entropy secret. We do **not** recommend using this authentication scheme to protect valuable or sensitive data in a public production deployment.
