@@ -17,6 +17,12 @@ Canned Response Archive has a live website and a separate, working staging Previ
 - Do not merge a new feature to `main` until the relevant staging database migrations are applied and the production migration/deployment order has been reviewed.
 - Cloudflare Preview URLs may be public. Test only with non-sensitive sample data, and enable Cloudflare Access when staging needs restricted access.
 
+## Why develop may appear one commit behind main
+
+GitHub's Ahead/Behind indicator compares **commit ancestry**, not whether the sites contain the same files. The protected production release was **squash-merged** into `main`, creating a new commit on `main` that never existed on `develop`. This can display `develop` as one commit behind even while it contains additional staging updates. Compare the **Git trees and PR diff** before a release; don't force-push, reset, or automatically merge `main` back into `develop` solely to make the indicator say zero.
+
+Feature PRs always target `develop`; a release PR targets protected `main` and must pass its required checks. Future UI improvements, including public Team overview and response creator portraits, follow this same workflow.
+
 ## Cloudflare Preview configuration
 
 Cloudflare: **Workers & Pages → canned-response-archive → select `develop` → Settings → Variables and Secrets**. The following bindings were confirmed on the `develop` Preview during staging setup:
