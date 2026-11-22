@@ -335,13 +335,23 @@ function bg2d(env){
  };
  const pt=e=>{tx=(e.clientX-W/2)/H;ty=(H/2-e.clientY)/H;act=performance.now()};
  const controls='a,button,input,textarea,select,option,label,h1,h2,h3,h4,h5,h6,p,span,kbd,small,strong,em,code,[contenteditable],[role="button"],[role="option"],[role="link"],[role="textbox"]';
+ let backgroundPointer=null;
+ const releaseBackground=e=>{if(!e||e.pointerId===backgroundPointer)backgroundPointer=null};
+ // Preserve the original WebGL interaction semantics in the Canvas2D path:
+ // dragging from empty background must not start selecting hint text.
+ D.addEventListener('selectstart',e=>{if(backgroundPointer!==null)e.preventDefault()},{capture:true,signal});
+ addEventListener('pointerup',releaseBackground,{passive:true,signal});
+ addEventListener('pointercancel',releaseBackground,{passive:true,signal});
+ addEventListener('blur',()=>releaseBackground(),{passive:true,signal});
  addEventListener('resize',size,{signal});
  addEventListener('pointermove',pt,{passive:true,signal});
  addEventListener('pointerdown',e=>{
   pt(e);
   const t=e.target;
-  if(e.pointerType==='mouse'&&e.isPrimary&&e.button===0&&t instanceof Element&&
-     t.closest('.archive-app,.auth-experience')&&!t.closest(controls)){
+  const blank=e.pointerType==='mouse'&&e.isPrimary&&e.button===0&&t instanceof Element&&
+    !!t.closest('.archive-app,.auth-experience')&&!t.closest(controls);
+  backgroundPointer=blank?e.pointerId:null;
+  if(blank){
    lights.push({x:tx,y:ty,time:performance.now()});
    if(lights.length>6)lights.shift();
   }
