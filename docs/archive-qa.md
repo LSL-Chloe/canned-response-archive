@@ -9,7 +9,7 @@ This is a practical walkthrough for testing the saved-response workflow in a rea
 3. Type a shortcut prefix, for example `#fol`, and check that only matching shortcut names remain. Repeat without the hash, and test multi-word shortcuts such as `auto pricing` / `#auto pricing`, and leading-underscore shortcuts `_OnIdle_` / `#_OnIdle_`. In Canned responses, search for both `#follow_up` and `follow_up`: the results must match.
 4. Press Enter or the right arrow to open a shortcut. The second level should show **all replies** saved under that shortcut.
 5. Insert a reply with `#`, then press Ctrl/Cmd+Z to restore the previous shortcut search. Repeat without `#`, confirming the original text, selection and cursor position are restored and unrelated draft text is not overwritten.
-6. Copy the draft. The clipboard should contain the text you see, with no surprise changes.
+6. Copy the draft via the existing **Copy draft** button and, with the editor focused and no selected text, via Ctrl/Cmd+C. Both should copy the complete draft. With some text highlighted, Ctrl/Cmd+C must copy **only** that selection.
 7. Open Canned responses. Shared entries may show creator display names; the shortcut insertion popup should not.
 
 ## Signed-in experience
@@ -24,7 +24,7 @@ This is a practical walkthrough for testing the saved-response workflow in a rea
 8. Try importing a malformed file or the wrong visibility. Confirm the UI rejects it. Each batch is an atomic transaction: the failing batch saves all or none. Network failures can occur after the server commits, so reupload the same file to skip matching shortcut/text records. The whole multi-batch file is not one transaction. Confirm only one visible **Choose JSON file** button appears, that its label shows the selected filename, and that it can be reached by keyboard.
 9. Open Settings, switch between Anime, TV series, and Movies, and browse all PFP options with **Show more**. The first tile must remain custom upload. Anime includes 470 source-pinned Crunchyroll pictures; search for a franchise and character. Thumbnails should use a CDN first and fall back to the original GitHub image when it fails. On slow connections, verify the first row loads promptly and later rows load on demand. Check image failures, account updates and selection on a mobile device.
 10. Click **Select** in Shared and By me, choose individual checkboxes, **Select all**, **Deselect all** and **Clear**. Confirm Select all targets only the current search/filter and only records the user can delete. Cancel a destructive confirmation to ensure no rows change. Delete several test replies as an agent; verify someone else's shared replies remain. Repeat as admin on multiple shared entries. Test 101+ selected test entries to exercise the atomic 100-row batching; if a batch fails, the count and warning must explain previous confirmations.
-11. Collapse the sidebar and navigate among pages. Verify Settings remains usable and the desktop sidebar keeps its full-height appearance. Test all four library tabs, their animated lens positions, and bulk selection at mobile widths and 200% zoom.
+11. Collapse the sidebar and navigate among pages. Verify Settings remains usable, the sidebar and top bar meet cleanly, and the desktop sidebar keeps its full-height appearance. Test all four library tabs, their animated **selected** lens positions (without a second hover pill), and bulk selection at mobile widths and 200% zoom.
 
 ## Updating and performance
 
@@ -39,6 +39,13 @@ Hiding a button is not enough. Confirm a non-admin receives **403** when attempt
 ## Limitations
 
 The project uses polling rather than direct push-based Realtime. Silent polls skip if another response refresh is still in flight; imports are atomic only within individual batches, not across the whole file. Third-party PFP CDNs may be missing, slow or unavailable and original GitHub sources provide a fallback. Automated tests do not prove visual fidelity, browser-specific behavior, or secure operations in a real production environment.
+
+## Administrator account-management checks (staging only)
+
+1. Sign in as the staging administrator. Expand **Admin dashboard** and switch between **Team overview** and **Manage agents**. Confirm only the selected submenu option has the glass pill, and the submenu closes/opens without losing the selected page.
+2. Verify the registered-agent list shows agent names, roles, join dates, and response counts, but does not display recovery emails, private reply text, or PIN data. Ordinary agents must not see or access these endpoints.
+3. Use a **disposable staging account** to verify the confirmation dialog. Cancelling or typing the wrong name must not delete anything; self-delete and deleting the administrator must be denied even if attempted through the API.
+4. With a tested backup and a disposable staging account only, verify one confirmed deletion removes its sessions and replies, while another agent's Shared reply and any referenced shared shortcut survive. Reload and verify the public Shared feed. **Never perform a destructive account-delete smoke test on live users.**
 
 ## Two-account visibility checks (use expendable test content)
 

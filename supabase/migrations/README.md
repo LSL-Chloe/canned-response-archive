@@ -1,6 +1,6 @@
 # Database migrations
 
-The files in this directory describe how the archive's **development** Supabase schema evolved. They are versioned SQL, not database backups.
+The files in this directory describe how the archive's Supabase schema evolved across live and staging deployments. They are versioned SQL, not database backups.
 
 Apply them in timestamp order to a **new** project, using a migration tool or process that tracks completed versions:
 
@@ -12,10 +12,11 @@ Apply them in timestamp order to a **new** project, using a migration tool or pr
 6. `20261122000000_atomic_import_batches.sql` — atomic JSON import function with scoped deduplication.
 7. `20261122000001_preserve_original_shortcut_labels.sql` — allow and preserve spaces/leading underscores in shortcut names.
 8. `20261122010100_response_management.sql` — atomic reply visibility changes and permission-checked bulk deletion of up to 100 IDs per request.
+9. `20261122043000_admin_delete_agent.sql` — service-role-only, transactional administrator account deletion; removes the target's replies and sessions, preserving shared shortcuts used by other agents.
 
-The connected **development** database has applied all eight migrations, including response management (recorded as version `20261121203646`). The two new RPCs were verified as `SECURITY INVOKER`, executable by `service_role` only, and inaccessible to `anon` / `authenticated`. A disposable transactional test checked scope conversion, original-owner preservation, shared-feed synchronization, and mixed-permission bulk rejection. All disposable writes were rolled back; existing archive counts were unchanged.
+As checked on 22 November 2026, **both staging and the live project have applied all nine migrations**. The live project's ninth migration, `admin_delete_agent`, was installed and its grants/unchanged data counts were verified **before** the corresponding code release. The response-management and agent-deletion RPCs use `SECURITY INVOKER`, are executable by `service_role` only, and are inaccessible to `anon` / `authenticated`. Rollback-only SQL tests verified response visibility transitions, bulk permissions, deletion authorizations, and the preservation of shared content created by other agents. No test data was retained.
 
-File timestamps in Git are a source ordering guide; a Supabase project's applied migration versions can differ. Do not blindly reapply historical schema changes. A new production database should be created, migrated, and tested separately.
+File timestamps in Git are a source ordering guide; a Supabase project's applied migration versions can differ. Do not blindly reapply historical schema changes. The live database already contains accounts and responses; do not reinitialize it or overwrite it with staging data. New installations require an independent database and controlled first-admin registration.
 
 The shared-response feed is deliberately readable to anonymous visitors; credentials and private data are protected by server-only access and database permissions. The avatar storage bucket is public-read, so uploaded pictures must not be sensitive.
 
