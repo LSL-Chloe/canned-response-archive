@@ -14,6 +14,10 @@ Both themes keep the finalized violet/blue **original WebGL shader** as the pref
 
 Respect reduced-motion settings by rendering the original shader at a stationary time when graphics work, and disabling ambient movement in the lined CSS fallback. Never override the user's explicit motion preference. The browser can block WebGL; no website can force a disabled graphics API.
 
+### Matching the toggle on the lined fallback
+
+The compact glass light/dark switch is the reference for fallback control material. When the lined background is active, existing buttons, selection lenses, option tracks and form controls share its soft convex rim, transparent depth, restrained specular sheen and spring timing. This is a fallback-only CSS treatment of the **same controls**, not an alternate interface. Use the active background renderer flag to distinguish the real lined fallback from the pending first WebGL frame; a missing flag also keeps the styling when optional visual JavaScript is blocked. Do not introduce extra SVG filters per response row or apply expensive background blur to scroll-heavy surfaces. The original WebGL look must remain unchanged, and reduced-motion/transparency preferences still take precedence.
+
 ## The glass treatment
 
 Navigation, buttons, and selected controls use a refractive liquid-glass lens. This effect comes from [`@samasante/liquid-glass`](https://github.com/samasante/liquid-glass) and its SVG displacement maps, not from blur alone.
