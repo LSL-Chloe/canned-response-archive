@@ -805,6 +805,12 @@
 }
 .archive-app[data-theme],.auth-experience[data-theme]{
   background:transparent;position:relative;isolation:isolate;
+  /* CSS-only safety net if the optional visual JS cannot initialize. */
+  transition:color .58s ease,--a-bg .58s ease,--caustic .58s ease,--caustic-edge .58s ease,
+    --ambient-blue .58s ease,--ambient-violet .58s ease,--ambient-rose .58s ease;
+}
+@media(prefers-reduced-motion:reduce){
+  .archive-app[data-theme],.auth-experience[data-theme]{transition:none!important}
 }
 .archive-app>.optical-environment,.auth-experience>.optical-environment{
   position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
