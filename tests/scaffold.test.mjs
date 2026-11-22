@@ -12,8 +12,11 @@ test('Cloudflare Worker is configured for explicit API routes', () => {
   assert.equal(config.assets.not_found_handling, 'single-page-application');
   // Workers Builds invokes `wrangler preview` on PR branches. Missing this
   // block makes every Cloudflare branch build fail even when main deploys fine.
-  assert.deepEqual(config.previews, {});
-  assert.equal(JSON.stringify(config.previews).includes('SECRET'), false);
+  // Preview may declare a public staging URL, but must not expose backend secrets
+  // or override the live Worker's bindings at the top level.
+  assert.equal(config.previews?.vars?.SUPABASE_URL, 'https://vfxjiecelhlqryxlymsv.supabase.co');
+  assert.equal(config.vars?.SUPABASE_URL, undefined);
+  assert.doesNotMatch(JSON.stringify(config.previews), /SUPABASE_SECRET_KEY|PIN_PEPPER|OTP_MAILER_SECRET|TMDB_READ_ACCESS_TOKEN/);
 });
 
 test('health endpoint exists and archive reads responses only through same-origin API', () => {
@@ -36,10 +39,15 @@ test('versioned database migrations and API documentation exist', () => {
   assert.ok(exists('docs/backend-api.md'));
 });
 
-test('dependency updates avoid incompatible major-version PRs and duplicate branch CI', () => {
+test('dependency updates avoid major-version noise and both stable branches run CI', () => {
   const dependabot = read('.github/dependabot.yml');
   const ci = read('.github/workflows/ci.yml');
+  const security = read('.github/workflows/security-audit.yml');
+  const pruner = read('.github/workflows/prune-merged-branches.yml');
   assert.equal((dependabot.match(/version-update:semver-major/g) ?? []).length, 2);
-  assert.match(ci, /branches: \[main\]/);
+  assert.match(ci, /branches: \[main, develop\]/);
+  assert.match(security, /branches: \[main, develop\]/);
   assert.match(ci, /pull_request:/);
+  assert.match(pruner, /\$branch" != "main" && "\$branch" != "develop"/);
+  assert.ok(exists('docs/staging-and-releases.md'));
 });

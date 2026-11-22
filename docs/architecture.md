@@ -27,7 +27,7 @@ Session tokens are random and only their SHA-256 hashes are stored. HTTPS cookie
 
 Adding a verified recovery email is optional. Signup, recovery, and email changes use six-digit, short-lived codes. The code digest and completion state are kept server-side, with transactional consumption through the database.
 
-The first completed signup claims the sole administrator role. Be sure to register the intended administrator before exposing an empty installation.
+The first completed signup claims the sole administrator role. Be sure to register the intended administrator before exposing an empty installation. The administrator-only **Manage agents** page reads account statistics through `admin_agent_stats` and deletes other non-admin accounts through a rate-limited Worker endpoint and the service-role-only `admin_delete_agent` transaction. It deletes the targeted account's replies and sessions without returning Private reply text to the administrator. Shared shortcuts referenced by other agents' replies are reassigned to the administrator rather than dropped.
 
 ## Editing visibility and deleting multiple replies
 
@@ -51,7 +51,7 @@ Third-party icons may be removed or changed by their owners. Their presence on a
 
 ## Deployment boundaries
 
-The repository currently has a live Cloudflare Worker deployment using development infrastructure. That isn't the same as production readiness. A separate production Supabase project, independently managed secrets, backups, abuse protection, and end-to-end permission testing are still needed.
+The repository has a live `main` Worker and a separate `develop` Preview with its own Supabase project and optional Gmail OTP relay.  That isn't the same as production readiness. A separate production Supabase project, independently managed secrets, backups, abuse protection, and end-to-end permission testing are still needed.
 
 The versioned SQL files under `supabase/migrations/` document the development schema. Applying a migration to a new environment should be a reviewed change. Rolling back a frontend commit does not reverse a database migration.
 

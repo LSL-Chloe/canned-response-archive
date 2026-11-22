@@ -6,6 +6,7 @@ import SearchWorkspace from './SearchWorkspace';
 const LibraryWorkspace = lazy(() => import('./LibraryWorkspace'));
 const SettingsWorkspace = lazy(() => import('./SettingsWorkspace'));
 const TeamWorkspace = lazy(() => import('./TeamWorkspace'));
+const ManageAgentsWorkspace = lazy(() => import('./ManageAgentsWorkspace'));
 import Icon from '../../ui/Icon';
 import ThemeToggle from '../../ui/ThemeToggle';
 import OpticalBackdrop from '../../ui/OpticalBackdrop';
@@ -14,7 +15,7 @@ import { avatarImageSrc } from './avatarImages';
 import type { Theme } from '../../ui/theme';
 import { Glass } from '@samasante/liquid-glass';
 
-type Page = 'search' | 'library' | 'team' | 'settings';
+type Page = 'search' | 'library' | 'team' | 'agents' | 'settings';
 type LoginIntent = 'private' | 'mine' | 'create' | 'transfer' | null;
 
 function LoginDialog({
@@ -99,6 +100,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   const [loginIntent, setLoginIntent] = useState<LoginIntent>(null);
   const [pendingAction, setPendingAction] = useState<LoginIntent>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [problem, setProblem] = useState('');
   const requestSerial = useRef(0);
@@ -199,7 +201,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   }, [refresh]);
 
   const responses = useMemo(() => [...shared, ...privateRows], [shared, privateRows]);
-  const selectedTab = page === 'search' ? 0 : page === 'library' ? 1 : page === 'team' ? 2 : -1;
+  const selectedTab = page === 'search' ? 0 : page === 'library' ? 1 : (page === 'team' || page === 'agents') ? 2 : -1;
 
   function requireLogin(reason: 'private' | 'mine' | 'create' | 'transfer') {
     setLoginIntent(reason);
@@ -216,6 +218,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
     setLoginOpen(false);
     setLoginIntent(null);
     setPage(pendingAction ? 'library' : 'search');
+    setAdminMenuOpen(false);
     onNotice(`Signed in as ${user.agent_name}.`);
   }
   async function signOut() {
@@ -225,6 +228,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
       setAgent(null);
       setPrivateRows([]);
       setPage('search');
+      setAdminMenuOpen(false);
       onNotice('Signed out. Shared responses remain available.');
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Sign out failed.');
@@ -232,7 +236,8 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   }
   function navigate(target: Page) {
     setAccountMenuOpen(false);
-    if (target === 'team' && agent?.role !== 'admin') return;
+    if ((target === 'team' || target === 'agents') && agent?.role !== 'admin') return;
+    if (target === 'team' || target === 'agents') setAdminMenuOpen(true);
     if (target === 'settings' && !agent) { setLoginOpen(true); return; }
     setPage(target);
   }
@@ -278,20 +283,54 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
             <span className="archive-nav-label">Canned responses</span>
           </button>
           {agent?.role === 'admin' && (
-            <button type="button" className={page === 'team' ? 'active' : ''} aria-current={page === 'team' ? 'page' : undefined}
-              onPointerEnter={() => { void import('./TeamWorkspace'); }}
-              onFocus={() => { void import('./TeamWorkspace'); }}
-              onClick={() => navigate('team')} title="Team overview">
-              <span className="archive-nav-icon"><Icon name="team" size={20}/></span>
-              <span className="archive-nav-label">Team overview</span>
-            </button>
+            <>
+              <button type="button" className={(page === 'team' || page === 'agents') ? 'active' : ''}
+                aria-expanded={adminMenuOpen && !sidebarCollapsed} aria-controls="archive-admin-subnav"
+                onPointerEnter={() => { void import('./TeamWorkspace'); void import('./ManageAgentsWorkspace'); }}
+                onFocus={() => { void import('./TeamWorkspace'); }}
+                onClick={() => {
+                  if (sidebarCollapsed) setSidebarCollapsed(false);
+                  setAdminMenuOpen(open => sidebarCollapsed ? true : !open);
+                  if (page !== 'team' && page !== 'agents') navigate('team');
+                }} title="Admin dashboard">
+                <span className="archive-nav-icon"><Icon name="team" size={20}/></span>
+                <span className="archive-nav-label">Admin dashboard</span>
+                <span className={`archive-admin-chevron${adminMenuOpen && !sidebarCollapsed ? ' is-open' : ''}`} aria-hidden="true">
+                  <Icon name="chevron" size={13}/>
+                </span>
+              </button>
+              {adminMenuOpen && !sidebarCollapsed && (
+                <div id="archive-admin-subnav"
+                  className={`archive-admin-subnav${page !== 'team' && page !== 'agents' ? ' no-selection' : ''}`}
+                  role="group" aria-label="Admin dashboard pages"
+                  style={{ '--admin-subtab': page === 'agents' ? 1 : 0 } as CSSProperties}>
+                  <Glass className="archive-admin-subnav-lens" radius={12}
+                    style={{ borderRadius: 12, background: 'var(--liquid-selection-fill)' }}
+                    optics={{ mapSize: 96, depth: .56, curvature: .40, strength: .15, bend: .42,
+                      bendWidth: .13, dispersion: .12, sheen: .9, specular: .9,
+                      frost: 0, clipToShape: true, softEdge: true }}>
+                    <span className="archive-admin-subnav-lens-fill" aria-hidden="true"/>
+                  </Glass>
+                  <button type="button" className={page === 'team' ? 'active' : ''}
+                    aria-current={page === 'team' ? 'page' : undefined}
+                    onPointerEnter={() => { void import('./TeamWorkspace'); }}
+                    onFocus={() => { void import('./TeamWorkspace'); }}
+                    onClick={() => navigate('team')}>Team overview</button>
+                  <button type="button" className={page === 'agents' ? 'active' : ''}
+                    aria-current={page === 'agents' ? 'page' : undefined}
+                    onPointerEnter={() => { void import('./ManageAgentsWorkspace'); }}
+                    onFocus={() => { void import('./ManageAgentsWorkspace'); }}
+                    onClick={() => navigate('agents')}>Manage agents</button>
+                </div>
+              )}
+            </>
           )}
         </nav>
       </aside>
       <div className="archive-main">
         <header className="archive-topbar">
           <div className="archive-topbar-title">
-            <strong>{page === 'search' ? 'Search' : page === 'library' ? 'Canned responses' : page === 'team' ? 'Team' : 'Settings'}</strong>
+            <strong>{page === 'search' ? 'Search' : page === 'library' ? 'Canned responses' : page === 'team' ? 'Team overview' : page === 'agents' ? 'Manage agents' : 'Settings'}</strong>
           </div>
           <div className="archive-topbar-right">
             <ThemeToggle theme={theme} onToggle={onThemeToggle} compact/>
@@ -336,6 +375,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
             {page === 'settings' && agent && <SettingsWorkspace agent={agent} onAgentChange={setAgent} avatarUrl={avatarUrl} onAvatarChange={setAvatarUrl}
               onNotice={onNotice} onError={onError}/>}
             {page === 'team' && agent?.role === 'admin' && <TeamWorkspace onError={onError}/>}
+            {page === 'agents' && agent?.role === 'admin' && <ManageAgentsWorkspace agent={agent} onNotice={onNotice} onError={onError}/>}
           </Suspense>
         </main>
       </div>
