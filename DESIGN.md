@@ -6,6 +6,14 @@ The archive should feel like a focused writing tool, not a dashboard that demand
 
 Both themes use a restrained **violet/blue ambient field**, not the abandoned black-and-grey checkerboard. The dark theme is deep navy with soft blue and purple light; the light theme uses quiet lavender and pearl tones. The original WebGL2 shader is the **first renderer attempted on every motion-enabled browser**. If it cannot compile or render, the same shader runs through a compatible WebGL1 path when available, followed by a lightweight animated Canvas 2D version and finally the same ambient CSS gradients. The fallback preserves the layout, color identity, glass controls, and theme timing; exact pixel-for-pixel GPU shading cannot be guaranteed on a CPU fallback.
 
+## Exactly two visual appearances
+
+**Original (default):** always try the complete, approved glass interface and the original WebGL scene first (WebGL2, then compatible WebGL1). Slower devices may reduce the background's internal resolution, but never its buttons, spring timing, selection pills, theme toggle or optical-lens eligibility based on a device-memory estimate alone.
+
+**Fallback (only on failure):** when both GPU paths fail, Canvas 2D draws matched blue/violet ambient motion and ripples; the same CSS palette remains available if 2D canvas fails too. These are implementations of one backup appearance, not additional themes. Original controls, labels, transition durations, glass rims and keyboard accessibility are shared. The data-visual-mode attribute exposes only original or fallback for QA.
+
+Respect reduced-motion settings by selecting the stationary backup. Websites cannot override disabled graphics APIs, and a CPU fallback cannot guarantee identical shader pixels.
+
 ## The glass treatment
 
 Navigation, buttons, and selected controls use a refractive liquid-glass lens. This effect comes from [`@samasante/liquid-glass`](https://github.com/samasante/liquid-glass) and its SVG displacement maps, not from blur alone.
