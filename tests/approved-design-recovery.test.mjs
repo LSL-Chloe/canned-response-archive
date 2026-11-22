@@ -3,33 +3,30 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
-test('the approved violet/blue ambient background survives loss of WebGL', () => {
+test('the original shader stays primary, with the earlier lined background for failures', () => {
   const css = read('src/styles/premium.css');
   const backdrop = read('src/ui/OpticalBackdrop.tsx');
-  const field = css.slice(css.indexOf('/* Restored atmospheric field:'), css.indexOf('@keyframes optical-weave-drift'));
-  assert.match(field, /--ambient-blue:rgba\(76,101,193,\.30\)/);
-  assert.match(field, /--ambient-violet:rgba\(105,74,156,\.20\)/);
-  assert.match(field, /--ambient-rose:rgba\(145,79,131,\.24\)/);
-  assert.match(field, /--ambient-blue:rgba\(133,153,227,\.24\)/);
-  assert.match(field, /--ambient-rose:rgba\(214,166,200,\.20\)/);
-  assert.match(field, /background:\s*radial-gradient\(ellipse 75% 93%/);
-  assert.match(field, /\.optical-weave\{[\s\S]*background:\s*radial-gradient/);
-  assert.doesNotMatch(field, /repeating-linear-gradient/, 'Do not restore the monochrome grid');
+  const layer = read('public/liquid-glass.js');
+  assert.match(css, /--fallback-base:#0c0d11/);
+  assert.match(css, /--fallback-base:#e6e8eb/);
+  assert.match(css, /repeating-linear-gradient\(0deg,transparent 0 7px,var\(--fallback-line\)/);
+  assert.match(css, /repeating-linear-gradient\(90deg,transparent 0 7px,var\(--fallback-line-2\)/);
+  assert.match(css, /data-ambient-mode="pending"/);
   assert.match(backdrop, /className="optical-environment"/);
   assert.match(backdrop, /className="optical-weave"/);
+  assert.match(layer, /for\(const candidate of \['webgl2','webgl'\]\)/);
+  assert.match(layer, /visualMode\(env,'original',kind\)/);
+  assert.match(layer, /visualMode\(env,'fallback','lines'\)/);
 });
 
-test('light/dark fallback tracks the original 580ms thumb without introducing a second theme switch', () => {
+test('original theme thumb, glass control transitions and animated background remain independent', () => {
   const css = read('src/styles/premium.css');
   const layer = read('public/liquid-glass.js');
   const toggle = read('src/ui/ThemeToggle.tsx');
   assert.match(css, /@property --a-bg\{syntax:"<color>";inherits:true/);
-  assert.match(css, /@property --caustic\{syntax:"<color>";inherits:true/);
-  assert.match(css, /@property --caustic-edge\{syntax:"<color>";inherits:true/);
-  assert.match(css, /@property --ambient-blue\{syntax:"<color>";inherits:true/);
-  assert.match(css, /@property --ambient-violet\{syntax:"<color>";inherits:true/);
-  assert.match(css, /@property --ambient-rose\{syntax:"<color>";inherits:true/);
-  assert.match(layer, /transition:color \.58s ease,--a-bg \.58s ease,--caustic \.58s ease,--caustic-edge \.58s ease,--ambient-blue \.58s ease,--ambient-violet \.58s ease,--ambient-rose \.58s ease/);
+  assert.match(layer, /\.liquid-theme-switch \.liquid-switch-thumb\{transition:transform \.58s/);
+  assert.match(layer, /\.archive-nav-selection,\.archive-tabs-lens,\.auth-tabs-lens,\.archive-visibility-lens\{transition:transform/);
+  assert.match(layer, /\.liquid-action:hover,\.archive-button:hover,\.archive-sign-in-link:hover/);
   assert.match(layer, /const initialDark=readDark\(\)/);
   assert.match(layer, /const nextDark=readDark\(\)/);
   assert.match(layer, /\(now-changeAt\)\/580/);
@@ -40,26 +37,23 @@ test('light/dark fallback tracks the original 580ms thumb without introducing a 
   assert.doesNotMatch(layer, /startViewTransition|\.click\(\)/);
 });
 
-test('WebGL2 loss stays graceful and never triggers endless GPU retries on React updates', () => {
+test('WebGL recovery is bounded, never replacing controls with low-quality variants', () => {
   const layer = read('public/liquid-glass.js');
   assert.doesNotThrow(() => new Function(layer));
   assert.match(layer, /REACTIVE 3D BACKGROUND/);
-  assert.match(layer, /for\(const candidate of \['webgl2','webgl'\]\)/);
   assert.match(layer, /ctx\.getShaderParameter\(sh,ctx\.COMPILE_STATUS\)/);
   assert.match(layer, /ctx\.getProgramParameter\(program,ctx\.LINK_STATUS\)/);
-  assert.match(layer, /webglUnavailable=false,canvasUnavailable=false,contextLossCount=0/);
+  assert.match(layer, /webglUnavailable=false,contextLossCount=0/);
+  assert.match(layer, /failedGpuKinds=new Set\(\)/);
   assert.match(layer, /if\(!webglUnavailable&&performance\.now\(\)>=gpuRetryAt\)G=bg\(env\)/);
-  assert.match(layer, /if\(!G&&!canvasUnavailable\)G=bg2d\(env\)/);
-  assert.match(layer, /if\(!G\)visualMode\(env,'fallback','gradient'\)/);
-  assert.match(layer, /visualMode\(env,'original',kind\)/);
+  assert.match(layer, /if\(!G\)visualMode\(env,'fallback','lines'\)/);
   assert.match(layer, /webglcontextlost/);
   assert.match(layer, /env\.classList\.remove\('lg-gl'\)/);
-  assert.match(layer, /if\(\+\+contextLossCount>1\)webglUnavailable=true/);
+  assert.match(layer, /if\(failedGpuKinds\.size===2\)webglUnavailable=true/);
   assert.match(layer, /if\(!c\._ready\)/);
   assert.match(layer, /visualMode\(env,'original',kind\)/);
-  assert.match(layer, /visualMode\(env,'fallback','canvas2d'\)/);
   assert.match(layer, /\.lg-gl>\.optical-weave,\.lg-gl>\.optical-caustic\{display:none\}/);
-  assert.doesNotMatch(layer, /user-select:none!important/, 'Keep direct text selection working');
+  assert.doesNotMatch(layer, /bg2d\(|user-select:none!important/);
 });
 
 test('restoration does not sacrifice saved response access or navigation', () => {
@@ -94,7 +88,7 @@ test('security, data and cloud configuration do not drift during a visual recove
   const app = read('src/features/archive/ArchiveApp.tsx');
   const css = read('src/styles/premium.css');
   const html = read('index.html');
-  assert.match(html, /<script defer src="\/liquid-glass\.js\?v=original-glass-20261122-2"><\/script>/);
+  assert.match(html, /<script defer src="\/liquid-glass\.js\?v=original-glass-20261122-3"><\/script>/);
   assert.match(wrangler, /previews/);
   assert.match(app, /data-theme=\{theme\}/);
   assert.match(css, /content-visibility: auto/);
