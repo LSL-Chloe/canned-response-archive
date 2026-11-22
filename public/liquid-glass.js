@@ -7,8 +7,19 @@ const mem=navigator.deviceMemory||4,cores=navigator.hardwareConcurrency||4;
 let tier=mem<=2||cores<=4?0:mem<=4||cores<=6?1:2;           // 0 low-end · 1 mid · 2 high
 const calm=M('(prefers-reduced-motion:reduce)');
 if(M('(prefers-reduced-transparency:reduce)')||navigator.connection?.saveData)tier=0;
-const refract=CSS.supports('backdrop-filter','url(#a)');      // true lensing needs Chromium
+const reducedTransparency=M('(prefers-reduced-transparency:reduce)');
+const refract=!reducedTransparency&&typeof CSS!=='undefined'&&CSS.supports('backdrop-filter','url(#a)');
 R.dataset.lg=tier;
+// Exactly two visible backgrounds: the original shader and the lined CSS fallback.
+// Renderer availability never changes the React controls or their animations.
+const visualMode=(env,mode,renderer)=>{
+ R.dataset.visualMode=mode;
+ // CSS can identify the *actual* lined fallback rather than styling the
+ // pending first GPU frame or the original WebGL controls.
+ R.dataset.ambientMode=renderer;
+ env.dataset.visualMode=mode;
+ env.dataset.ambientMode=renderer;
+};
 
 /* ───────── MATERIAL (CSS) ───────── */
 const css=`
@@ -50,10 +61,11 @@ const css=`
 .archive-sidebar{border-right-color:transparent!important}
 .archive-app button,.liquid-action,.archive-sign-in-link{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .liquid-action:hover,.archive-button:hover,.archive-sign-in-link:hover{transform:translateY(-1px) scale(1.03)!important}
-html[data-lg="0"] [data-liquid-glass]::after,html[data-lg="0"] [data-lgx]::after{background:var(--lg-r2)}
+/* Keep original bevels, outlines and spring transitions on every hardware
+   tier. The tier adjusts backdrop resolution only, never control styling. */
 /* Color changes follow the existing .58s sliding theme thumb, without replacing
    its spring animation or delaying React state changes. */
-.archive-app[data-theme],.auth-experience[data-theme]{transition:color .58s ease}
+.archive-app[data-theme],.auth-experience[data-theme]{transition:color .58s ease,--a-bg .58s ease,--caustic .58s ease,--caustic-edge .58s ease,--ambient-blue .58s ease,--ambient-violet .58s ease,--ambient-rose .58s ease}
 .archive-app>.optical-environment,.auth-experience>.optical-environment{transition:background-color .58s ease}
 .archive-app .archive-sidebar{transition:width .27s cubic-bezier(.16,1,.3,1),flex-basis .27s cubic-bezier(.16,1,.3,1),padding .27s cubic-bezier(.16,1,.3,1),background-color .58s ease,border-color .58s ease}
 .archive-app .archive-topbar{transition:background-color .58s ease,color .58s ease,border-color .58s ease}
@@ -73,7 +85,10 @@ const maps=new Map();let uid=0;
 function mapURL(w,h,r,b){
  const k=[w,h,r,b].join(),hit=maps.get(k);if(hit)return hit;
  const s=Math.max(1,Math.sqrt(w*h/30000)),cw=Math.max(2,Math.round(w/s)),ch=Math.max(2,Math.round(h/s));
- const c=D.createElement('canvas');c.width=cw;c.height=ch;const x=c.getContext('2d'),im=x.createImageData(cw,ch),a=im.data;
+ const c=D.createElement('canvas');c.width=cw;c.height=ch;
+ let x=null;try{x=c.getContext('2d')}catch{return null}
+ if(!x)return null;
+ const im=x.createImageData(cw,ch),a=im.data;
  const hw=cw/2,hh=ch/2,rr=Math.min(r/s,hw,hh),bb=Math.max(1,Math.min(b/s,hw,hh));
  for(let j=0;j<ch;j++)for(let i=0;i<cw;i++){
   const px=i+.5-hw,py=j+.5-hh,qx=Math.abs(px)-(hw-rr),qy=Math.abs(py)-(hh-rr),ox=Math.max(qx,0),oy=Math.max(qy,0),ol=Math.hypot(ox,oy);
@@ -86,21 +101,30 @@ function mapURL(w,h,r,b){
  if(maps.size>60)maps.delete(maps.keys().next().value);maps.set(k,u);return u;
 }
 function apply(el){
- if(!refract||tier<1||!el.isConnected)return;
+ if(!refract||!el.isConnected)return; // try original lens on small controls even on low-memory devices
  const w=el.offsetWidth,h=el.offsetHeight;if(!w||!h)return;
  const lens=Math.min(w,h)<=80;
- if(!lens&&tier<2){el.style.removeProperty('--lg-bf');return}
+ // Try the original displacement lens on all devices that support it.
+ // A lens failure degrades refraction only, never the control's appearance.
  const r=Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius)||14,w/2,h/2);
  const id=el._lgid||(el._lgid='lgf'+ ++uid);let f=D.getElementById(id);
  if(!f){f=D.createElementNS(NS,'filter');f.id=id;f.setAttribute('color-interpolation-filters','sRGB');f.setAttribute('filterUnits','userSpaceOnUse');f.setAttribute('primitiveUnits','userSpaceOnUse');
   f.innerHTML='<feImage preserveAspectRatio="none" result="m"/><feDisplacementMap in="SourceGraphic" in2="m" xChannelSelector="R" yChannelSelector="G"/>';defs.append(f)}
  f.setAttribute('x',0);f.setAttribute('y',0);f.setAttribute('width',w);f.setAttribute('height',h);
  const im=f.firstChild;im.setAttribute('x',0);im.setAttribute('y',0);im.setAttribute('width',w);im.setAttribute('height',h);
- im.setAttribute('href',mapURL(w,h,r,lens?Math.min(18,h*.45):24));
+ const texture=mapURL(w,h,r,lens?Math.min(18,h*.45):24);
+ if(!texture){el.style.removeProperty('--lg-bf');return}
+ im.setAttribute('href',texture);
  f.lastChild.setAttribute('scale',lens?Math.min(42,h*.85):15);
  el.style.setProperty('--lg-bf',`url(#${id}) saturate(var(--lg-sat)) brightness(var(--lg-br))`);
 }
-const ro=new ResizeObserver(es=>es.forEach(e=>{const t=e.target;clearTimeout(t._lt);t._lt=setTimeout(()=>apply(t),t._lg2?140:0);t._lg2=1}));
+const ro=typeof ResizeObserver==='function'
+ ?new ResizeObserver(es=>es.forEach(e=>{
+  const t=e.target;clearTimeout(t._lt);
+  t._lt=setTimeout(()=>{try{apply(t)}catch{t.style.removeProperty('--lg-bf')}},t._lg2?140:0);
+  t._lg2=1;
+ }))
+ :{observe(t){requestAnimationFrame(()=>{try{apply(t)}catch{t.style.removeProperty('--lg-bf')}})}};
 
 /* ───────── WIRING (React-safe: attributes only, re-scanned on DOM change) ───────── */
 const GROUPS=[
@@ -109,7 +133,9 @@ const GROUPS=[
  ['.archive-dialog,.archive-selection-toolbar,.archive-team-table-wrap,.archive-suggestion-popover','nb'],
  ['.archive-sign-in-link,.archive-account-button,.archive-button:not(.liquid-action-button)','css'],
  ['.archive-account-menu,.archive-message,.archive-tabs-lens,.auth-tabs-lens,.archive-visibility-lens,.otp-core-lens','']];
-let G=null,q=0,bT=0;
+let G=null,q=0,bT=0,webglUnavailable=false,contextLossCount=0;
+const failedGpuKinds=new Set();
+let gpuRetryAt=0;
 const busy=(ms=480)=>{R.dataset.busy='';clearTimeout(bT);bT=setTimeout(()=>delete R.dataset.busy,ms)};
 addEventListener('scroll',()=>busy(160),{passive:true,capture:true});
 function scan(){
@@ -117,7 +143,23 @@ function scan(){
  D.querySelectorAll('[data-liquid-glass],[data-lgx=""]').forEach(e=>{if(!e._lg){e._lg=1;ro.observe(e)}});
  const app=D.querySelector('.archive-app');if(app&&!app._lgo){app._lgo=1;new MutationObserver(()=>busy()).observe(app,{attributes:true,attributeFilter:['class']})}
  const env=D.querySelector('.optical-environment');
- if(env){if(!G&&!calm)G=bg(env);else if(G&&!G.isConnected){env.prepend(G);env.classList.add('lg-gl')}}
+ // React can replace the page and its backdrop while navigating. Dispose old
+ // listeners and GPU contexts before wiring the new background.
+ if(G&&(!env||G._env!==env)){
+  G._stop();G=null;
+ }
+ if(!env)return;
+ // Show the original-colored field while a GPU frame is being validated.
+ // If the script cannot load, CSS independently shows the lined fallback.
+ if(!env.dataset.visualMode)visualMode(env,'fallback','pending');
+ if(!G){
+  if(!webglUnavailable&&performance.now()>=gpuRetryAt)G=bg(env);
+  if(!G)visualMode(env,'fallback','lines');
+  // A WebGL canvas replaces the pending CSS only after a successful frame.
+ }else if(G._ready&&!G.isConnected){
+  // React may replace the backdrop's children during a page transition.
+  env.prepend(G);env.classList.add('lg-gl');
+ }
 }
 new MutationObserver(()=>{cancelAnimationFrame(q);q=requestAnimationFrame(scan)}).observe(D.body,{childList:true,subtree:true});
 
@@ -148,32 +190,89 @@ void main(){
  col+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-.5)/255.;
  o=vec4(col,1.);}`;
 function bg(env){
- const c=D.createElement('canvas');c.style.cssText='position:absolute;inset:0;width:100%;height:100%';
- const gl=c.getContext('webgl2',{antialias:false,alpha:false,powerPreference:'low-power',desynchronized:true});if(!gl)return null;
- const sh=(t,s)=>{const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);return x},p=gl.createProgram();
- gl.attachShader(p,sh(gl.VERTEX_SHADER,VS));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(p);
- if(!gl.getProgramParameter(p,gl.LINK_STATUS))return null;gl.useProgram(p);
- const u=n=>gl.getUniformLocation(p,n),uR=u('uR'),uM=u('uM'),uT=u('uT'),uD=u('uD'),uK=u('uK');
- env.prepend(c);env.classList.add('lg-gl');
+ // WebGL2 is the original, pixel-identical shader. WebGL1 runs the same
+ // fragment equations when WebGL2 is disabled by hardware or browser policy.
+ // Each API needs a NEW canvas: a canvas cannot switch context types.
+ const options={antialias:false,alpha:false,powerPreference:'low-power',desynchronized:true};
+ let c=null,gl=null,p=null,kind='';
+ for(const candidate of ['webgl2','webgl']){
+  if(failedGpuKinds.has(candidate))continue;
+  const canvas=D.createElement('canvas');
+  let ctx=null;
+  try{ctx=canvas.getContext(candidate,options)}catch{continue}
+  if(!ctx)continue;
+  try{
+   const is2=candidate==='webgl2';
+   const vertex=is2?VS:'attribute vec2 aP;void main(){gl_Position=vec4(aP,0.,1.);}';
+   const fragment=is2?FS:FS.replace('#version 300 es\n','')
+     .replace('out vec4 o;','').replace('o=vec4(col,1.);','gl_FragColor=vec4(col,1.);');
+   const shader=(type,source)=>{
+    const sh=ctx.createShader(type);if(!sh)return null;
+    ctx.shaderSource(sh,source);ctx.compileShader(sh);
+    if(!ctx.getShaderParameter(sh,ctx.COMPILE_STATUS)){ctx.deleteShader(sh);return null}
+    return sh;
+   };
+   const v=shader(ctx.VERTEX_SHADER,vertex),f=shader(ctx.FRAGMENT_SHADER,fragment);
+   if(!v||!f){if(v)ctx.deleteShader(v);if(f)ctx.deleteShader(f);continue}
+   const program=ctx.createProgram();if(!program){ctx.deleteShader(v);ctx.deleteShader(f);continue}
+   ctx.attachShader(program,v);ctx.attachShader(program,f);
+   ctx.linkProgram(program);
+   const linked=ctx.getProgramParameter(program,ctx.LINK_STATUS);
+   ctx.deleteShader(v);ctx.deleteShader(f);
+   if(!linked){ctx.deleteProgram(program);continue}
+   ctx.useProgram(program);
+   if(!is2){
+    const buffer=ctx.createBuffer(),attr=ctx.getAttribLocation(program,'aP');
+    if(!buffer||attr<0){ctx.deleteProgram(program);continue}
+    ctx.bindBuffer(ctx.ARRAY_BUFFER,buffer);
+    ctx.bufferData(ctx.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),ctx.STATIC_DRAW);
+    ctx.enableVertexAttribArray(attr);ctx.vertexAttribPointer(attr,2,ctx.FLOAT,false,0,0);
+   }
+   c=canvas;gl=ctx;p=program;kind=candidate;break;
+  }catch{ /* shader/driver failure: try the other original API */ }
+ }
+ if(!gl){webglUnavailable=true;return null}
+ c.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+ c._env=env;c._mode=kind;c._ready=false;
+ const u=n=>gl.getUniformLocation(p,n),uR=u('uR'),uM=u('uM'),uT=u('uT'),uD=u('uD'),uK=u('uK[0]')||u('uK');
  // Match the initial React appearance before the very first WebGL frame.
  const readDark=()=>((D.querySelector('.archive-app,.auth-experience')?.dataset.theme||R.dataset.theme)==='dark'?1:0);
  const initialDark=readDark();
  const base=[.25,.35,.5][tier];let sc=base,ud=initialDark,W,H,mx=0,my=0,tx=0,ty=0,act=0,prev=0,ki=0,fr=0,ms=0,la=-1,dk=initialDark,fromDark=initialDark,changeAt=0,ok=1;
+ const life=new AbortController(),signal=life.signal;
+ const stop=()=>{
+  if(!ok)return;
+  ok=0;life.abort();c.remove();env.classList.remove('lg-gl');
+  visualMode(env,'fallback','lines');
+ };
+ c._stop=stop;
+ const fail=()=>{
+  if(!ok)return;
+  stop();if(G===c)G=null;
+  // Give a transient GPU loss one bounded recovery attempt. If the same
+  // renderer fails twice, attempt the other original WebGL API before CSS.
+  if(++contextLossCount>1){
+   failedGpuKinds.add(kind);contextLossCount=0;gpuRetryAt=0;
+   if(failedGpuKinds.size===2)webglUnavailable=true;
+  }else gpuRetryAt=performance.now()+700;
+  requestAnimationFrame(scan);
+  if(gpuRetryAt)setTimeout(scan,720);
+ };
  const ks=new Float32Array(24),t0=performance.now(),T=()=>(performance.now()-t0)/1e3;
  const size=()=>{W=innerWidth;H=innerHeight;c.width=Math.max(2,W*sc|0);c.height=Math.max(2,H*sc|0);gl.viewport(0,0,c.width,c.height)};
- size();addEventListener('resize',size);
- const pt=e=>{tx=(e.clientX-W/2)/H;ty=(H/2-e.clientY)/H;act=performance.now()};
- addEventListener('pointermove',pt,{passive:true});
+ size();addEventListener('resize',size,{signal});
+ const pt=e=>{if(calm)return;tx=(e.clientX-W/2)/H;ty=(H/2-e.clientY)/H;act=performance.now()};
+ addEventListener('pointermove',pt,{passive:true,signal});
  // A drag started on empty glass/background must not accidentally select
  // the hint text as the pointer passes across it. Dragging from the actual
  // text (or inside an editor) keeps normal browser text selection.
  const selectableOrControl='a,button,input,textarea,select,option,label,h1,h2,h3,h4,h5,h6,p,span,kbd,small,strong,em,code,[contenteditable],[role="button"],[role="option"],[role="link"],[role="textbox"]';
  let backgroundPointer=null;
  const releaseBackground=e=>{if(!e||e.pointerId===backgroundPointer)backgroundPointer=null};
- D.addEventListener('selectstart',e=>{if(backgroundPointer!==null)e.preventDefault()},true);
- addEventListener('pointerup',releaseBackground,{passive:true});
- addEventListener('pointercancel',releaseBackground,{passive:true});
- addEventListener('blur',()=>releaseBackground(),{passive:true});
+ D.addEventListener('selectstart',e=>{if(backgroundPointer!==null)e.preventDefault()},{capture:true,signal});
+ addEventListener('pointerup',releaseBackground,{passive:true,signal});
+ addEventListener('pointercancel',releaseBackground,{passive:true,signal});
+ addEventListener('blur',()=>releaseBackground(),{passive:true,signal});
  addEventListener('pointerdown',e=>{
   pt(e);
   const target=e.target;
@@ -183,11 +282,11 @@ function bg(env){
   // The optical ripple is a background interaction, not a click on labels
   // or controls. No preventDefault on pointerdown, so inputs still blur.
   if(blank){ks.set([tx,ty,T(),1],ki*4);ki=(ki+1)%6}
- },{passive:true});
- c.addEventListener('webglcontextlost',e=>{e.preventDefault();ok=0;c.remove();G=null;setTimeout(scan,600)});
- (function loop(now){
+ },{passive:true,signal});
+ c.addEventListener('webglcontextlost',e=>{e.preventDefault();fail()},{signal});
+ function loop(now){
   if(!ok)return;requestAnimationFrame(loop);if(D.hidden)return;
-  const idle=now-act>4000,min=idle||tier===0||'busy' in R.dataset?32:15;if(now-prev<min)return;
+  const idle=now-act>4000,min=!c._ready?0:calm?85:idle||tier===0||'busy' in R.dataset?32:15;if(now-prev<min)return;
   const gap=now-prev,dt=Math.min(.1,gap/1e3);prev=now;if(gap<250){ms+=gap;fr++}
   if(fr>=45){const avg=ms/fr;fr=ms=0;                          // adapt resolution only; never stop the loop
    if(avg>min*1.6&&sc>.18){sc*=.8;size()}else if(avg<min*1.15&&sc<base){sc=Math.min(base,sc*1.12);size()}}
@@ -196,14 +295,28 @@ function bg(env){
   // stranded over a dark canvas for up to a second on low-end devices.
   const nextDark=readDark();
   if(nextDark!==dk){fromDark=ud;dk=nextDark;changeAt=now}
-  const progress=Math.min(1,Math.max(0,(now-changeAt)/580));
+  const progress=calm?1:Math.min(1,Math.max(0,(now-changeAt)/580));
   const eased=progress*progress*(3-2*progress);
   ud=fromDark+(dk-fromDark)*eased;
-  gl.uniform2f(uR,c.width,c.height);gl.uniform2f(uM,mx*(H/c.height*c.height/H),my);gl.uniform1f(uT,T());gl.uniform1f(uD,ud);gl.uniform4fv(uK,ks);
-  gl.drawArrays(gl.TRIANGLES,0,3);
+  try{
+   gl.uniform2f(uR,c.width,c.height);gl.uniform2f(uM,mx,my);
+   gl.uniform1f(uT,calm?0:T());gl.uniform1f(uD,ud);gl.uniform4fv(uK,ks);
+   gl.drawArrays(gl.TRIANGLES,0,3);
+   // Detect a broken or lost driver before making the GL canvas visible.
+   if(!c._ready&&(gl.isContextLost?.()||gl.getError()!==gl.NO_ERROR)){fail();return}
+   if(!c._ready){
+    if(!env.isConnected){stop();return}
+    c._ready=true;env.prepend(c);env.classList.add('lg-gl');
+    visualMode(env,'original',kind);
+   }
+  }catch{fail();return}
   if(tier===2){const a=Math.round((Math.atan2(mx,my)*57.296+360)%360/4)*4;if(a!==la){la=a;R.style.setProperty('--la',a+'deg')}} // rim light follows cursor
- })(0);
+ }
+ requestAnimationFrame(loop);
  return c;
 }
+
+/* On GPU failure, leave the original React UI untouched and reveal only the
+   original lined CSS backdrop. No third Canvas2D/gradient appearance. */
 scan();
 })();
