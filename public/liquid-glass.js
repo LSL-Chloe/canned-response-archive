@@ -185,7 +185,7 @@ function bg(env){
   try{
    const is2=candidate==='webgl2';
    const vertex=is2?VS:'attribute vec2 aP;void main(){gl_Position=vec4(aP,0.,1.);}';
-   const fragment=is2?FS:FS.replace('#version 300 es\\n','')
+   const fragment=is2?FS:FS.replace('#version 300 es\n','')
      .replace('out vec4 o;','').replace('o=vec4(col,1.);','gl_FragColor=vec4(col,1.);');
    const shader=(type,source)=>{
     const sh=ctx.createShader(type);if(!sh)return null;
@@ -220,21 +220,41 @@ function bg(env){
  const readDark=()=>((D.querySelector('.archive-app,.auth-experience')?.dataset.theme||R.dataset.theme)==='dark'?1:0);
  const initialDark=readDark();
  const base=[.25,.35,.5][tier];let sc=base,ud=initialDark,W,H,mx=0,my=0,tx=0,ty=0,act=0,prev=0,ki=0,fr=0,ms=0,la=-1,dk=initialDark,fromDark=initialDark,changeAt=0,ok=1;
+ const life=new AbortController(),signal=life.signal;
+ const stop=()=>{
+  if(!ok)return;
+  ok=0;life.abort();c.remove();env.classList.remove('lg-gl');
+  env.dataset.ambientMode='gradient';
+ };
+ c._stop=stop;
+ const fail=()=>{
+  if(!ok)return;
+  stop();if(G===c)G=null;
+  // Context loss may be transient. Retry the original shader once, after
+  // showing the animated Canvas2D background instead of a blank frame.
+  if(++contextLossCount>1)webglUnavailable=true;
+  else gpuRetryAt=performance.now()+700;
+  requestAnimationFrame(scan);
+  if(!webglUnavailable)setTimeout(()=>{
+   if(G&&G._mode==='canvas2d'){G._stop();G=null}
+   scan();
+  },720);
+ };
  const ks=new Float32Array(24),t0=performance.now(),T=()=>(performance.now()-t0)/1e3;
  const size=()=>{W=innerWidth;H=innerHeight;c.width=Math.max(2,W*sc|0);c.height=Math.max(2,H*sc|0);gl.viewport(0,0,c.width,c.height)};
- size();addEventListener('resize',size);
+ size();addEventListener('resize',size,{signal});
  const pt=e=>{tx=(e.clientX-W/2)/H;ty=(H/2-e.clientY)/H;act=performance.now()};
- addEventListener('pointermove',pt,{passive:true});
+ addEventListener('pointermove',pt,{passive:true,signal});
  // A drag started on empty glass/background must not accidentally select
  // the hint text as the pointer passes across it. Dragging from the actual
  // text (or inside an editor) keeps normal browser text selection.
  const selectableOrControl='a,button,input,textarea,select,option,label,h1,h2,h3,h4,h5,h6,p,span,kbd,small,strong,em,code,[contenteditable],[role="button"],[role="option"],[role="link"],[role="textbox"]';
  let backgroundPointer=null;
  const releaseBackground=e=>{if(!e||e.pointerId===backgroundPointer)backgroundPointer=null};
- D.addEventListener('selectstart',e=>{if(backgroundPointer!==null)e.preventDefault()},true);
- addEventListener('pointerup',releaseBackground,{passive:true});
- addEventListener('pointercancel',releaseBackground,{passive:true});
- addEventListener('blur',()=>releaseBackground(),{passive:true});
+ D.addEventListener('selectstart',e=>{if(backgroundPointer!==null)e.preventDefault()},{capture:true,signal});
+ addEventListener('pointerup',releaseBackground,{passive:true,signal});
+ addEventListener('pointercancel',releaseBackground,{passive:true,signal});
+ addEventListener('blur',()=>releaseBackground(),{passive:true,signal});
  addEventListener('pointerdown',e=>{
   pt(e);
   const target=e.target;
@@ -244,16 +264,9 @@ function bg(env){
   // The optical ripple is a background interaction, not a click on labels
   // or controls. No preventDefault on pointerdown, so inputs still blur.
   if(blank){ks.set([tx,ty,T(),1],ki*4);ki=(ki+1)%6}
- },{passive:true});
- c.addEventListener('webglcontextlost',e=>{
-  e.preventDefault();ok=0;c.remove();G=null;env.classList.remove('lg-gl');
-  env.dataset.ambientMode='gradient';
-  // Retry once after a transient GPU failure, then stay on the soft-gradient
-  // fallback. Repeated context creation on every React render is expensive.
-  if(++contextLossCount>1)webglUnavailable=true;
-  else setTimeout(scan,600);
-});
- (function loop(now){
+ },{passive:true,signal});
+ c.addEventListener('webglcontextlost',e=>{e.preventDefault();fail()},{signal});
+ function loop(now){
   if(!ok)return;requestAnimationFrame(loop);if(D.hidden)return;
   const idle=now-act>4000,min=idle||tier===0||'busy' in R.dataset?32:15;if(now-prev<min)return;
   const gap=now-prev,dt=Math.min(.1,gap/1e3);prev=now;if(gap<250){ms+=gap;fr++}
@@ -267,10 +280,21 @@ function bg(env){
   const progress=Math.min(1,Math.max(0,(now-changeAt)/580));
   const eased=progress*progress*(3-2*progress);
   ud=fromDark+(dk-fromDark)*eased;
-  gl.uniform2f(uR,c.width,c.height);gl.uniform2f(uM,mx*(H/c.height*c.height/H),my);gl.uniform1f(uT,T());gl.uniform1f(uD,ud);gl.uniform4fv(uK,ks);
-  gl.drawArrays(gl.TRIANGLES,0,3);
+  try{
+   gl.uniform2f(uR,c.width,c.height);gl.uniform2f(uM,mx,my);
+   gl.uniform1f(uT,T());gl.uniform1f(uD,ud);gl.uniform4fv(uK,ks);
+   gl.drawArrays(gl.TRIANGLES,0,3);
+   // Detect a broken or lost driver before making the GL canvas visible.
+   if(!c._ready&&(gl.isContextLost?.()||gl.getError()!==gl.NO_ERROR)){fail();return}
+   if(!c._ready){
+    if(!env.isConnected){stop();return}
+    c._ready=true;env.prepend(c);env.classList.add('lg-gl');
+    env.dataset.ambientMode=kind;
+   }
+  }catch{fail();return}
   if(tier===2){const a=Math.round((Math.atan2(mx,my)*57.296+360)%360/4)*4;if(a!==la){la=a;R.style.setProperty('--la',a+'deg')}} // rim light follows cursor
- })(0);
+ }
+ requestAnimationFrame(loop);
  return c;
 }
 scan();
