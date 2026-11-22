@@ -6,8 +6,8 @@
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
   font-synthesis:none; -webkit-font-smoothing:antialiased;
 }
-:root[data-theme="dark"]{background:#0d0e11;color:#f2f3f4;color-scheme:dark}
-:root[data-theme="light"]{background:#f3f4f5;color:#17191c;color-scheme:light}
+:root[data-theme="dark"]{background:#0c0e17;color:#f4f4fa;color-scheme:dark}
+:root[data-theme="light"]{background:#f0f1f6;color:#202331;color-scheme:light}
 .archive-app[data-theme="dark"],.auth-experience[data-theme="dark"]{
   --a-bg:#111216;--a-surface:#1a1b20;--a-soft:#22242a;--a-line:#33363c;
   --a-text:#f2f3f5;--a-muted:#a4a8b1;--a-accent:#d8e2eb;--a-accent-soft:#32363c;
@@ -767,45 +767,92 @@
 }
 
 
-/* OPTICAL FIELD — visible detail behind SVG displacement lenses, not frosted panels.
-   Motion uses transform/opacity only; no per-frame JS or network requests. */
+/* Type ambient colors so the fallback crossfades over the existing 580ms
+   theme thumb, instead of snapping light gradients over dark controls.
+   Browsers lacking registered properties still receive the same legible theme. */
+@property --a-bg{syntax:"<color>";inherits:true;initial-value:#0c0e17}
+@property --caustic{syntax:"<color>";inherits:true;initial-value:rgba(162,159,238,.21)}
+@property --caustic-edge{syntax:"<color>";inherits:true;initial-value:rgba(112,152,224,.10)}
+@property --ambient-blue{syntax:"<color>";inherits:true;initial-value:rgba(76,101,193,.30)}
+@property --ambient-violet{syntax:"<color>";inherits:true;initial-value:rgba(105,74,156,.20)}
+@property --ambient-rose{syntax:"<color>";inherits:true;initial-value:rgba(145,79,131,.24)}
+
+/* Original WebGL stays the default. The earlier lined monochrome background
+   is ONLY the visual fallback if GPU rendering fails or scripts are blocked.
+   Theme colors and glass-control styling are intentionally independent of this
+   decorative field: the controls remain identical in both visual modes. */
 .archive-app[data-theme="dark"],.auth-experience[data-theme="dark"]{
-  --a-bg:#0c0d11;--a-surface:#191a1f;--a-soft:#272930;--a-line:rgba(236,241,247,.13);
-  --a-text:#f3f4f6;--a-muted:#b6bac3;--a-accent:#e4ebf4;--a-accent-soft:rgba(228,235,244,.10);
-  --dock-track:rgba(8,9,12,.64);--rail:rgba(11,12,16,.63);
-  --weave-line:rgba(229,234,241,.19);--weave-line-2:rgba(232,237,245,.11);
-  --caustic:rgba(223,231,244,.27);--caustic-edge:rgba(168,180,195,.10);
-  --liquid-panel-tint:rgba(15,17,22,.61);--liquid-selection-fill:rgba(218,226,236,.17);
-  --liquid-button-tint:rgba(185,196,208,.19);--liquid-button-fg:#f2f4f7;
-  --ui-success:#a4e5c8;--field:rgba(18,20,26,.74);--field-line:rgba(239,243,248,.18);
+  --a-bg:#0c0e17;--a-surface:#191a26;--a-soft:#252637;--a-line:rgba(217,218,241,.14);
+  --a-text:#f4f4fa;--a-muted:#b8bacd;--a-accent:#c6c9ee;--a-accent-soft:rgba(171,161,231,.12);
+  --dock-track:rgba(12,13,25,.62);--rail:rgba(15,17,29,.62);
+  --ambient-blue:rgba(76,101,193,.30);--ambient-violet:rgba(105,74,156,.20);
+  --ambient-rose:rgba(145,79,131,.24);
+  --caustic:rgba(162,159,238,.21);--caustic-edge:rgba(112,152,224,.10);
+  --liquid-panel-tint:rgba(22,22,39,.56);--liquid-selection-fill:rgba(186,176,229,.17);
+  --liquid-button-tint:rgba(176,156,216,.19);--liquid-button-fg:#f5f4fb;
+  --ui-success:#a4e5c8;--field:rgba(21,22,38,.74);--field-line:rgba(219,219,246,.17);
 }
 .archive-app[data-theme="light"],.auth-experience[data-theme="light"]{
-  --a-bg:#e6e8eb;--a-surface:#f8f9fb;--a-soft:#eaecf0;--a-line:rgba(37,45,55,.14);
-  --a-text:#1d232a;--a-muted:#4d5964;--a-accent:#273746;--a-accent-soft:rgba(38,49,63,.09);
-  --dock-track:rgba(220,225,231,.55);--rail:rgba(247,249,251,.58);
-  --weave-line:rgba(49,59,72,.17);--weave-line-2:rgba(31,41,53,.08);
-  --caustic:rgba(255,255,255,.85);--caustic-edge:rgba(111,121,138,.20);
-  --liquid-panel-tint:rgba(254,255,255,.61);--liquid-selection-fill:rgba(255,255,255,.55);
-  --liquid-button-tint:rgba(251,253,255,.66);--liquid-button-fg:#17212b;
-  --field:rgba(249,251,253,.84);--field-line:rgba(34,45,58,.20);
+  --a-bg:#eff0f6;--a-surface:#f9f9fc;--a-soft:#ebeaf4;--a-line:rgba(62,60,89,.14);
+  --a-text:#252536;--a-muted:#59576b;--a-accent:#555b91;--a-accent-soft:rgba(128,122,187,.12);
+  --dock-track:rgba(224,226,238,.58);--rail:rgba(250,249,255,.62);
+  --ambient-blue:rgba(133,153,227,.24);--ambient-violet:rgba(164,145,216,.19);
+  --ambient-rose:rgba(214,166,200,.20);
+  --caustic:rgba(255,255,255,.8);--caustic-edge:rgba(137,127,191,.16);
+  --liquid-panel-tint:rgba(255,253,255,.64);--liquid-selection-fill:rgba(255,255,255,.58);
+  --liquid-button-tint:rgba(244,239,255,.68);--liquid-button-fg:#29263c;
+  --field:rgba(250,250,255,.84);--field-line:rgba(80,76,117,.19);
 }
 .archive-app[data-theme],.auth-experience[data-theme]{
   background:transparent;position:relative;isolation:isolate;
+  /* CSS-only safety net if the optional visual JS cannot initialize. */
+  transition:color .58s ease,--a-bg .58s ease,--caustic .58s ease,--caustic-edge .58s ease,
+    --ambient-blue .58s ease,--ambient-violet .58s ease,--ambient-rose .58s ease;
+}
+@media(prefers-reduced-motion:reduce){
+  .archive-app[data-theme],.auth-experience[data-theme]{transition:none!important}
+}
+/* Use the original lined backdrop for failure/no-script. These variables are
+   only consumed by the fixed backdrop and never change a UI control. */
+.archive-app[data-theme="dark"]>.optical-environment,
+.auth-experience[data-theme="dark"]>.optical-environment{
+  --fallback-base:#0c0d11;
+  --fallback-line:rgba(229,234,241,.19);
+  --fallback-line-2:rgba(232,237,245,.11);
+}
+.archive-app[data-theme="light"]>.optical-environment,
+.auth-experience[data-theme="light"]>.optical-environment{
+  --fallback-base:#e6e8eb;
+  --fallback-line:rgba(49,59,72,.17);
+  --fallback-line-2:rgba(31,41,53,.08);
 }
 .archive-app>.optical-environment,.auth-experience>.optical-environment{
   position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
-  background:var(--a-bg);
+  background:var(--fallback-base);
+}
+/* While WebGL initializes, show the approved ambient palette instead of the
+   backup. The CSS automatically reveals the lined fallback if WebGL fails. */
+.archive-app>.optical-environment[data-ambient-mode="pending"],
+.auth-experience>.optical-environment[data-ambient-mode="pending"]{
+  background:
+    radial-gradient(ellipse 75% 93% at -7% 3%,var(--ambient-blue) 0%,transparent 72%),
+    radial-gradient(ellipse 70% 92% at 110% 91%,var(--ambient-rose) 0%,transparent 72%),
+    radial-gradient(ellipse 65% 77% at 54% 35%,var(--ambient-violet) 0%,transparent 78%),
+    var(--a-bg);
 }
 .optical-weave{
   position:absolute;inset:-12%;opacity:.29;will-change:transform;
   background-image:
-    repeating-linear-gradient(0deg,transparent 0 7px,var(--weave-line) 8px 9px,transparent 10px 14px),
-    repeating-linear-gradient(90deg,transparent 0 7px,var(--weave-line-2) 8px 9px,transparent 10px 14px);
+    repeating-linear-gradient(0deg,transparent 0 7px,var(--fallback-line) 8px 9px,transparent 10px 14px),
+    repeating-linear-gradient(90deg,transparent 0 7px,var(--fallback-line-2) 8px 9px,transparent 10px 14px);
   background-size:100% 100%;
   -webkit-mask-image:radial-gradient(ellipse 80% 88% at 58% 49%,#000 2%,transparent 96%);
   mask-image:radial-gradient(ellipse 80% 88% at 58% 49%,#000 2%,transparent 96%);
   animation:optical-weave-drift 42s ease-in-out infinite alternate;
 }
+/* Pending uses the exact original scene, not the lined failure appearance. */
+.optical-environment[data-ambient-mode="pending"]>.optical-weave,
+.optical-environment[data-ambient-mode="pending"]>.optical-caustic{opacity:0}
 .optical-caustic{
   position:absolute;pointer-events:none;opacity:.32;
   width:80vw;height:23vw;min-width:580px;min-height:120px;
@@ -1925,5 +1972,163 @@
   .archive-app .archive-response-meta .archive-response-attribution{gap:7px}
   .archive-app .archive-response-meta .archive-directory-avatar{
     width:22px;height:22px;flex-basis:22px;
+  }
+}
+
+
+/* LINED-FALLBACK GLASS | The compact theme toggle is the material/motion
+   reference. Scope ALL extra polish to an actual lined fallback (or a blocked
+   visual script); do not alter the approved WebGL original or GPU startup.
+   Reuse existing Glass lenses rather than adding per-row SVG filters. */
+:root:is([data-ambient-mode="lines"],:not([data-ambient-mode])){
+  --fallback-glass-spring:linear(0,.18,.55,.86,1.04,1.1,1.08,1.04,1.01,.995,.998,1);
+}
+:root:is([data-ambient-mode="lines"],:not([data-ambient-mode])) :is(.archive-app,.auth-experience)[data-theme="dark"]{
+  --fallback-glass-fill:rgba(28,30,42,.44);
+  --fallback-glass-selected:rgba(67,67,85,.48);
+  --fallback-glass-highlight:rgba(255,255,255,.49);
+  --fallback-glass-sheen:rgba(255,255,255,.13);
+  --fallback-glass-edge:rgba(242,244,255,.22);
+  --fallback-glass-depth:rgba(0,0,0,.32);
+  --fallback-glass-track:rgba(9,10,16,.68);
+  --fallback-glass-track-edge:rgba(255,255,255,.12);
+  --lg-tint:rgba(30,32,44,.25);
+  --lg-r1:rgba(255,255,255,.80);
+  --lg-r2:rgba(255,255,255,.23);
+}
+:root:is([data-ambient-mode="lines"],:not([data-ambient-mode])) :is(.archive-app,.auth-experience)[data-theme="light"]{
+  --fallback-glass-fill:rgba(248,249,255,.61);
+  --fallback-glass-selected:rgba(255,255,255,.82);
+  --fallback-glass-highlight:rgba(255,255,255,.96);
+  --fallback-glass-sheen:rgba(255,255,255,.44);
+  --fallback-glass-edge:rgba(255,255,255,.86);
+  --fallback-glass-depth:rgba(46,50,69,.16);
+  --fallback-glass-track:rgba(205,209,221,.68);
+  --fallback-glass-track-edge:rgba(78,86,108,.15);
+  --lg-tint:rgba(255,255,255,.19);
+  --lg-r1:rgba(255,255,255,.98);
+  --lg-r2:rgba(255,255,255,.52);
+}
+
+/* The toggle's glossy rounded dome, subtle depth and moving highlight, on
+   existing actionable glass controls. No change to control size or labels. */
+:root:is([data-ambient-mode="lines"],:not([data-ambient-mode]))
+:is(.archive-app,.auth-experience)
+:is(.liquid-action,.archive-button:not(.liquid-action-button),.archive-account-button,
+    .archive-sign-in-link,.archive-transfer-file-label,.archive-avatar-source-tabs button,
+    .archive-avatar-reset,.archive-avatar-back,.archive-avatar-expand-results,
+    .archive-collapse-toggle,.auth-link-button){
+  background:linear-gradient(165deg,var(--fallback-glass-sheen),transparent 43%),
+    linear-gradient(var(--fallback-glass-fill),var(--fallback-glass-fill))!important;
+  border-color:var(--fallback-glass-edge)!important;
+  box-shadow:inset 0 1.5px 1px var(--fallback-glass-highlight),
+    inset 0 -2px 4px var(--fallback-glass-depth),
+    0 5px 12px var(--fallback-glass-depth)!important;
+  transition:transform .4s var(--fallback-glass-spring),
+    box-shadow .25s ease,background-color .25s ease,border-color .25s ease!important;
+  -webkit-tap-highlight-color:transparent;
+}
+:root:is([data-ambient-mode="lines"],:not([data-ambient-mode]))
+:is(.archive-app,.auth-experience) .liquid-action::before{
+  background:radial-gradient(ellipse 90% 35% at 50% 0,
+    var(--fallback-glass-highlight),transparent 94%);
+  opacity:.65;
+}
+@media(hover:hover){
+  :root:is([data-ambient-mode="lines"],:not([data-ambient-mode]))
+  :is(.archive-app,.auth-experience)
+  :is(.liquid-action:not(:has(button:disabled)),
+      .archive-button:not(.liquid-action-button):not(:disabled),
+      .archive-account-button:not(:disabled),.archive-sign-in-link,
+      .archive-transfer-file-label,.archive-avatar-source-tabs button:not(:disabled),
+      .archive-avatar-reset:not(:disabled),.archive-avatar-back:not(:disabled),
+      .archive-avatar-expand-results:not(:disabled),.archive-collapse-toggle:not(:disabled),
+      .auth-link-button):hover{
+    transform:translate3d(0,-1px,0) scale(1.025)!important;
+    box-shadow:inset 0 2px 2px var(--fallback-glass-highlight),
+      inset 0 -2px 4px var(--fallback-glass-depth),
+      0 9px 19px var(--fallback-glass-depth)!important;
+  }
+}
+:root:is([data-ambient-mode="lines"],:not([data-ambient-mode]))
+:is(.archive-app,.auth-experience)
+:is(.liquid-action:not(:has(button:disabled)),.archive-button:not(.liquid-action-button):not(:disabled),
+    .archive-account-button:not(:disabled),.archive-sign-in-link,.archive-transfer-file-label,
+    .archive-avatar-source-tabs button:not(:disabled),.archive-avatar-reset:not(:disabled),
+    .archive-avatar-back:not(:disabled),.archive-avatar-expand-results:not(:disabled),
+    .archive-collapse-toggle:not(:disabled),.auth-link-button):active{
+  transform:scale(.965)!important;
+}
+
+/* Selection optics borrow the switch's convex highlight and 580ms spring,
+   while staying on the exact same sliding/selected DOM elements. */
+:root:is([data-ambient-mode="lines"],:not([data-ambient-mode]))
+:is(.archive-app,.auth-experience)
+:is(.archive-nav-selection,.archive-tabs-lens,.archive-visibility-lens,
+    .archive-admin-subnav-lens,.auth-tabs-lens,.otp-core-lens){
+  background:linear-gradient(170deg,var(--fallback-glass-sheen),transparent 46%),
+    linear-gradient(var(--fallback-glass-selected),var(--fallback-glass-selected))!important;
+  box-shadow:inset 0 1.5px 2px var(--fallback-glass-highlight),
+    inset 0 -2px 4px var(--fallback-glass-depth),
+    0 5px 12px var(--fallback-glass-depth)!important;
+  transition:transform .58s var(--fallback-glass-spring),
+    box-shadow .25s ease,opacity .18s ease!important;
+}
+:root:is([data-ambient-mode="lines"],:not([data-ambient-mode]))
+:is(.archive-app,.auth-experience)
+:is(.archive-nav-selection,.archive-tabs-lens,.archive-visibility-lens,
+    .archive-admin-subnav-lens,.auth-tabs-lens)::before{
+  content:"";position:absolute;inset:1px;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(180deg,var(--fallback-glass-highlight),transparent 37%);
+  opacity:.24;
+}
+
+/* The darker inset rail behind selection matches the toggle's recessed track. */
+:root:is([data-ambient-mode="lines"],:not([data-ambient-mode]))
+:is(.archive-app,.auth-experience)
+:is(.archive-nav,.archive-tabs,.archive-visibility-options,.archive-transfer-scope,.auth-mode-tabs){
+  background:var(--fallback-glass-track)!important;
+  border-color:var(--fallback-glass-track-edge)!important;
+  box-shadow:inset 0 2px 5px var(--fallback-glass-depth),
+    inset 0 -1px 1px var(--fallback-glass-highlight)!important;
+}
+:root:is([data-ambient-mode="lines"],:not([data-ambient-mode]))
+:is(.archive-app,.auth-experience)
+:is(.archive-nav button,.archive-tabs button,.archive-visibility-options button,
+    .archive-transfer-scope button,.auth-mode-tabs button,.archive-admin-subnav button,
+    .archive-suggestion,.archive-shortcut-menu button,.archive-avatar-title-choice){
+  transition:color .25s ease,background-color .25s ease,
+    transform .4s var(--fallback-glass-spring)!important;
+}
+
+/* Inputs keep their readable surfaces but inherit the toggle's edge glint. */
+:root:is([data-ambient-mode="lines"],:not([data-ambient-mode]))
+:is(.archive-app,.auth-experience)
+:is(.archive-library-search input,.archive-create-form input,.archive-create-form textarea,
+    .archive-edit-form input,.archive-edit-form textarea,.archive-settings-form input,
+    .archive-login-form input,.auth-input-wrap,.archive-avatar-search){
+  box-shadow:inset 0 1px 0 var(--fallback-glass-highlight),
+    inset 0 -1px 2px var(--fallback-glass-depth)!important;
+  transition:border-color .24s ease,box-shadow .24s ease!important;
+}
+@media(prefers-reduced-motion:reduce){
+  :root:is([data-ambient-mode="lines"],:not([data-ambient-mode]))
+  :is(.archive-app,.auth-experience)
+  :is(.liquid-action,.archive-button,.archive-account-button,.archive-sign-in-link,
+      .archive-transfer-file-label,.archive-avatar-source-tabs button,.archive-avatar-reset,
+      .archive-avatar-back,.archive-avatar-expand-results,.archive-collapse-toggle,
+      .auth-link-button,.archive-nav-selection,.archive-tabs-lens,.archive-visibility-lens,
+      .archive-admin-subnav-lens,.auth-tabs-lens,.otp-core-lens,.archive-nav button,
+      .archive-tabs button,.archive-visibility-options button,.archive-transfer-scope button,
+      .auth-mode-tabs button,.archive-admin-subnav button,.archive-suggestion,
+      .archive-shortcut-menu button,.archive-avatar-title-choice){
+    transition-duration:.01ms!important;
+  }
+}
+@media(prefers-reduced-transparency:reduce){
+  :root:is([data-ambient-mode="lines"],:not([data-ambient-mode]))
+  :is(.archive-app,.auth-experience){
+    --fallback-glass-fill:var(--a-surface);
+    --fallback-glass-selected:var(--a-soft);
   }
 }
