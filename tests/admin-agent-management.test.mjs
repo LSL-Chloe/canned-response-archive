@@ -22,12 +22,18 @@ function request(id, name, signed = true) {
     body: JSON.stringify({ confirmName: name }),
   });
 }
-async function mockedBackend(role, work) {
+async function mockedBackend(role, work, storageStatus = 200) {
   const original = globalThis.fetch;
   const calls = [];
+  const avatarDeletes = [];
   globalThis.fetch = async (input, init = {}) => {
     const url = new URL(String(input));
     const key = url.pathname.split('/').pop();
+    if (url.pathname === '/storage/v1/object/archive-avatars') {
+      assert.equal(init.method, 'DELETE');
+      avatarDeletes.push(JSON.parse(init.body));
+      return reply([], storageStatus);
+    }
     if (key === 'agent_sessions') return reply([{
       id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
       agent_id: ADMIN, expires_at: '2099-01-01T00:00:00Z', revoked_at: null,
@@ -49,7 +55,7 @@ async function mockedBackend(role, work) {
     }
     throw new Error('Unexpected mock DB request ' + url.pathname);
   };
-  try { return await work(calls); }
+  try { return await work(calls, avatarDeletes); }
   finally { globalThis.fetch = original; }
 }
 
@@ -74,8 +80,8 @@ test('admin-only deletion rejects anonymous agents and self deletion', async () 
   });
 });
 
-test('a verified admin can delete another agent; the SQL RPC rechecks role and confirmation', async () => {
-  await mockedBackend('admin', async calls => {
+test('a verified admin can delete another agent and clean past avatar uploads', async () => {
+  await mockedBackend('admin', async (calls, avatarDeletes) => {
     const res = await handleResponses(request(MEMBER, 'Member'), env, '/api/admin/users/' + MEMBER);
     assert.equal(res.status, 200);
     assert.deepEqual(await res.json(), {
@@ -85,7 +91,32 @@ test('a verified admin can delete another agent; the SQL RPC rechecks role and c
     assert.deepEqual(calls, [{
       p_actor_id: ADMIN, p_target_id: MEMBER, p_confirm_agent_name: 'Member',
     }]);
+    // The test account's selected avatar URL is null: an older uploaded
+    // avatar still needs to be deleted at the deterministic Storage path.
+    assert.deepEqual(avatarDeletes, [{ prefixes: [MEMBER + '/avatar.jpg'] }]);
   });
+});
+
+test('missing or failed avatar cleanup never undoes a committed account deletion', async () => {
+  await mockedBackend('admin', async (calls, avatarDeletes) => {
+    const res = await handleResponses(request(MEMBER, 'Member'), env, '/api/admin/users/' + MEMBER);
+    const body = await res.json();
+    assert.equal(body.deleted, true);
+    assert.equal(body.avatarCleanupFailed, false);
+    assert.equal(calls.length, 1);
+    assert.equal(avatarDeletes.length, 1);
+  }, 404);
+  const oldWarn = console.warn;
+  console.warn = () => {};
+  try {
+    await mockedBackend('admin', async calls => {
+      const res = await handleResponses(request(MEMBER, 'Member'), env, '/api/admin/users/' + MEMBER);
+      const body = await res.json();
+      assert.equal(body.deleted, true);
+      assert.equal(body.avatarCleanupFailed, true);
+      assert.equal(calls.length, 1);
+    }, 503);
+  } finally { console.warn = oldWarn; }
 });
 
 test('stale or wrong name confirmation cannot delete an agent', async () => {
