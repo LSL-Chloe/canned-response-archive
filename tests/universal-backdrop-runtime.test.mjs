@@ -163,47 +163,35 @@ test('failed WebGL2 shader compilation tries WebGL1 rather than exposing the gri
   assert.equal(ui.env.dataset.visualMode, 'original');
 });
 
-test('a failed first WebGL frame keeps CSS visible and falls back to animated Canvas2D', () => {
+test('a failed first WebGL frame reveals lined CSS without a blank or a third renderer', () => {
   const ui = browser({invalidFirstFrame: true});
   ui.frame(48);
   assert.equal(ui.classes.has('lg-gl'), false);
-  ui.frame(88);
-  ui.frame(130);
-  assert.equal(ui.env.dataset.ambientMode, 'canvas2d');
+  assert.equal(ui.env.dataset.ambientMode, 'lines');
   assert.equal(ui.env.dataset.visualMode, 'fallback');
-  assert.ok(ui.fills.length > 0);
+  assert.ok(!ui.contexts.includes('2d'));
 });
 
-test('if GPU APIs are unavailable, Canvas2D animates the atmospheric backdrop', () => {
+test('when GPU APIs are unavailable, CSS lines are the ONLY backup', () => {
   const ui = browser({webgl2:false,webgl1:false});
-  assert.deepEqual(ui.contexts, ['webgl2', 'webgl', '2d']);
+  assert.deepEqual(ui.contexts, ['webgl2', 'webgl']);
+  assert.equal(ui.env.dataset.ambientMode, 'lines');
+  assert.equal(ui.env.dataset.visualMode, 'fallback');
+  assert.equal(ui.classes.has('lg-gl'), false);
   ui.frame(48);
-  assert.equal(ui.env.dataset.ambientMode, 'canvas2d');
-  assert.equal(ui.env.dataset.visualMode, 'fallback');
-  const count = ui.fills.length;
-  ui.app.dataset.theme = 'light';
-  ui.frame(100);ui.frame(360);ui.frame(660);ui.frame(900);
-  assert.ok(ui.fills.length > count, 'Canvas2D should continue painting the ambient field');
-  assert.ok(ui.fills.some(fill => typeof fill === 'string' && fill.startsWith('rgb(')));
+  assert.equal(ui.env.dataset.ambientMode, 'lines');
 });
 
-test('when neither GPU nor Canvas2D can run, the accessible CSS ambiance remains', () => {
-  const ui = browser({webgl2:false,webgl1:false,canvas2d:false});
-  assert.equal(ui.env.dataset.ambientMode, 'gradient');
-  assert.equal(ui.env.dataset.visualMode, 'fallback');
-  assert.equal(ui.classes.has('lg-gl'), false);
-});
-
-test('reduced motion preserves the CSS background without forcing animated GPU effects', () => {
+test('reduced motion still uses the original static shader if supported', () => {
   const ui = browser({reducedMotion:true});
-  assert.deepEqual(ui.contexts, []);
-  assert.equal(ui.env.dataset.ambientMode, 'gradient');
-  assert.equal(ui.env.dataset.visualMode, 'fallback');
-  assert.equal(ui.classes.has('lg-gl'), false);
+  assert.deepEqual(ui.contexts, ['webgl2']);
+  ui.frame(48);
+  assert.equal(ui.env.dataset.ambientMode, 'webgl2');
+  assert.equal(ui.env.dataset.visualMode, 'original');
+  assert.ok(ui.calls.includes('webgl2:draw'));
 });
 
-
-test('a lost GPU context switches to the animated backup and releases old input listeners', () => {
+test('a lost GPU context shows lined fallback and releases old input listeners', () => {
   const ui = browser();
   ui.frame(44);
   assert.equal(ui.env.dataset.ambientMode, 'webgl2');
@@ -211,35 +199,34 @@ test('a lost GPU context switches to the animated backup and releases old input 
   const listenersBefore = ui.activeListeners('pointermove');
   ui.canvases[0].dispatch('webglcontextlost');
   assert.equal(ui.classes.has('lg-gl'), false);
-  ui.frame(85);ui.frame(130);
-  assert.equal(ui.env.dataset.ambientMode, 'canvas2d');
+  assert.equal(ui.env.dataset.ambientMode, 'lines');
   assert.equal(ui.env.dataset.visualMode, 'fallback');
-  assert.equal(ui.activeListeners('pointermove'), listenersBefore,
-    'A context loss must not accumulate a second permanent pointer listener');
+  assert.ok(ui.activeListeners('pointermove') < listenersBefore,
+    'Lost GPU contexts must release their input listeners');
+  ui.clearTimers();
+  ui.frame(850);
+  assert.equal(ui.env.dataset.ambientMode, 'webgl2');
+  assert.equal(ui.env.dataset.visualMode, 'original');
 });
 
 test('glass-control animation styles remain unconditional and renderer-independent', () => {
-  const ui = browser({webgl2:false,webgl1:false,canvas2d:false});
-  const style = ui.app && ui.env && ui.classes;
-  assert.ok(style);
+  const ui = browser({webgl2:false,webgl1:false});
+  assert.ok(ui.app && ui.env);
   const src = readFileSync(new URL('../public/liquid-glass.js', import.meta.url), 'utf8');
   const palette = readFileSync(new URL('../src/styles/premium.css', import.meta.url), 'utf8');
   assert.ok(src.indexOf('/* ───────── MATERIAL (CSS) ───────── */') <
     src.indexOf('/* ───────── REACTIVE 3D BACKGROUND'),
-    'All visual control transitions must initialize before any GPU path');
+    'Original glass-control transitions must initialize before GPU startup');
   assert.match(src, /\.archive-nav-selection,\.archive-tabs-lens,\.auth-tabs-lens,\.archive-visibility-lens\{transition:transform/);
   assert.match(src, /\.liquid-theme-switch \.liquid-switch-thumb\{transition:transform \.58s/);
   assert.match(src, /\.liquid-action,\.archive-button,\.archive-sign-in-link\{transition:transform/);
   assert.match(src, /\.liquid-action:hover,\.archive-button:hover,\.archive-sign-in-link:hover/);
-  assert.match(palette, /@property --ambient-blue/);
+  assert.match(palette, /repeating-linear-gradient/);
   assert.match(palette, /@property --a-bg/);
 });
 
-test('Canvas2D preserves background ripple click semantics without selecting unrelated text', () => {
+test('lined fallback does not obstruct ordinary text selection or inputs', () => {
   const ui = browser({webgl2:false,webgl1:false});
-  ui.frame(50);
-  assert.equal(ui.env.dataset.ambientMode, 'canvas2d');
-  assert.equal(ui.env.dataset.visualMode, 'fallback');
   const e = {
     pointerId: 1,pointerType: 'mouse',isPrimary: true,button: 0,
     target: ui.backgroundTarget(),clientX: 640,clientY: 280,
@@ -247,9 +234,5 @@ test('Canvas2D preserves background ripple click semantics without selecting unr
   ui.fire('pointerdown', e);
   let prevented = false;
   ui.selectionStart({preventDefault() { prevented = true; }});
-  assert.equal(prevented, true, 'A drag from empty background cannot select hint text');
-  ui.fire('pointerup', {pointerId: 1});
-  prevented = false;
-  ui.selectionStart({preventDefault() { prevented = true; }});
-  assert.equal(prevented, false, 'Normal text selection is restored when dragging stops');
+  assert.equal(prevented, false, 'The CSS-only backdrop has no selection interceptor');
 });
