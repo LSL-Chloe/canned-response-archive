@@ -119,6 +119,7 @@ function browser({ webgl2 = true, webgl1 = true, canvas2d = true, failGL2Shader 
     frame(t) { now = t; const jobs = frames.splice(0); for (const cb of jobs) cb(t); },
     clearTimers() { while(timers.length) timers.shift()(); },
     activeClasses() { return Array.from(classes); },
+    activeListeners(type) { return (handlers.get(type) || []).filter(x => !x.signal?.aborted).length; },
   };
 }
 
@@ -181,4 +182,35 @@ test('reduced motion preserves the CSS background without forcing animated GPU e
   assert.deepEqual(ui.contexts, []);
   assert.equal(ui.env.dataset.ambientMode, 'gradient');
   assert.equal(ui.classes.has('lg-gl'), false);
+});
+
+
+test('a lost GPU context switches to the animated backup and releases old input listeners', () => {
+  const ui = browser();
+  ui.frame(44);
+  assert.equal(ui.env.dataset.ambientMode, 'webgl2');
+  const listenersBefore = ui.activeListeners('pointermove');
+  ui.canvases[0].dispatch('webglcontextlost');
+  assert.equal(ui.classes.has('lg-gl'), false);
+  ui.frame(85);ui.frame(130);
+  assert.equal(ui.env.dataset.ambientMode, 'canvas2d');
+  assert.equal(ui.activeListeners('pointermove'), listenersBefore,
+    'A context loss must not accumulate a second permanent pointer listener');
+});
+
+test('glass-control animation styles remain unconditional and renderer-independent', () => {
+  const ui = browser({webgl2:false,webgl1:false,canvas2d:false});
+  const style = ui.app && ui.env && ui.classes;
+  assert.ok(style);
+  const src = readFileSync(new URL('../public/liquid-glass.js', import.meta.url), 'utf8');
+  const palette = readFileSync(new URL('../src/styles/premium.css', import.meta.url), 'utf8');
+  assert.ok(src.indexOf('/* ───────── MATERIAL (CSS) ───────── */') <
+    src.indexOf('/* ───────── REACTIVE 3D BACKGROUND'),
+    'All visual control transitions must initialize before any GPU path');
+  assert.match(src, /\.archive-nav-selection,\.archive-tabs-lens,\.auth-tabs-lens,\.archive-visibility-lens\{transition:transform/);
+  assert.match(src, /\.liquid-theme-switch \.liquid-switch-thumb\{transition:transform \.58s/);
+  assert.match(src, /\.liquid-action,\.archive-button,\.archive-sign-in-link\{transition:transform/);
+  assert.match(src, /\.liquid-action:hover,\.archive-button:hover,\.archive-sign-in-link:hover/);
+  assert.match(palette, /@property --ambient-blue/);
+  assert.match(palette, /@property --a-bg/);
 });
