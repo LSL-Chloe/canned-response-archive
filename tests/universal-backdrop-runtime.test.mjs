@@ -204,7 +204,9 @@ test('a lost GPU context shows lined fallback and releases old input listeners',
   assert.ok(ui.activeListeners('pointermove') < listenersBefore,
     'Lost GPU contexts must release their input listeners');
   ui.clearTimers();
-  ui.frame(850);
+  ui.frame(850); // Retry starts a new canvas after the bounded cooldown.
+  assert.equal(ui.env.dataset.ambientMode, 'lines', 'Keep fallback until a valid frame is drawn');
+  ui.frame(900); // The first valid GPU frame activates the original visual mode.
   assert.equal(ui.env.dataset.ambientMode, 'webgl2');
   assert.equal(ui.env.dataset.visualMode, 'original');
 });
