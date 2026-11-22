@@ -270,12 +270,6 @@ export async function handleResponses(request: Request, env: Env, path: string):
     if (!await requireRateLimit(env, `admin:delete:${signed.agent.id}`, 10, 3600)) {
       return fail(429, 'rate_limited', 'Too many account deletions. Try again later.');
     }
-    const target = (await queryTable<{ avatar_url: string | null }>(env, 'agents', {
-      select: 'avatar_url', id: `eq.${id}`, limit: '1',
-    }))[0];
-    const localAvatar = target?.avatar_url?.startsWith(
-      `${env.SUPABASE_URL}/storage/v1/object/public/archive-avatars/${id}/avatar.jpg`,
-    ) ?? false;
     try {
       // This is a single SQL transaction, including all owned responses,
       // related shortcuts, and revocation of the deleted account's sessions.
@@ -285,24 +279,24 @@ export async function handleResponses(request: Request, env: Env, path: string):
         },
       );
       let avatarCleanupFailed = false;
-      if (localAvatar) {
-        // Use the Storage API rather than deleting storage.objects metadata.
-        // A cleanup error must not imply the already committed account still exists.
-        try {
-          const avatarEndpoint = new URL('/storage/v1/object/archive-avatars', env.SUPABASE_URL);
-          const headers = new Headers({
-            apikey: env.SUPABASE_SECRET_KEY!, 'Content-Type': 'application/json',
-          });
-          if (env.SUPABASE_SECRET_KEY!.startsWith('eyJ')) {
-            headers.set('Authorization', 'Bearer ' + env.SUPABASE_SECRET_KEY);
-          }
-          const removed = await fetch(avatarEndpoint, {
-            method: 'DELETE', headers, body: JSON.stringify({ prefixes: [id + '/avatar.jpg'] }),
-          });
-          avatarCleanupFailed = !removed.ok;
-        } catch {
-          avatarCleanupFailed = true;
+      // Avatar uploads use a predictable per-agent Storage path. Try clearing it
+      // after account deletion even when the agent later chose a catalog avatar
+      // or reset their picture: otherwise the old JPEG would be orphaned.
+      // Missing objects are harmless. Never delete Storage metadata through SQL.
+      try {
+        const avatarEndpoint = new URL('/storage/v1/object/archive-avatars', env.SUPABASE_URL);
+        const headers = new Headers({
+          apikey: env.SUPABASE_SECRET_KEY!, 'Content-Type': 'application/json',
+        });
+        if (env.SUPABASE_SECRET_KEY!.startsWith('eyJ')) {
+          headers.set('Authorization', 'Bearer ' + env.SUPABASE_SECRET_KEY);
         }
+        const removed = await fetch(avatarEndpoint, {
+          method: 'DELETE', headers, body: JSON.stringify({ prefixes: [id + '/avatar.jpg'] }),
+        });
+        avatarCleanupFailed = !removed.ok && removed.status !== 404;
+      } catch {
+        avatarCleanupFailed = true;
       }
       if (avatarCleanupFailed) console.warn('Deleted account avatar cleanup was unsuccessful');
       return json({ ...result, avatarCleanupFailed });
