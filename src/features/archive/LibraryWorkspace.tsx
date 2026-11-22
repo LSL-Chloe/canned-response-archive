@@ -7,7 +7,7 @@ import { addResponse, bulkDeleteResponses, deleteResponse, getTeam, updateRespon
 import AgentAvatar from './AgentAvatar';
 import TransferWorkspace from './TransferWorkspace';
 import {
-  canManageResponse, formatCount, shortcutOptions,
+  canManageResponse, formatCount, responseCreatorName, shortcutOptions,
   type Agent, type ArchiveResponse, type LibraryScope, type Visibility,
 } from './model';
 
@@ -371,9 +371,7 @@ export default function LibraryWorkspace({
         <div className="archive-response-list">
           {shown.map(item => {
             const permission = canManageResponse(agent, item);
-            const creatorName = item.visibility === 'private'
-              ? (agent?.agent_name || 'Unknown agent')
-              : (item.createdBy || (item.ownedByMe ? agent?.agent_name : '') || 'Unknown agent');
+            const creatorName = responseCreatorName(item, agent);
             const profile = creatorByName.get(creatorName.toLocaleLowerCase());
             return (
               <article className={`archive-response-row${selectedIds.has(item.id) ? ' is-selected' : ''}`} key={item.id}>
