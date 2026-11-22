@@ -76,7 +76,7 @@ An import accepts 1–50 rows per request. Each batch is **transactional** and s
 | GET | `/api/avatars/popular` | Signed-in, optional popular-character suggestions |
 | GET | `/api/avatars/variations` | Signed-in, additional fan-wiki or anime artwork |
 | GET | `/api/avatars/booru-looks` | Signed-in, filtered general-rated artwork for one character |
-| GET | `/api/avatars/image` | Signed-in, allowlisted public image proxy for hosts that block direct loading |
+| GET | `/api/avatars/image` | Signed-in users may use the allowlisted catalog proxy; signed-out viewers may fetch only URLs currently selected as a registered agent's public profile picture (database match + per-IP rate limit) |
 
 Most featured icons come from a bundled manifest and don't require a catalog request. External image providers are optional and can fail without preventing use of the rest of the archive.
 
