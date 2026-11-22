@@ -4,7 +4,7 @@ This is a **staging-only** recovery of the previously approved violet/blue liqui
 
 ## What was wrong
 
-The original Claude-supplied, synchronized WebGL2 background is still present in `public/liquid-glass.js` and loaded from `index.html`. The gradient shader retains the violet/blue colors and mouse-driven motion. The problem was the **fallback** in `src/styles/premium.css`: if a device or browser cannot create a WebGL2 context, uses reduced motion, or blocks that script, a highly visible black-and-grey repeating-line **grid** fills the entire screen. The nearby theme tokens also shifted panels and selection buttons toward monochrome.
+The original Claude-supplied, synchronized WebGL2 background is still present in `public/liquid-glass.js` and loaded from `index.html`. The gradient shader retains the violet/blue colors and mouse-driven motion. A follow-up also attempts an equivalent WebGL1 shader before using a visually matched, low-resolution Canvas 2D animation or the CSS-only backup. The problem was the **fallback** in `src/styles/premium.css`: if a device or browser cannot create a WebGL2 context, uses reduced motion, or blocks that script, a highly visible black-and-grey repeating-line **grid** fills the entire screen. The nearby theme tokens also shifted panels and selection buttons toward monochrome.
 
 That makes an otherwise current deployment *look like* an older design; it does not show that the Worker served a stale Git commit.
 
@@ -12,9 +12,9 @@ That makes an otherwise current deployment *look like* an older design; it does 
 
 - Restore subtle purple/violet and navy-blue ambient lighting in both light and dark modes, including panels, field borders and glass selection tints.
 - Replace the grid with composited soft radial gradients that remain attractive **without GPU acceleration** and need no image assets or new network requests.
-- Keep the original `public/liquid-glass.js` WebGL2 shader where it works. It still handles reactive highlights, background ripples, theme toggling and refraction.
+- Always attempt the original `public/liquid-glass.js` WebGL2 shader first when motion is allowed. Compile/link/draw errors automatically try the equivalent WebGL1 shader next, then an animated Canvas 2D approximation, and finally the CSS ambiance. These renderers never modify the React control DOM or permission logic, and the SVG glass-control transitions are independent from the background renderer.
 - Type the ambient, base-background and caustic CSS color variables and transition them over the existing **580ms** theme-thumb motion, retaining the original toggle. The CSS itself provides a reduced-motion-aware fallback transition even if the optional visual JavaScript cannot run.
-- Avoid repeated WebGL initialization on every React DOM update when hardware acceleration is unavailable. After a lost WebGL context, fall back to gradients and allow one retry, then stop retrying.
+- Avoid repeated WebGL initialization on every React DOM update when hardware acceleration is unavailable. Verify a successful frame before hiding the CSS background; on WebGL context loss clean up pointer/resize listeners, switch to Canvas 2D, retry the original shader once after a short cooldown, then keep a stable fallback. Respect reduced motion by showing stationary CSS gradients.
 - Preserve reduced-motion/reduced-transparency behavior. The fallback contains no flashing or line patterns and animates only through slow transforms and opacity.
 
 ## Checked against approved change history

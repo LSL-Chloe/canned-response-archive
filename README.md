@@ -37,7 +37,7 @@ cp .dev.vars.example .dev.vars
 npm run dev
 ```
 
-The site uses a responsive liquid-glass interface with a synchronized light/dark toggle and reduced-motion support. Email verification shows a six-digit lock-on progress animation; an account is marked verified only after the server confirms the code.
+The site uses a responsive liquid-glass interface with a synchronized light/dark toggle and reduced-motion support. Its original moving shader runs through WebGL2 where supported, with WebGL1, animated Canvas 2D, and CSS fallbacks to preserve the same visual identity and control transitions on less capable devices. Email verification shows a six-digit lock-on progress animation; an account is marked verified only after the server confirms the code.
 
 The website is built with **React, TypeScript, and Vite**. The API runs in a **Cloudflare Worker** and stores responses, account records, and session data in **Supabase PostgreSQL**. Email verification can be sent through a signed Google Apps Script relay.
 
