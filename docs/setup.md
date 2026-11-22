@@ -20,7 +20,7 @@ You will need to fill in the secrets in `.dev.vars` before account and database 
 
 ## 2. Prepare Supabase
 
-Create a **separate development Supabase project**. Apply the versioned SQL migrations from `supabase/migrations/` in chronological order, or use a migration tool that can reconcile their history. The repository's existing development project has already been migrated; **do not reapply its migrations blindly**.
+Create a **separate development Supabase project**. Apply the versioned SQL migrations from `supabase/migrations/` in chronological order, or use a migration tool that can reconcile their history. The two existing Supabase projects have independent migration histories. The project historically named `canned-response-archive-dev` actually serves the **live** website. The separate `canned-response-archive-staging` project serves the `develop` Preview. **Check each project's applied migrations before making changes; never reapply them blindly.**
 
 The database holds:
 - Accounts, PIN verifiers, and sessions
@@ -99,25 +99,22 @@ Do not prefix these variables with `VITE_`: that prefix is for frontend-exposed 
 
 ## Working on the interface
 
-The normal workflow begins at Search. Saved responses live in Canned responses, while the profile menu opens Settings. The page supports dark and light liquid-glass themes, and its visual effects respect reduced-motion preferences.
+The normal workflow begins at Search. Saved responses live in Canned responses, and the profile menu opens Settings. An administrator has an Admin dashboard with **Team overview** and **Manage agents**; the latter can permanently remove an agent and their replies after exact-name confirmation. The page supports dark and light liquid-glass themes, and its visual effects respect reduced-motion preferences.
 
-The current development Worker also serves the custom domain [archiveresp.dpdns.org](https://archiveresp.dpdns.org/). Domain registration and DNS changes are administered outside this repository; deploying this code alone does not register or attach that hostname. The site uses a CDN-first preview for static curated avatar images and falls back to the original pinned GitHub image if the CDN is unavailable. Chrome's network/proxy restrictions may still affect third-party images independently of the Worker.
+The live Worker (deployed from `main`) serves the custom domain [archiveresp.dpdns.org](https://archiveresp.dpdns.org/). Domain registration and DNS changes are administered outside this repository; deploying this code alone does not register or attach that hostname. The site uses a CDN-first preview for static curated avatar images and falls back to the original pinned GitHub image if the CDN is unavailable. Chrome's network/proxy restrictions may still affect third-party images independently of the Worker.
 
 For a complete manual test, use [archive QA](archive-qa.md) and [authentication QA](auth-qa.md). For the trust boundaries, see [architecture](architecture.md) and [SECURITY.md](../SECURITY.md).
 
 ## Cloudflare preview builds and dependency updates
 
-Cloudflare Workers Builds deploys `main` to the development Worker and attempts a
-separate **preview build** for non-production branches and pull requests. The
-`previews: {}` entry in `wrangler.jsonc` is required by `wrangler preview`;
-without it, GitHub may report **Workers Builds: canned-response-archive** as
-failed even when `npm run check` and the production deployment succeed.
-
-The Preview config is deliberately empty. **Previews do not inherit production
-secrets or database bindings**, so a preview can show the interface but will
-not have functional sign-in or saved responses until separate, test-only preview
-secrets are configured in Cloudflare. Never copy production credentials into
-the Previews Base environment just to make an automated check green.
+Cloudflare Workers Builds deploys `main` to the live Worker and runs a separate
+Preview build for `develop` and other non-production branches. The checked-in
+`wrangler.jsonc` includes `previews.vars.SUPABASE_URL` pointing to the
+**public staging Supabase URL only**, not a production secret. The Preview uses
+its own encrypted `SUPABASE_SECRET_KEY`, `PIN_PEPPER`, `OTP_MAILER_URL`,
+and `OTP_MAILER_SECRET` configured under the `develop` Preview in
+Cloudflare. **Never copy preview credentials into Production or vice versa.**
+A successful staging signup does not prove production email delivery is configured.
 
 In the Cloudflare dashboard, the setting is under
 **Workers & Pages → canned-response-archive → Settings → Build → Branch control**.
@@ -133,4 +130,4 @@ feature-branch push.
 
 ## Response-management migration
 
-Changing a response's Shared/Private visibility and bulk deletion rely on the server-only Postgres functions in `supabase/migrations/20261122010100_response_management.sql`. Apply that migration **before** deploying any Worker code that calls `update_archive_response` or `delete_archive_responses_batch`. The connected development project has already applied this migration and verified its permissions; do not run it there again. New installations should apply every migration in chronological order. Do not grant these RPCs to `anon` or `authenticated` roles.
+Changing a response's Shared/Private visibility and bulk deletion rely on the server-only Postgres functions in `supabase/migrations/20261122010100_response_management.sql`. Apply that migration **before** deploying any Worker code that calls `update_archive_response` or `delete_archive_responses_batch`. The live and staging projects have already applied this migration and verified its permissions. The next migration, `20261122043000_admin_delete_agent.sql`, adds a service-role-only, transactional deletion RPC for the administrator's Manage agents page. Apply it to each environment before deploying code that calls it. New installations should apply **all** migrations chronologically. Never grant these RPCs to `anon` or `authenticated` roles.
