@@ -26,7 +26,7 @@ This is the review record for bringing the 12 staged commits since `main@6001e6a
 - Existing account/reply/shortcut/feed row totals are unchanged after migration.
 - RLS settings and security advisories remain as expected.
 
-The migration version recorded by Supabase may differ from the Git filename timestamp. Don't reapply existing migrations. The migration is additive, but reverting the Worker does **not** reverse the SQL function; use a separate reviewed migration if schema removal is ever required.
+The migration version recorded by Supabase may differ from the Git filename timestamp. Don't reapply existing migrations. **Applied on 22 November 2026 before code promotion:** production now has all nine migrations. After installation the same **3 agents, 227 responses, 119 shortcuts and 202 Shared-feed entries** remained, and only `service_role` could invoke the new RPC. The migration is additive, but reverting the Worker does **not** reverse the SQL function; use a separate reviewed migration if schema removal is ever required.
 
 ## Release and rollback
 
