@@ -44,10 +44,18 @@ test('fallback restores only the approved lined background, never alternate cont
   assert.doesNotMatch(js, /data\.visualMode===.*(?:button|toggle|nav)/);
 });
 
+test('a silent black GPU output cannot indefinitely hide the lined background', () => {
+  const js = read('public/liquid-glass.js');
+  assert.match(js, /gl\.readPixels\(c\.width>>1,c\.height>>1,1,1,gl\.RGBA,gl\.UNSIGNED_BYTE,sample\)/);
+  assert.match(js, /blackProbes\?500:4000/);
+  assert.match(js, /if\(!c\._ready\|\|\+\+blackProbes>=2\)\{fail\(\);return\}/);
+  assert.match(js, /visualMode\(env,'fallback','lines'\)/);
+});
+
 test('Cloudflare revalidates the document and unbundled visual script', () => {
   const headers = read('public/_headers');
   const html = read('index.html');
-  assert.match(html, /src="\/liquid-glass\.js\?v=original-glass-20261123-1"/);
+  assert.match(html, /src="\/liquid-glass\.js\?v=original-glass-20261123-2"/);
   assert.match(headers, /\/liquid-glass\.js\s+Cache-Control: no-store/);
   assert.match(headers, /\/index\.html\s+Cache-Control: no-store/);
   assert.match(headers, /\/\s+Cache-Control: no-store/);
