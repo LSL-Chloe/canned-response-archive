@@ -51,7 +51,7 @@ test('WebGL2 loss stays graceful and never triggers endless GPU retries on React
   assert.match(layer, /if\(!webglUnavailable&&performance\.now\(\)>=gpuRetryAt\)G=bg\(env\)/);
   assert.match(layer, /if\(!G&&!canvasUnavailable\)G=bg2d\(env\)/);
   assert.match(layer, /if\(!G\)env\.dataset\.ambientMode='gradient'/);
-  assert.match(layer, /env\.dataset\.ambientMode='webgl'/);
+  assert.match(layer, /env\.dataset\.ambientMode=kind/);
   assert.match(layer, /webglcontextlost/);
   assert.match(layer, /env\.classList\.remove\('lg-gl'\)/);
   assert.match(layer, /if\(\+\+contextLossCount>1\)webglUnavailable=true/);
