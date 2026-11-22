@@ -19,7 +19,7 @@ test('only original and fallback presentation modes exist, independent of render
 
 test('full original glass controls, rim lighting and spring animations apply to both backgrounds', () => {
   const js = read('public/liquid-glass.js');
-  assert.match(js, / \.liquid-theme-switch \.liquid-switch-thumb\{transition:transform \.58s/);
+  assert.match(js, /\.liquid-theme-switch \.liquid-switch-thumb\{transition:transform \.58s/);
   assert.match(js, /\.archive-nav-selection,\.archive-tabs-lens,\.auth-tabs-lens,\.archive-visibility-lens\{transition:transform/);
   assert.match(js, /\.liquid-action:hover,\.archive-button:hover,\.archive-sign-in-link:hover/);
   assert.match(js, /\[data-liquid-glass\]::after,\[data-lgx\]::after\{content:""/);
