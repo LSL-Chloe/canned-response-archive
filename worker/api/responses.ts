@@ -79,9 +79,14 @@ async function teamDirectory(env: Env): Promise<TeamDirectoryRow[]> {
   const stats = await callRpc<Omit<TeamDirectoryRow, 'avatar_url'>[]>(env, 'admin_agent_stats');
   // Batch the profile image lookup: no per-agent queries, and an avatar that
   // has just changed always comes from the live agents table on refresh.
-  const pictures = await queryTable<{ id: string; avatar_url: string | null }>(env, 'agents', {
-    select: 'id,avatar_url', limit: '1000',
-  });
+  const pictures: Array<{ id: string; avatar_url: string | null }> = [];
+  for (let offset = 0; offset < stats.length; offset += 500) {
+    const page = await queryTable<{ id: string; avatar_url: string | null }>(env, 'agents', {
+      select: 'id,avatar_url', order: 'id.asc', limit: '500', offset: String(offset),
+    });
+    pictures.push(...page);
+    if (page.length < 500) break;
+  }
   const byId = new Map(pictures.map(profile => [profile.id, profile.avatar_url]));
   return stats.map(agent => ({
     ...agent,
