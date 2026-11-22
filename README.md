@@ -22,7 +22,7 @@ A shortcut can contain **several different replies**, so you can keep variations
 
 ## See it in action
 
-The **live site** (from `main`) is available at [archiveresp.dpdns.org](https://archiveresp.dpdns.org/) (the original [Cloudflare workers.dev address](https://canned-response-archive.mohid-limesoftlogics.workers.dev/) also works). The domain points to the same Worker and **development infrastructure**; a custom domain does not turn it into a production-ready workplace service. Use only approved content until separate production infrastructure, backups, and end-to-end security checks are complete.
+The **live site** (from `main`) is available at [archiveresp.dpdns.org](https://archiveresp.dpdns.org/) (the original [Cloudflare workers.dev address](https://canned-response-archive.mohid-limesoftlogics.workers.dev/) also works). Both hostnames route to the live `main` Worker. The live Supabase database happens to have a historical `-dev` name, but it is **production data**, separate from the `develop` Preview and its staging Supabase project. Only use approved content until backup/restore readiness and end-to-end security checks have been confirmed.
 
 ## Run it locally
 
@@ -68,6 +68,7 @@ The command `npm run check` runs all three checks. GitHub Actions uses `npm ci` 
 | [Security](SECURITY.md) | Sensitive data, known limitations, and reporting concerns |
 | [Code review](docs/security-performance-review.md) | Audit findings, changes, and work left before production |
 | [November 2026 release review](docs/release-review-2026-11-22.md) | Staging-to-live release scope, database prerequisite, checks, and remaining risks |
+| [Visual recovery audit](docs/visual-recovery-audit-2026-11-22.md) | Restored violet/blue background fallback, WebGL behavior, feature preservation, and device QA |
 | [Contributing](CONTRIBUTING.md) | Making and reviewing changes |
 
 ## Redesigns without changing the live site

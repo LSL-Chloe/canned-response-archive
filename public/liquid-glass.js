@@ -53,7 +53,7 @@ const css=`
 html[data-lg="0"] [data-liquid-glass]::after,html[data-lg="0"] [data-lgx]::after{background:var(--lg-r2)}
 /* Color changes follow the existing .58s sliding theme thumb, without replacing
    its spring animation or delaying React state changes. */
-.archive-app[data-theme],.auth-experience[data-theme]{transition:color .58s ease}
+.archive-app[data-theme],.auth-experience[data-theme]{transition:color .58s ease,--ambient-blue .58s ease,--ambient-violet .58s ease,--ambient-rose .58s ease}
 .archive-app>.optical-environment,.auth-experience>.optical-environment{transition:background-color .58s ease}
 .archive-app .archive-sidebar{transition:width .27s cubic-bezier(.16,1,.3,1),flex-basis .27s cubic-bezier(.16,1,.3,1),padding .27s cubic-bezier(.16,1,.3,1),background-color .58s ease,border-color .58s ease}
 .archive-app .archive-topbar{transition:background-color .58s ease,color .58s ease,border-color .58s ease}
@@ -109,7 +109,7 @@ const GROUPS=[
  ['.archive-dialog,.archive-selection-toolbar,.archive-team-table-wrap,.archive-suggestion-popover','nb'],
  ['.archive-sign-in-link,.archive-account-button,.archive-button:not(.liquid-action-button)','css'],
  ['.archive-account-menu,.archive-message,.archive-tabs-lens,.auth-tabs-lens,.archive-visibility-lens,.otp-core-lens','']];
-let G=null,q=0,bT=0;
+let G=null,q=0,bT=0,webglUnavailable=false,contextLossCount=0;
 const busy=(ms=480)=>{R.dataset.busy='';clearTimeout(bT);bT=setTimeout(()=>delete R.dataset.busy,ms)};
 addEventListener('scroll',()=>busy(160),{passive:true,capture:true});
 function scan(){
@@ -117,7 +117,14 @@ function scan(){
  D.querySelectorAll('[data-liquid-glass],[data-lgx=""]').forEach(e=>{if(!e._lg){e._lg=1;ro.observe(e)}});
  const app=D.querySelector('.archive-app');if(app&&!app._lgo){app._lgo=1;new MutationObserver(()=>busy()).observe(app,{attributes:true,attributeFilter:['class']})}
  const env=D.querySelector('.optical-environment');
- if(env){if(!G&&!calm)G=bg(env);else if(G&&!G.isConnected){env.prepend(G);env.classList.add('lg-gl')}}
+ if(env){
+  if(!G&&!calm&&!webglUnavailable){
+   G=bg(env);
+   if(!G){webglUnavailable=true;env.dataset.ambientMode='gradient'}
+   else env.dataset.ambientMode='webgl';
+  }else if(G&&!G.isConnected){env.prepend(G);env.classList.add('lg-gl')}
+  else if(calm)env.dataset.ambientMode='gradient';
+ }
 }
 new MutationObserver(()=>{cancelAnimationFrame(q);q=requestAnimationFrame(scan)}).observe(D.body,{childList:true,subtree:true});
 
@@ -184,7 +191,14 @@ function bg(env){
   // or controls. No preventDefault on pointerdown, so inputs still blur.
   if(blank){ks.set([tx,ty,T(),1],ki*4);ki=(ki+1)%6}
  },{passive:true});
- c.addEventListener('webglcontextlost',e=>{e.preventDefault();ok=0;c.remove();G=null;setTimeout(scan,600)});
+ c.addEventListener('webglcontextlost',e=>{
+  e.preventDefault();ok=0;c.remove();G=null;env.classList.remove('lg-gl');
+  env.dataset.ambientMode='gradient';
+  // Retry once after a transient GPU failure, then stay on the soft-gradient
+  // fallback. Repeated context creation on every React render is expensive.
+  if(++contextLossCount>1)webglUnavailable=true;
+  else setTimeout(scan,600);
+});
  (function loop(now){
   if(!ok)return;requestAnimationFrame(loop);if(D.hidden)return;
   const idle=now-act>4000,min=idle||tier===0||'busy' in R.dataset?32:15;if(now-prev<min)return;
