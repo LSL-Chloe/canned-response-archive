@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { handleResponses } from '../worker/api/responses.ts';
+import { handleAvatars } from '../worker/api/avatars.ts';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const env = {
@@ -112,4 +113,42 @@ test('Escape clears the entire composer, dropdown, highlight and insertion undo 
   assert.match(search, /aria-keyshortcuts="Escape"/);
   assert.match(search, /<kbd>Esc<\/kbd> clear/);
   assert.match(search, /selectionStart !== event.currentTarget.selectionEnd/, 'Selection-specific copy must remain');
+});
+
+
+test('guest avatar proxy serves only a current selected profile picture', async () => {
+  const original = globalThis.fetch;
+  const chosen = 'https://static.tvmaze.com/uploads/images/medium_portrait/5/14.jpg';
+  const query = url => new URL('https://archive.example/api/avatars/image?url=' + encodeURIComponent(url));
+  let selected = true;
+  let upstreamCalls = 0;
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith('/agents')) {
+      assert.equal(url.searchParams.get('avatar_url'), 'eq.' + chosen);
+      return reply(selected ? [{ id: DIRECTORY[1].id }] : []);
+    }
+    if (url.pathname.endsWith('/rpc/use_rate_limit')) return reply(true);
+    if (url.toString() === chosen) {
+      upstreamCalls++;
+      return new Response(new Uint8Array([137, 80, 78, 71]), {
+        status: 200, headers: { 'Content-Type': 'image/png' },
+      });
+    }
+    throw new Error('Unexpected avatar URL ' + url);
+  };
+  try {
+    const url = query(chosen);
+    const request = new Request(url, { headers: { 'CF-Connecting-IP': '192.0.2.1' } });
+    const allowed = await handleAvatars(request, env, '/api/avatars/image', url);
+    assert.equal(allowed.status, 200);
+    assert.equal(allowed.headers.get('Content-Type'), 'image/png');
+    assert.equal(upstreamCalls, 1);
+    selected = false;
+    await assert.rejects(handleAvatars(request, env, '/api/avatars/image', url),
+      error => error.status === 403 && error.code === 'not_public_avatar');
+    assert.equal(upstreamCalls, 1, 'Unselected images must not trigger remote fetches');
+  } finally {
+    globalThis.fetch = original;
+  }
 });
