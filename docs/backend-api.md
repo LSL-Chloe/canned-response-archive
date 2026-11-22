@@ -24,7 +24,7 @@ JSON API responses are marked `no-store`. Write requests require a same-origin `
 
 Email is optional for signup. Without a verified email, forgotten-PIN recovery and email-based sign-in are unavailable; the agent name still works. For email sign-in, the Worker requires `email_verified_at` on the matching account, normalizes email case, verifies the same PIN, and returns the same generic invalid-credentials error for missing/unverified accounts or wrong PIN. The shared per-account rate limit is keyed to the immutable agent ID, preventing bypass by switching from name to email.
 
-OTP codes are six digits, expire after ten minutes, and allow at most five wrong submissions per challenge. Sending is limited to three requests per target in 15 minutes, with a separate hourly IP limit. Sign-in and other sensitive operations have their own rate limits.
+OTP codes are six digits, expire after ten minutes, and allow at most five wrong submissions per challenge. The lock-on progress/check animation reflects digit entry and a confirmed server response; it does not verify codes locally. Sending is limited to three requests per target in 15 minutes, with a separate hourly IP limit. Sign-in and other sensitive operations have their own rate limits.
 
 ## Saved responses
 
@@ -40,7 +40,8 @@ OTP codes are six digits, expire after ten minutes, and allow at most five wrong
 | GET | `/api/responses/export?scope=private` | Download your own private replies |
 | GET | `/api/responses/export?scope=shared` | Administrator only |
 | POST | `/api/responses/import` | Signed-in user for private imports; administrator for shared imports |
-| GET | `/api/admin/users` | Administrator-only account and response counts, without private text |
+| GET | `/api/admin/users` | Administrator-only registered-agent list (name, role, join date, shared/private counts), without private text or email addresses |
+| DELETE | `/api/admin/users/:id` | Administrator only. Send JSON `{"confirmName":"Exact agent name"}`. Permanently removes the targeted non-admin account, its sessions, and all its replies in a single database transaction; keeps shared shortcuts used by others. Self-deletion and deleting an administrator are forbidden. |
 
 Replies live under `#shortcut` names, with original internal spaces and underscores preserved (1–64 characters, case-insensitive uniqueness). Several independent replies can share one shortcut. Creating another reply doesn't overwrite an existing one.
 
@@ -85,8 +86,8 @@ Uploaded pictures are publicly readable in the designated Supabase Storage bucke
 - Role checks happen in the Worker, not only in the UI.
 - Public shared responses must not contain confidential information.
 - Changing a reply's shortcut or visibility reassigns only that reply, leaving the other replies under its shortcut intact.
-- The new `update_archive_response` and `delete_archive_responses_batch` RPCs are server-only (service role). The Worker checks the user session and Postgres checks current permissions again under row locks; the browser cannot invoke them using an anonymous key.
-- Bulk deletion is intentionally destructive and cannot be undone; verify your current filter and selection first.
+- The `update_archive_response`, `delete_archive_responses_batch`, and `admin_delete_agent` RPCs are server-only (service role). The Worker checks the user session and Postgres checks current permissions again under row locks; the browser cannot invoke them using an anonymous key.
+- Bulk deletion and administrator account deletion are intentionally destructive and cannot be undone; verify the targets and confirmation first. Account deletion removes replies even from the Shared feed and revokes sessions, without giving the admin access to the user's Private reply text.
 - Rate limits use server-side hashed keys; they do not remove the risks of a four-digit PIN.
 - The service is under development. Before a public production rollout, review secrets, authentication strength, permissions, and external image usage.
 
