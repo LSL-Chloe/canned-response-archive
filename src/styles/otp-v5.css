@@ -1,0 +1,179 @@
+/* OTP v5: Claude's lock-on sequence.
+   Doubled root selectors override the legacy OTP rules without altering them. */
+.otp-orbit.otp5 {
+  --otp5-ease: cubic-bezier(.16, 1, .3, 1);
+  --otp5-green: var(--ui-success, #8de0aa);
+  transition: width .5s var(--otp5-ease), height .5s var(--otp5-ease), margin .5s var(--otp5-ease);
+}
+.otp-orbit.otp5::before,
+.otp-orbit.otp5::after { content: none; }
+.otp-orbit.otp5.otp-orbit-success { animation: none; }
+
+/* Progress ring plus lightly moving orbit. */
+.otp5 .otp-progress-orbit {
+  fill: none;
+  stroke: rgba(163, 205, 182, .3);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-dasharray: 1.5 9;
+  transform-origin: 70px 70px;
+  animation: otp5-spin 38s linear infinite;
+  transition: opacity .4s;
+}
+.otp-orbit.otp5.otp-orbit-success .otp-progress-orbit { opacity: 0; }
+@keyframes otp5-spin { to { transform: rotate(360deg); } }
+
+/* The progress line must still use the 60px-radius 377px circumference. */
+.otp-orbit.otp5 .otp-progress-value {
+  stroke-dasharray: 377;
+  stroke-dashoffset: calc(377px * (1 - var(--otp-progress, 0)));
+}
+
+/* Squircle frame floats gently while idle, closes in on entered digits. */
+.otp5-frame {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 106px; height: 106px;
+  margin: -53px 0 0 -53px;
+  border-radius: 34px;
+  border: 1px solid rgba(141, 224, 170, .3);
+  scale: calc(1.1 - .1 * var(--otp-progress, 0));
+  transition: scale .5s var(--otp5-ease), border-color .4s, box-shadow .4s;
+  animation: otp5-drift 9s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes otp5-drift { from { rotate: -5deg; } to { rotate: 5deg; } }
+
+/* Four plus markers track entry progress. */
+.otp5-tick {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 10px; height: 10px;
+  margin: -5px 0 0 -5px;
+  opacity: .6;
+  transform: rotate(var(--a)) translateY(calc(-64px + 14px * var(--otp-progress, 0)));
+  transition: transform .5s var(--otp5-ease), opacity .4s;
+  pointer-events: none;
+}
+.otp5-tick::before,
+.otp5-tick::after {
+  content: "";
+  position: absolute;
+  background: var(--otp5-green);
+  border-radius: 1px;
+}
+.otp5-tick::before { left: 4.25px; top: 0; width: 1.5px; height: 10px; }
+.otp5-tick::after  { left: 0; top: 4.25px; width: 10px; height: 1.5px; }
+
+/* Diagonal pips brighten with progress. */
+.otp5-pip {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 3px; height: 3px;
+  margin: -1.5px 0 0 -1.5px;
+  border-radius: 50%;
+  background: var(--otp5-green);
+  opacity: calc(.25 + .75 * var(--otp-progress, 0));
+  transform: rotate(var(--a)) translateY(-56px);
+  transition: opacity .4s;
+  pointer-events: none;
+}
+
+/* A keyed ping starts at each progress update; verification sends a wave. */
+.otp5-ping,
+.otp5-wave {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 74px; height: 74px;
+  margin: -37px 0 0 -37px;
+  border-radius: 23px;
+  border: 1px solid var(--otp5-green);
+  opacity: 0;
+  pointer-events: none;
+}
+.otp5-ping { animation: otp5-ping .6s var(--otp5-ease) both; }
+@keyframes otp5-ping {
+  from { opacity: .55; scale: 1; }
+  to   { opacity: 0;   scale: 1.55; }
+}
+
+/* Breathing core dot resolves to a visibly stroked check on server success. */
+.otp5 .otp-core { color: var(--otp5-green); }
+.otp5-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--otp5-green);
+  box-shadow: 0 0 12px 2px rgba(141, 224, 170, .6);
+  animation: otp5-breathe 2.4s ease-in-out infinite;
+  transition: opacity .25s;
+}
+@keyframes otp5-breathe {
+  50% { transform: scale(1.35); box-shadow: 0 0 18px 4px rgba(141, 224, 170, .45); }
+}
+
+.otp5-check {
+  position: absolute;
+  width: 36px; height: 36px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.otp5-check path { stroke-dasharray: 1 1; stroke-dashoffset: 1; }
+
+/* Verified: markers expand, frame locks, wave propagates, check draws. */
+.otp-orbit.otp5.otp-orbit-success .otp5-dot { animation: none; opacity: 0; transform: scale(0); }
+.otp-orbit.otp5.otp-orbit-success .otp5-check path { animation: otp5-draw .45s .28s var(--otp5-ease) forwards; }
+@keyframes otp5-draw { to { stroke-dashoffset: 0; } }
+
+.otp-orbit.otp5.otp-orbit-success .otp5-tick {
+  opacity: 0;
+  transform: rotate(var(--a)) translateY(-88px);
+  transition-duration: .5s;
+}
+.otp-orbit.otp5.otp-orbit-success .otp5-pip { opacity: 1; }
+.otp-orbit.otp5.otp-orbit-success .otp5-frame {
+  border-color: var(--otp5-green);
+  box-shadow: 0 0 22px rgba(141, 224, 170, .25), inset 0 0 18px rgba(141, 224, 170, .12);
+  animation: otp5-lock .7s var(--otp5-ease) both;
+}
+@keyframes otp5-lock {
+  0%   { scale: 1; }
+  40%  { scale: 1.16; rotate: 0deg; }
+  100% { scale: 1;    rotate: 0deg; }
+}
+
+.otp5-wave { animation: otp5-wave .95s var(--otp5-ease) both; }
+@keyframes otp5-wave {
+  from { opacity: .6; scale: .9; }
+  to   { opacity: 0;  scale: 2.3; }
+}
+
+/* OTP cells, with keyboard-only caret feedback. */
+.auth-code-cell.is-filled { animation: otp5-cell .32s var(--otp5-ease); }
+@keyframes otp5-cell {
+  0%   { transform: scale(.92); }
+  55%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+.auth-code-row:focus-within .auth-code-cell.is-next::after {
+  content: "";
+  width: 1.5px; height: 22px;
+  border-radius: 1px;
+  background: var(--otp5-green);
+  animation: otp5-caret 1s steps(1) infinite;
+}
+@keyframes otp5-caret { 50% { opacity: 0; } }
+
+/* Motion preference: no continuous spinning, pinging, drifting, or lag. */
+@media (prefers-reduced-motion: reduce) {
+  .otp5 *, .otp5 *::before, .otp5 *::after,
+  .auth-code-cell, .auth-code-cell::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .otp-orbit.otp5 { transition: none !important; }
+  .otp-orbit.otp5.otp-orbit-success .otp5-check path { stroke-dashoffset: 0; }
+  .otp5-ping, .otp5-wave { display: none; }
+}
