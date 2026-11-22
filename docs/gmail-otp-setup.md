@@ -19,10 +19,12 @@ The Worker and Supabase handle code verification and any account update. The rel
 5. From the editor, run `authorizeMailService` and approve the Google permission prompt.
 6. Choose **Deploy → New deployment → Web app**. Set **Execute as: Me** and **Who has access: Anyone**. The public endpoint is safe only because unsigned or invalid requests are rejected.
 7. Copy the `https://script.google.com/macros/s/.../exec` URL privately.
-8. In Cloudflare Worker Secrets (or your ignored local `.dev.vars`), set:
+8. In the **correct Cloudflare Worker environment** (for example the `develop` Preview, not Production), set:
    - `OTP_MAILER_URL` to that deployment URL
    - `OTP_MAILER_SECRET` to the *same* random secret used by Apps Script
-9. Test a signup with your own inbox. Verify code delivery, expiry, incorrect-code behavior, and PIN recovery.
+9. Test a signup with your own inbox. Verify code delivery, expiry, incorrect-code behavior, and PIN recovery. Check that the visual OTP progress ends in a success animation **only after** the backend accepts the code.
+
+Production uses separate Cloudflare runtime bindings. Connecting `OTP_MAILER_URL` and `OTP_MAILER_SECRET` to a staging Preview does **not** configure Production email delivery. If you later enable production email, use a separate relay/secret where practical and verify it independently. Avoid posting the sender URL together with its secret.
 
 Do not put the relay URL and secret together in a public screenshot, issue, or commit. Don't share the Gmail account password or any OTP code.
 
