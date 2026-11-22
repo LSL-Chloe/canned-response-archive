@@ -259,6 +259,11 @@ function bg(env){
   if(gpuRetryAt)setTimeout(scan,720);
  };
  const ks=new Float32Array(24),t0=performance.now(),T=()=>(performance.now()-t0)/1e3;
+ // Some browsers silently begin presenting opaque black frames long after
+ // WebGL initialization (without a contextlost event or a GL error).
+ // Sample one pixel infrequently and confirm suspicious black frames quickly.
+ // The original shader always renders a non-black base in both themes.
+ const sample=new Uint8Array(4);let lastProbe=0,blackProbes=0;
  const size=()=>{W=innerWidth;H=innerHeight;c.width=Math.max(2,W*sc|0);c.height=Math.max(2,H*sc|0);gl.viewport(0,0,c.width,c.height)};
  size();addEventListener('resize',size,{signal});
  const pt=e=>{if(calm)return;tx=(e.clientX-W/2)/H;ty=(H/2-e.clientY)/H;act=performance.now()};
@@ -302,8 +307,22 @@ function bg(env){
    gl.uniform2f(uR,c.width,c.height);gl.uniform2f(uM,mx,my);
    gl.uniform1f(uT,calm?0:T());gl.uniform1f(uD,ud);gl.uniform4fv(uK,ks);
    gl.drawArrays(gl.TRIANGLES,0,3);
-   // Detect a broken or lost driver before making the GL canvas visible.
-   if(!c._ready&&(gl.isContextLost?.()||gl.getError()!==gl.NO_ERROR)){fail();return}
+   // A valid initial frame does not guarantee future GPU frames remain valid.
+   // Probe once every four seconds; a suspicious black frame is rechecked
+   // after half a second to avoid leaving a black canvas covering the fallback.
+   const probe=!c._ready||now-lastProbe>=(blackProbes?500:4000);
+   if(probe){
+    lastProbe=now;
+    if(gl.isContextLost?.()||gl.getError()!==gl.NO_ERROR){fail();return}
+    if(typeof gl.readPixels==='function'){
+     gl.readPixels(c.width>>1,c.height>>1,1,1,gl.RGBA,gl.UNSIGNED_BYTE,sample);
+     if(gl.getError()!==gl.NO_ERROR){fail();return}
+     const blank=sample[0]<3&&sample[1]<3&&sample[2]<3;
+     if(blank){
+      if(!c._ready||++blackProbes>=2){fail();return}
+     }else blackProbes=0;
+    }
+   }
    if(!c._ready){
     if(!env.isConnected){stop();return}
     c._ready=true;env.prepend(c);env.classList.add('lg-gl');
