@@ -10,7 +10,7 @@ This is a practical walkthrough for testing the saved-response workflow in a rea
 4. Press Enter or the right arrow to open a shortcut. The second level should show **all replies** saved under that shortcut.
 5. Insert a reply with `#`, then press Ctrl/Cmd+Z to restore the previous shortcut search. Repeat without `#`, confirming the original text, selection and cursor position are restored and unrelated draft text is not overwritten.
 6. Copy the draft via the existing **Copy draft** button and, with the editor focused and no selected text, via Ctrl/Cmd+C. Both should copy the complete draft. With some text highlighted, Ctrl/Cmd+C must copy **only** that selection. Press Escape with a long draft and active shortcut submenu: everything clears in one press, the dropdown closes, and Ctrl/Cmd+Z should not unexpectedly restore a previously inserted canned reply.
-7. Open Canned responses. Shared entries may show creator display names; the shortcut insertion popup should not.
+7. Open Canned responses. Each Shared response should show **Added by [creator]**, that person's current profile picture (or initial), and the original creation date. Private responses should show their signed-in owner, but must remain invisible to anyone else. Change a disposable creator's picture, revisit the library or use Refresh, and confirm the avatar updates without changing authorship. The shortcut insertion popup should not show creator names.
 
 ## Signed-in experience
 
