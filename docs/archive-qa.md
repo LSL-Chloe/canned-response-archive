@@ -9,8 +9,8 @@ This is a practical walkthrough for testing the saved-response workflow in a rea
 3. Type a shortcut prefix, for example `#fol`, and check that only matching shortcut names remain. Repeat without the hash, and test multi-word shortcuts such as `auto pricing` / `#auto pricing`, and leading-underscore shortcuts `_OnIdle_` / `#_OnIdle_`. In Canned responses, search for both `#follow_up` and `follow_up`: the results must match.
 4. Press Enter or the right arrow to open a shortcut. The second level should show **all replies** saved under that shortcut.
 5. Insert a reply with `#`, then press Ctrl/Cmd+Z to restore the previous shortcut search. Repeat without `#`, confirming the original text, selection and cursor position are restored and unrelated draft text is not overwritten.
-6. Copy the draft via the existing **Copy draft** button and, with the editor focused and no selected text, via Ctrl/Cmd+C. Both should copy the complete draft. With some text highlighted, Ctrl/Cmd+C must copy **only** that selection.
-7. Open Canned responses. Shared entries may show creator display names; the shortcut insertion popup should not.
+6. Copy the draft via the existing **Copy draft** button and, with the editor focused and no selected text, via Ctrl/Cmd+C. Both should copy the complete draft. With some text highlighted, Ctrl/Cmd+C must copy **only** that selection. Press Escape with a long draft and active shortcut submenu: everything clears in one press, the dropdown closes, and Ctrl/Cmd+Z should not unexpectedly restore a previously inserted canned reply.
+7. Open Canned responses. Each Shared response should show **Added by [creator]**, that person's current profile picture (or initial), and the original creation date. Private responses should show their signed-in owner, but must remain invisible to anyone else. Change a disposable creator's picture, revisit the library or use Refresh, and confirm the avatar updates without changing authorship. The shortcut insertion popup should not show creator names.
 
 ## Signed-in experience
 
@@ -42,8 +42,8 @@ The project uses polling rather than direct push-based Realtime. Silent polls sk
 
 ## Administrator account-management checks (staging only)
 
-1. Sign in as the staging administrator. Expand **Admin dashboard** and switch between **Team overview** and **Manage agents**. Confirm only the selected submenu option has the glass pill, and the submenu closes/opens without losing the selected page.
-2. Verify the registered-agent list shows agent names, roles, join dates, and response counts, but does not display recovery emails, private reply text, or PIN data. Ordinary agents must not see or access these endpoints.
+1. As a guest and ordinary agent, open **Team overview** as the third regular sidebar page and verify that names, current profile images, roles and counts load without exposing emails or private reply bodies. As admin, verify **Admin dashboard** appears in its own group **above** the regular navigation, with Manage agents as its only submenu page; expanding it must not shift the regular three-button selection lens.
+2. Verify that **both** Team overview and Manage agents show current avatars (or initials when none is set). Switch a disposable agent's avatar and refresh each view. Manage agents must not display recovery emails, private reply text, or PIN data. Ordinary agents and guests must still receive 401/403 for the admin management endpoints, even though the read-only `/api/team` endpoint is public.
 3. Use a **disposable staging account** to verify the confirmation dialog. Cancelling or typing the wrong name must not delete anything; self-delete and deleting the administrator must be denied even if attempted through the API.
 4. With a tested backup and a disposable staging account only, verify one confirmed deletion removes its sessions and replies, while another agent's Shared reply and any referenced shared shortcut survive. Reload and verify the public Shared feed. **Never perform a destructive account-delete smoke test on live users.**
 

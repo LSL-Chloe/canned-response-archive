@@ -22,7 +22,7 @@ Import and export use JSON. An import adds rows rather than replacing existing o
 
 An account has an agent name, a four-digit PIN, and an optional verified recovery email. Users can sign in with either the agent name or the **verified** email using the same PIN. An unverified or absent email cannot be used to sign in; name-based sign-in continues working. Users can update their name, email and PIN from Settings. Recovery uses an emailed six-digit code when a verified email is present.
 
-The first completed signup becomes the administrator. This should happen in a controlled environment before opening registration to others. Administrators have an **Admin dashboard** with **Team overview** and **Manage agents**. The latter lists registered agents and can permanently delete a non-admin account after exact-name confirmation. Deletion removes that agent's Shared and Private replies and active sessions; shared shortcuts still used by other agents remain intact. Administrators still cannot read anyone else's Private reply text.
+The first completed signup becomes the administrator. This should happen in a controlled environment before opening registration to others. **Team overview** is the third regular page for all visitors, including guests, and lists registered agent names, selected profile pictures, roles, join dates and response counts. It does not reveal private response text, credentials or recovery emails. Administrators also have an **Admin dashboard** above the regular navigation containing **Manage agents**. The latter lists registered agents and can permanently delete a non-admin account after exact-name confirmation. Deletion removes that agent's Shared and Private replies and active sessions; shared shortcuts still used by other agents remain intact. Administrators still cannot read anyone else's Private reply text.
 
 Settings also allows uploading a custom profile image or choosing a character portrait. The first gallery tile is the custom-upload **+**. The default anime, TV, and movie icons remain available without a catalog API call; **Browse more** reveals additional choices.
 
@@ -39,7 +39,7 @@ Settings also allows uploading a custom profile image or choosing a character po
 | Edit, move or delete someone else's shared reply | No | No | Yes |
 | Move someone else's reply when it is Private | No | No | No |
 | Bulk delete eligible responses after confirmation | No | Own only | Own + others' Shared |
-| View all registered agent names and response counts | No | No | Yes |
+| View registered agent names, profile pictures and response counts | Yes | Yes | Yes |
 | Delete a non-admin agent and their replies with confirmation | No | No | Yes, except own/admin account |
 | Import/export private replies | No | Own only | Own only |
 | Import/export the shared library | No | No | Yes |

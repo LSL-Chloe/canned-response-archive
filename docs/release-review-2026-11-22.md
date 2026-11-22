@@ -43,3 +43,27 @@ The migration version recorded by Supabase may differ from the Git filename time
 - **Operations:** backup restoration, monitoring, abuse-protection settings, third-party avatar rights, and provider-backed credential-scanning alerts require operational follow-up beyond repository CI.
 
 See [Staging and releases](staging-and-releases.md), [API reference](backend-api.md), [Security](../SECURITY.md), and [Authentication QA](auth-qa.md).
+
+
+## Follow-up release — public Team overview and response creator attribution (22 November 2026)
+
+This section records the **later** staging changes from PRs #50 and #51 and is separate from the original release reviewed above.
+
+### Changes being promoted
+
+- **Navigation:** the Admin dashboard is at the top of the sidebar for administrators, with Manage agents still protected. **Team overview** becomes the third regular page for visitors, agents, and administrators.
+- **Team directory:** the new rate-limited, read-only `GET /api/team` endpoint returns agent display names, roles, joined dates, shared/private response **counts**, and the current publicly selected avatar URLs. It never returns email addresses, PINs, sessions, or private response bodies. The `/api/admin/users` and account-deletion endpoints stay admin-only.
+- **Avatars:** Team overview, Manage agents, and saved-response cards share one lazy-loading avatar component. Missing or inaccessible pictures display the creator's initial. Anonymous image proxy access is limited to allowlisted URLs that are currently selected as public profile pictures, not arbitrary catalog URLs.
+- **Response bylines:** Shared replies show their original recorded creator display name; Private replies show the signed-in owner. Both show a small avatar and the original creation date beneath the response text, using the existing glass interface and without changing response ownership or edit/delete permissions. Clicking Refresh requests up-to-date directory pictures.
+- **Search:** pressing Escape within the composer clears the draft, shortcut suggestions, selection and custom insertion undo snapshot; ordinary Ctrl/Cmd+C and text selection behavior remain.
+
+### Review and rollout constraints
+
+- Reviewed the actual Git **tree contents** on `main` and `develop`; the apparent one-commit `develop` deficit results from the previous squash release. Do not force-reset `develop` or copy production data into staging to resolve it.
+- PRs #50 and #51 passed project tests, TypeScript/build verification, dependency scan, historical credential scan, and Cloudflare Preview builds. Both were merged into `develop` and the post-merge checks passed.
+- This release has **no SQL migrations and no secret changes**. Production already has nine migrations, including the server-only `admin_delete_agent` RPC; production grants were read-only verified for `service_role` (yes), `anon` (no), and `authenticated` (no).
+- Immediately before the release, read-only production counts were **2 agents, 226 responses, 118 shortcuts and 202 Shared-feed rows**. These counts differ from the *historical snapshot* taken for the earlier release. No account or response was changed by this review. Treat them as a point-in-time baseline, not as fixed expected totals after other users' normal actions.
+- Safe promotion is via a protected `develop` → `main` PR and required passing checks. Confirm a successful **Production Cloudflare build** after merging. No direct production data writes are required.
+- Browser smoke test (without destructive account actions): guest Shared feed and Team overview, current avatars in both themes, a private reply visible only to its owner, creator bylines/dates in All/Shared/Private/By me, the search Escape shortcut, and administrator-only Manage agents access. A green CI run does not replace this interactive check.
+
+**Known limitation:** shared feed attribution uses the original creator's saved display name to find the current Team portrait. If a historical name no longer matches a registered agent, it gracefully displays an initial instead of inventing an identity or exposing private account data. An unavailable avatar/CDN similarly falls back without blocking response reading.
