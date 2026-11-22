@@ -10,6 +10,13 @@ if(M('(prefers-reduced-transparency:reduce)')||navigator.connection?.saveData)ti
 const reducedTransparency=M('(prefers-reduced-transparency:reduce)');
 const refract=!reducedTransparency&&typeof CSS!=='undefined'&&CSS.supports('backdrop-filter','url(#a)');
 R.dataset.lg=tier;
+// Exactly two visual modes. GPU variants and CPU/CSS implementations are
+// internal renderers, never a reason to change buttons, toggles or animations.
+const visualMode=(env,mode,renderer)=>{
+ R.dataset.visualMode=mode;
+ env.dataset.visualMode=mode;
+ env.dataset.ambientMode=renderer;
+};
 
 /* ───────── MATERIAL (CSS) ───────── */
 const css=`
@@ -51,7 +58,8 @@ const css=`
 .archive-sidebar{border-right-color:transparent!important}
 .archive-app button,.liquid-action,.archive-sign-in-link{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .liquid-action:hover,.archive-button:hover,.archive-sign-in-link:hover{transform:translateY(-1px) scale(1.03)!important}
-html[data-lg="0"] [data-liquid-glass]::after,html[data-lg="0"] [data-lgx]::after{background:var(--lg-r2)}
+/* Keep original bevels, outlines and spring transitions on every hardware
+   tier. The tier adjusts backdrop resolution only, never control styling. */
 /* Color changes follow the existing .58s sliding theme thumb, without replacing
    its spring animation or delaying React state changes. */
 .archive-app[data-theme],.auth-experience[data-theme]{transition:color .58s ease,--a-bg .58s ease,--caustic .58s ease,--caustic-edge .58s ease,--ambient-blue .58s ease,--ambient-violet .58s ease,--ambient-rose .58s ease}
@@ -75,7 +83,8 @@ function mapURL(w,h,r,b){
  const k=[w,h,r,b].join(),hit=maps.get(k);if(hit)return hit;
  const s=Math.max(1,Math.sqrt(w*h/30000)),cw=Math.max(2,Math.round(w/s)),ch=Math.max(2,Math.round(h/s));
  const c=D.createElement('canvas');c.width=cw;c.height=ch;
- const x=c.getContext('2d');if(!x)return null;
+ let x=null;try{x=c.getContext('2d')}catch{return null}
+ if(!x)return null;
  const im=x.createImageData(cw,ch),a=im.data;
  const hw=cw/2,hh=ch/2,rr=Math.min(r/s,hw,hh),bb=Math.max(1,Math.min(b/s,hw,hh));
  for(let j=0;j<ch;j++)for(let i=0;i<cw;i++){
@@ -92,7 +101,8 @@ function apply(el){
  if(!refract||!el.isConnected)return; // try original lens on small controls even on low-memory devices
  const w=el.offsetWidth,h=el.offsetHeight;if(!w||!h)return;
  const lens=Math.min(w,h)<=80;
- if(!lens&&tier<2){el.style.removeProperty('--lg-bf');return}
+ // Try the original displacement lens on all devices that support it.
+ // A lens failure degrades refraction only, never the control's appearance.
  const r=Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius)||14,w/2,h/2);
  const id=el._lgid||(el._lgid='lgf'+ ++uid);let f=D.getElementById(id);
  if(!f){f=D.createElementNS(NS,'filter');f.id=id;f.setAttribute('color-interpolation-filters','sRGB');f.setAttribute('filterUnits','userSpaceOnUse');f.setAttribute('primitiveUnits','userSpaceOnUse');
@@ -105,7 +115,13 @@ function apply(el){
  f.lastChild.setAttribute('scale',lens?Math.min(42,h*.85):15);
  el.style.setProperty('--lg-bf',`url(#${id}) saturate(var(--lg-sat)) brightness(var(--lg-br))`);
 }
-const ro=new ResizeObserver(es=>es.forEach(e=>{const t=e.target;clearTimeout(t._lt);t._lt=setTimeout(()=>apply(t),t._lg2?140:0);t._lg2=1}));
+const ro=typeof ResizeObserver==='function'
+ ?new ResizeObserver(es=>es.forEach(e=>{
+  const t=e.target;clearTimeout(t._lt);
+  t._lt=setTimeout(()=>{try{apply(t)}catch{t.style.removeProperty('--lg-bf')}},t._lg2?140:0);
+  t._lg2=1;
+ }))
+ :{observe(t){requestAnimationFrame(()=>{try{apply(t)}catch{t.style.removeProperty('--lg-bf')}})}};
 
 /* ───────── WIRING (React-safe: attributes only, re-scanned on DOM change) ───────── */
 const GROUPS=[
@@ -131,15 +147,18 @@ function scan(){
   G._stop();G=null;
  }
  if(!env)return;
+ // The matched backup is visible during shader startup too; switch to the
+ // original only after a successful rendered frame, without a blank flash.
+ if(!env.dataset.visualMode)visualMode(env,'fallback','gradient');
  if(calm){
   if(G){G._stop();G=null}
-  env.dataset.ambientMode='gradient';
+  visualMode(env,'fallback','gradient');
   return;
  }
  if(!G){
   if(!webglUnavailable&&performance.now()>=gpuRetryAt)G=bg(env);
   if(!G&&!canvasUnavailable)G=bg2d(env);
-  if(!G)env.dataset.ambientMode='gradient';
+  if(!G)visualMode(env,'fallback','gradient');
   // Do not hide the CSS background until the chosen canvas has actually
   // rendered a valid frame. This prevents the former black first-frame flash.
  }else if(G._ready&&!G.isConnected){
@@ -228,7 +247,7 @@ function bg(env){
  const stop=()=>{
   if(!ok)return;
   ok=0;life.abort();c.remove();env.classList.remove('lg-gl');
-  env.dataset.ambientMode='gradient';
+  visualMode(env,'fallback','gradient');
  };
  c._stop=stop;
  const fail=()=>{
@@ -293,7 +312,7 @@ function bg(env){
    if(!c._ready){
     if(!env.isConnected){stop();return}
     c._ready=true;env.prepend(c);env.classList.add('lg-gl');
-    env.dataset.ambientMode=kind;
+    visualMode(env,'original',kind);
    }
   }catch{fail();return}
   if(tier===2){const a=Math.round((Math.atan2(mx,my)*57.296+360)%360/4)*4;if(a!==la){la=a;R.style.setProperty('--la',a+'deg')}} // rim light follows cursor
@@ -324,7 +343,7 @@ function bg2d(env){
  const stop=()=>{
   if(!running)return;
   running=false;life.abort();c.remove();env.classList.remove('lg-gl');
-  env.dataset.ambientMode='gradient';
+  visualMode(env,'fallback','gradient');
  };
  c._stop=stop;
  const fail=()=>{
@@ -411,7 +430,7 @@ function bg2d(env){
    if(!c._ready){
     if(!env.isConnected){stop();return}
     c._ready=true;env.prepend(c);env.classList.add('lg-gl');
-    env.dataset.ambientMode='canvas2d';
+    visualMode(env,'fallback','canvas2d');
    }
   }catch{fail()}
  }

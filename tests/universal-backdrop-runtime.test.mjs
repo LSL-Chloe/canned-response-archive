@@ -137,8 +137,10 @@ test('original WebGL2 shader runs first, and only hides CSS after its first succ
   const ui = browser();
   assert.deepEqual(ui.contexts, ['webgl2']);
   assert.equal(ui.classes.has('lg-gl'), false);
+  assert.equal(ui.env.dataset.visualMode, 'fallback', 'Keep matched backdrop until original first frame is valid');
   ui.frame(42);
   assert.equal(ui.env.dataset.ambientMode, 'webgl2');
+  assert.equal(ui.env.dataset.visualMode, 'original');
   assert.equal(ui.classes.has('lg-gl'), true);
   assert.ok(ui.calls.includes('webgl2:draw'));
 });
@@ -150,6 +152,7 @@ test('when WebGL2 is disabled, WebGL1 compiles the same fragment equations befor
   assert.ok(ui.shaderSources.every(x => x.kind !== 'webgl' || !x.source.includes('#version 300 es')));
   ui.frame(45);
   assert.equal(ui.env.dataset.ambientMode, 'webgl');
+  assert.equal(ui.env.dataset.visualMode, 'original');
 });
 
 test('failed WebGL2 shader compilation tries WebGL1 rather than exposing the grid', () => {
@@ -157,6 +160,7 @@ test('failed WebGL2 shader compilation tries WebGL1 rather than exposing the gri
   assert.deepEqual(ui.contexts, ['webgl2', 'webgl']);
   ui.frame(48);
   assert.equal(ui.env.dataset.ambientMode, 'webgl');
+  assert.equal(ui.env.dataset.visualMode, 'original');
 });
 
 test('a failed first WebGL frame keeps CSS visible and falls back to animated Canvas2D', () => {
@@ -166,6 +170,7 @@ test('a failed first WebGL frame keeps CSS visible and falls back to animated Ca
   ui.frame(88);
   ui.frame(130);
   assert.equal(ui.env.dataset.ambientMode, 'canvas2d');
+  assert.equal(ui.env.dataset.visualMode, 'fallback');
   assert.ok(ui.fills.length > 0);
 });
 
@@ -174,6 +179,7 @@ test('if GPU APIs are unavailable, Canvas2D animates the atmospheric backdrop', 
   assert.deepEqual(ui.contexts, ['webgl2', 'webgl', '2d']);
   ui.frame(48);
   assert.equal(ui.env.dataset.ambientMode, 'canvas2d');
+  assert.equal(ui.env.dataset.visualMode, 'fallback');
   const count = ui.fills.length;
   ui.app.dataset.theme = 'light';
   ui.frame(100);ui.frame(360);ui.frame(660);ui.frame(900);
@@ -184,6 +190,7 @@ test('if GPU APIs are unavailable, Canvas2D animates the atmospheric backdrop', 
 test('when neither GPU nor Canvas2D can run, the accessible CSS ambiance remains', () => {
   const ui = browser({webgl2:false,webgl1:false,canvas2d:false});
   assert.equal(ui.env.dataset.ambientMode, 'gradient');
+  assert.equal(ui.env.dataset.visualMode, 'fallback');
   assert.equal(ui.classes.has('lg-gl'), false);
 });
 
@@ -191,6 +198,7 @@ test('reduced motion preserves the CSS background without forcing animated GPU e
   const ui = browser({reducedMotion:true});
   assert.deepEqual(ui.contexts, []);
   assert.equal(ui.env.dataset.ambientMode, 'gradient');
+  assert.equal(ui.env.dataset.visualMode, 'fallback');
   assert.equal(ui.classes.has('lg-gl'), false);
 });
 
@@ -199,11 +207,13 @@ test('a lost GPU context switches to the animated backup and releases old input 
   const ui = browser();
   ui.frame(44);
   assert.equal(ui.env.dataset.ambientMode, 'webgl2');
+  assert.equal(ui.env.dataset.visualMode, 'original');
   const listenersBefore = ui.activeListeners('pointermove');
   ui.canvases[0].dispatch('webglcontextlost');
   assert.equal(ui.classes.has('lg-gl'), false);
   ui.frame(85);ui.frame(130);
   assert.equal(ui.env.dataset.ambientMode, 'canvas2d');
+  assert.equal(ui.env.dataset.visualMode, 'fallback');
   assert.equal(ui.activeListeners('pointermove'), listenersBefore,
     'A context loss must not accumulate a second permanent pointer listener');
 });
@@ -229,6 +239,7 @@ test('Canvas2D preserves background ripple click semantics without selecting unr
   const ui = browser({webgl2:false,webgl1:false});
   ui.frame(50);
   assert.equal(ui.env.dataset.ambientMode, 'canvas2d');
+  assert.equal(ui.env.dataset.visualMode, 'fallback');
   const e = {
     pointerId: 1,pointerType: 'mouse',isPrimary: true,button: 0,
     target: ui.backgroundTarget(),clientX: 640,clientY: 280,
