@@ -3,7 +3,8 @@ import LiquidButton from '../../ui/LiquidButton';
 import LiquidUnderlay from '../../ui/LiquidUnderlay';
 import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { addResponse, bulkDeleteResponses, deleteResponse, updateResponse } from './api';
+import { addResponse, bulkDeleteResponses, deleteResponse, getTeam, updateResponse, type TeamAgent } from './api';
+import AgentAvatar from './AgentAvatar';
 import TransferWorkspace from './TransferWorkspace';
 import {
   canManageResponse, formatCount, shortcutOptions,
@@ -44,6 +45,23 @@ export default function LibraryWorkspace({
   const [bulkProgress, setBulkProgress] = useState(0);
   const [showEditExisting, setShowEditExisting] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [directory, setDirectory] = useState<TeamAgent[]>([]);
+  const [directoryRefresh, setDirectoryRefresh] = useState(0);
+
+  // The public Team directory already exposes each creator's current profile
+  // picture. Fetch it once per library visit, not once for every response.
+  // If the directory is temporarily unavailable, labels and initials remain.
+  useEffect(() => {
+    let active = true;
+    void getTeam()
+      .then(users => { if (active) setDirectory(users); })
+      .catch(() => { /* Never block the response library on avatar metadata. */ });
+    return () => { active = false; };
+  }, [directoryRefresh]);
+
+  const creatorByName = useMemo(() =>
+    new Map(directory.map(user => [user.agent_name.toLocaleLowerCase(), user])),
+  [directory]);
 
   useEffect(() => {
     if (!agent && (scope === 'private' || scope === 'mine')) setScope('all');
@@ -309,7 +327,10 @@ export default function LibraryWorkspace({
             placeholder="Search shortcuts and responses…" />
         </label>
         <LiquidButton className="archive-button archive-button-quiet" tone="neutral" type="button"
-          onClick={() => void reload().catch(err => onError(String(err)))}>
+          onClick={() => {
+            setDirectoryRefresh(version => version + 1);
+            void reload().catch(err => onError(String(err)));
+          }}>
           Refresh
         </LiquidButton>
         {agent && <LiquidButton className="archive-button archive-button-quiet" tone="neutral"
@@ -350,6 +371,10 @@ export default function LibraryWorkspace({
         <div className="archive-response-list">
           {shown.map(item => {
             const permission = canManageResponse(agent, item);
+            const creatorName = item.visibility === 'private'
+              ? (agent?.agent_name || 'Unknown agent')
+              : (item.createdBy || (item.ownedByMe ? agent?.agent_name : '') || 'Unknown agent');
+            const profile = creatorByName.get(creatorName.toLocaleLowerCase());
             return (
               <article className={`archive-response-row${selectedIds.has(item.id) ? ' is-selected' : ''}`} key={item.id}>
                 <div className="archive-response-row-heading">
@@ -438,8 +463,17 @@ export default function LibraryWorkspace({
                   <p className="archive-response-text">{item.body}</p>
                 )}
                 <div className="archive-response-meta">
-                  {item.visibility === 'shared' && <span>Created by {item.createdBy || 'Unknown agent'} · </span>}
-                  <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleDateString()}</time>
+                  <span className="archive-response-attribution">
+                    <AgentAvatar name={creatorName} url={profile?.avatar_url ?? null}/>
+                    <span className="archive-response-attribution-text">
+                      Added by <strong>{creatorName}</strong>,{' '}
+                      <time dateTime={item.createdAt}>
+                        {new Date(item.createdAt).toLocaleDateString(undefined, {
+                          day: 'numeric', month: 'long', year: 'numeric',
+                        })}
+                      </time>
+                    </span>
+                  </span>
                 </div>
               </article>
             );
