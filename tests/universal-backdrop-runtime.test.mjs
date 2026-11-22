@@ -120,6 +120,16 @@ function browser({ webgl2 = true, webgl1 = true, canvas2d = true, failGL2Shader 
     clearTimers() { while(timers.length) timers.shift()(); },
     activeClasses() { return Array.from(classes); },
     activeListeners(type) { return (handlers.get(type) || []).filter(x => !x.signal?.aborted).length; },
+    fire(type, event) {
+      for (const {cb, signal} of handlers.get(type) || [])
+        if (!signal?.aborted) cb(event);
+    },
+    backgroundTarget() {
+      const el = new Element('background');
+      el.closest = selector => selector.includes('.archive-app') ? {} : null;
+      return el;
+    },
+    selectionStart(event) { handlers.get('document:selectstart')?.(event); },
   };
 }
 
@@ -213,4 +223,22 @@ test('glass-control animation styles remain unconditional and renderer-independe
   assert.match(src, /\.liquid-action:hover,\.archive-button:hover,\.archive-sign-in-link:hover/);
   assert.match(palette, /@property --ambient-blue/);
   assert.match(palette, /@property --a-bg/);
+});
+
+test('Canvas2D preserves background ripple click semantics without selecting unrelated text', () => {
+  const ui = browser({webgl2:false,webgl1:false});
+  ui.frame(50);
+  assert.equal(ui.env.dataset.ambientMode, 'canvas2d');
+  const e = {
+    pointerId: 1,pointerType: 'mouse',isPrimary: true,button: 0,
+    target: ui.backgroundTarget(),clientX: 640,clientY: 280,
+  };
+  ui.fire('pointerdown', e);
+  let prevented = false;
+  ui.selectionStart({preventDefault() { prevented = true; }});
+  assert.equal(prevented, true, 'A drag from empty background cannot select hint text');
+  ui.fire('pointerup', {pointerId: 1});
+  prevented = false;
+  ui.selectionStart({preventDefault() { prevented = true; }});
+  assert.equal(prevented, false, 'Normal text selection is restored when dragging stops');
 });
