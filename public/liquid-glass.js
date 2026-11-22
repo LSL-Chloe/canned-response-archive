@@ -7,7 +7,8 @@ const mem=navigator.deviceMemory||4,cores=navigator.hardwareConcurrency||4;
 let tier=mem<=2||cores<=4?0:mem<=4||cores<=6?1:2;           // 0 low-end · 1 mid · 2 high
 const calm=M('(prefers-reduced-motion:reduce)');
 if(M('(prefers-reduced-transparency:reduce)')||navigator.connection?.saveData)tier=0;
-const refract=typeof CSS!=='undefined'&&CSS.supports('backdrop-filter','url(#a)'); // optional SVG lenses
+const reducedTransparency=M('(prefers-reduced-transparency:reduce)');
+const refract=!reducedTransparency&&typeof CSS!=='undefined'&&CSS.supports('backdrop-filter','url(#a)');
 R.dataset.lg=tier;
 
 /* ───────── MATERIAL (CSS) ───────── */
@@ -88,7 +89,7 @@ function mapURL(w,h,r,b){
  if(maps.size>60)maps.delete(maps.keys().next().value);maps.set(k,u);return u;
 }
 function apply(el){
- if(!refract||tier<1||!el.isConnected)return;
+ if(!refract||!el.isConnected)return; // try original lens on small controls even on low-memory devices
  const w=el.offsetWidth,h=el.offsetHeight;if(!w||!h)return;
  const lens=Math.min(w,h)<=80;
  if(!lens&&tier<2){el.style.removeProperty('--lg-bf');return}
@@ -141,6 +142,9 @@ function scan(){
   if(!G)env.dataset.ambientMode='gradient';
   // Do not hide the CSS background until the chosen canvas has actually
   // rendered a valid frame. This prevents the former black first-frame flash.
+ }else if(G._ready&&!G.isConnected){
+  // React may replace the backdrop's children during a page transition.
+  env.prepend(G);env.classList.add('lg-gl');
  }
 }
 new MutationObserver(()=>{cancelAnimationFrame(q);q=requestAnimationFrame(scan)}).observe(D.body,{childList:true,subtree:true});
