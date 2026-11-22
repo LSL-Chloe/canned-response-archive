@@ -7,13 +7,13 @@ The normal account experience lives at **`/auth`**. A temporary diagnostic scree
 ## First account and signup
 
 1. On an empty development database, sign up with a test agent name and four-digit PIN.
-2. If using an email, complete the six-digit verification within ten minutes.
+2. If using an email, complete the six-digit verification within ten minutes. In staging, first ensure the `develop` Preview has its own `OTP_MAILER_URL` and `OTP_MAILER_SECRET`, and verify the message arrives in a controlled test inbox. The on-screen progress ring should follow typed digits; success animation should begin **only** after the Worker verifies the challenge.
 3. Check that the first completed account receives the administrator role and later accounts receive the regular agent role.
 4. If you sign up without email, confirm that the UI explains PIN recovery is unavailable.
 5. Sign out, then sign in with the new account using its agent name. If it has a verified email, sign out again and use that email (including uppercase letters) with the **same PIN**. The session should persist through a normal page refresh.
 6. Verify the form's single name/email field stays readable and accepts long email addresses on narrow screens. An account without a verified email must still sign in by name but not by email. A wrong PIN must fail for both forms, with a generic error and without exposing which identifier is registered.
 
-**Do not expose an empty production database before the intended administrator has registered.**
+**Do not expose an empty production database before the intended administrator has registered.** OTP mail delivery configured in staging does not imply that it is configured in Production. Never paste the signing secret or a real OTP into a bug report.
 
 ## Recovery and account settings
 
