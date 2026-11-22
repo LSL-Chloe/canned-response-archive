@@ -23,10 +23,13 @@ test('light/dark fallback tracks the original 580ms thumb without introducing a 
   const css = read('src/styles/premium.css');
   const layer = read('public/liquid-glass.js');
   const toggle = read('src/ui/ThemeToggle.tsx');
+  assert.match(css, /@property --a-bg\{syntax:"<color>";inherits:true/);
+  assert.match(css, /@property --caustic\{syntax:"<color>";inherits:true/);
+  assert.match(css, /@property --caustic-edge\{syntax:"<color>";inherits:true/);
   assert.match(css, /@property --ambient-blue\{syntax:"<color>";inherits:true/);
   assert.match(css, /@property --ambient-violet\{syntax:"<color>";inherits:true/);
   assert.match(css, /@property --ambient-rose\{syntax:"<color>";inherits:true/);
-  assert.match(layer, /transition:color \.58s ease,--ambient-blue \.58s ease,--ambient-violet \.58s ease,--ambient-rose \.58s ease/);
+  assert.match(layer, /transition:color \.58s ease,--a-bg \.58s ease,--caustic \.58s ease,--caustic-edge \.58s ease,--ambient-blue \.58s ease,--ambient-violet \.58s ease,--ambient-rose \.58s ease/);
   assert.match(layer, /const initialDark=readDark\(\)/);
   assert.match(layer, /const nextDark=readDark\(\)/);
   assert.match(layer, /\(now-changeAt\)\/580/);
