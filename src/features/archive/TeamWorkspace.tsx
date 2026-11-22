@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getTeam, type TeamAgent } from './api';
 import LiquidButton from '../../ui/LiquidButton';
+import AgentAvatar from './AgentAvatar';
 
 export default function TeamWorkspace({ onError }: { onError: (message: string) => void }) {
   const [users, setUsers] = useState<TeamAgent[]>([]);
@@ -15,7 +16,7 @@ export default function TeamWorkspace({ onError }: { onError: (message: string) 
     return () => { active = false; };
   }, [refresh, onError]);
   return (
-    <section className="archive-content-page" aria-label="Admin team overview">
+    <section className="archive-content-page" aria-label="Team overview">
       <div className="archive-page-heading">
         <div>
           <h1>Team overview</h1>
@@ -29,7 +30,12 @@ export default function TeamWorkspace({ onError }: { onError: (message: string) 
             <tbody>
               {users.map(user => (
                 <tr key={user.id}>
-                  <td>{user.agent_name}</td>
+                  <td>
+                    <span className="archive-directory-identity">
+                      <AgentAvatar name={user.agent_name} url={user.avatar_url}/>
+                      <span>{user.agent_name}</span>
+                    </span>
+                  </td>
                   <td>{user.role === 'admin' ? 'Administrator' : 'Agent'}</td>
                   <td>{new Date(user.joined_at).toLocaleDateString()}</td>
                   <td>{user.shared_count}</td>

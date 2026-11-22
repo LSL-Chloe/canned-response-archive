@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { deleteAgent, getTeam, type TeamAgent } from './api';
+import { deleteAgent, getAdminAgents, type TeamAgent } from './api';
+import AgentAvatar from './AgentAvatar';
 import type { Agent } from './model';
 import LiquidButton from '../../ui/LiquidButton';
 import LiquidUnderlay from '../../ui/LiquidUnderlay';
@@ -23,7 +24,7 @@ export default function ManageAgentsWorkspace({
   useEffect(() => {
     let live = true;
     setLoading(true);
-    void getTeam().then(items => { if (live) setUsers(items); })
+    void getAdminAgents().then(items => { if (live) setUsers(items); })
       .catch(error => { if (live) onError(error instanceof Error ? error.message : 'Unable to load agents'); })
       .finally(() => { if (live) setLoading(false); });
     return () => { live = false; };
@@ -100,7 +101,12 @@ export default function ManageAgentsWorkspace({
             <tbody>
               {filtered.map(user => (
                 <tr key={user.id}>
-                  <td className="archive-admin-agent-name">{user.agent_name}{user.id === agent.id && <span className="archive-faint"> (you)</span>}</td>
+                  <td className="archive-admin-agent-name">
+                    <span className="archive-directory-identity">
+                      <AgentAvatar name={user.agent_name} url={user.avatar_url}/>
+                      <span>{user.agent_name}{user.id === agent.id && <span className="archive-faint"> (you)</span>}</span>
+                    </span>
+                  </td>
                   <td>{user.role === 'admin' ? 'Administrator' : 'Agent'}</td>
                   <td>{new Date(user.joined_at).toLocaleDateString()}</td>
                   <td>{user.shared_count}</td>

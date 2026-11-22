@@ -1773,11 +1773,12 @@
 }
 
 
-/* Admin dashboard navigation and account management — staging only. */
-/* Keep the original three selected glass slots. The nested links are simple
-   text rows rather than another highlighted pill. */
-.archive-app .archive-nav:has(.archive-admin-subnav){
-  grid-template-rows:repeat(3,44px) auto;
+/* Admin controls live in their own compact glass group *above* the regular
+   three-item navigation. This keeps the main selection lens aligned when
+   the admin submenu opens and closes, even on a collapsed mobile rail. */
+.archive-app .archive-admin-nav{margin-bottom:9px}
+.archive-app .archive-admin-nav:has(.archive-admin-subnav){
+  grid-template-rows:44px auto;
   grid-auto-rows:auto;
 }
 .archive-app .archive-nav .archive-admin-chevron{
@@ -1871,4 +1872,58 @@
 }
 @media(prefers-reduced-motion:reduce){
   .archive-app .archive-admin-subnav .archive-admin-subnav-lens{transition:none!important}
+}
+
+
+/* Reuse the existing account avatar treatment for both agent directories. */
+.archive-app .archive-directory-identity{
+  display:inline-flex;align-items:center;gap:10px;min-width:0;
+}
+.archive-app .archive-directory-identity>span:last-child{
+  min-width:0;overflow-wrap:anywhere;
+}
+.archive-app .archive-directory-avatar{
+  display:inline-grid;place-items:center;flex:0 0 32px;width:32px;height:32px;
+  border-radius:50%;overflow:hidden;line-height:1;
+  background:var(--a-soft);border:1px solid var(--glass-line);
+  box-shadow:inset 0 1px 0 var(--glass-highlight);
+}
+.archive-app .archive-directory-avatar img{
+  display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;
+}
+.archive-app .archive-directory-avatar-initial{
+  color:var(--a-text);font-size:13px;font-weight:690;
+}
+@media(max-width:530px){
+  .archive-app .archive-admin-nav{margin-bottom:8px}
+  .archive-app .archive-directory-identity{gap:7px}
+  .archive-app .archive-directory-avatar{width:27px;height:27px;flex-basis:27px}
+}
+
+
+/* Compact LiveChat-style response attribution. Reuse the same avatar component
+   as Team overview without introducing a new visual language or glass layer. */
+.archive-app .archive-response-meta .archive-response-attribution{
+  display:inline-flex;align-items:center;gap:8px;max-width:100%;min-width:0;
+}
+.archive-app .archive-response-meta .archive-directory-avatar{
+  width:23px;height:23px;flex:0 0 23px;
+}
+.archive-app .archive-response-meta .archive-directory-avatar-initial{
+  font-size:10px;
+}
+.archive-app .archive-response-attribution-text{
+  min-width:0;line-height:1.45;overflow-wrap:anywhere;
+}
+.archive-app .archive-response-attribution-text strong{
+  color:var(--a-text);font-weight:650;
+}
+.archive-app .archive-response-attribution-text time{
+  font-variant-numeric:tabular-nums;
+}
+@media(max-width:530px){
+  .archive-app .archive-response-meta .archive-response-attribution{gap:7px}
+  .archive-app .archive-response-meta .archive-directory-avatar{
+    width:22px;height:22px;flex-basis:22px;
+  }
 }
