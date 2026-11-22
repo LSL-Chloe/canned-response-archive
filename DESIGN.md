@@ -4,15 +4,15 @@ The archive should feel like a focused writing tool, not a dashboard that demand
 
 ## Light and dark
 
-Both themes use a restrained **violet/blue ambient field**, not the abandoned black-and-grey checkerboard. The dark theme is deep navy with soft blue and purple light; the light theme uses quiet lavender and pearl tones. The original WebGL2 shader is the **first renderer attempted on every motion-enabled browser**. If it cannot compile or render, the same shader runs through a compatible WebGL1 path when available, followed by a lightweight animated Canvas 2D version and finally the same ambient CSS gradients. The fallback preserves the layout, color identity, glass controls, and theme timing; exact pixel-for-pixel GPU shading cannot be guaranteed on a CPU fallback.
+Both themes keep the finalized violet/blue **original WebGL shader** as the preferred decorative background, using WebGL2 or WebGL1 when available. The approved component styles, glass optics, switch proportions and spring timing are shared throughout the app.
 
-## Exactly two visual appearances
+## Exactly two visual backgrounds
 
-**Original (default):** always try the complete, approved glass interface and the original WebGL scene first (WebGL2, then compatible WebGL1). Slower devices may reduce the background's internal resolution, but never its buttons, spring timing, selection pills, theme toggle or optical-lens eligibility based on a device-memory estimate alone.
+**Original (always attempted first):** run the approved shader via WebGL2 or WebGL1. On low-end devices, only the internal render resolution or frame cadence may be reduced; the buttons, glass controls, selection pills, theme switch and their motion do not change.
 
-**Fallback (only on failure):** when both GPU paths fail, Canvas 2D draws matched blue/violet ambient motion and ripples; the same CSS palette remains available if 2D canvas fails too. These are implementations of one backup appearance, not additional themes. Original controls, labels, transition durations, glass rims and keyboard accessibility are shared. The data-visual-mode attribute exposes only original or fallback for QA.
+**Fallback (only if WebGL fails or the script cannot execute):** use the previous black/white **lined CSS backdrop**, themed appropriately for dark or light mode. It is the *only* alternative background. All other UI styling and interactions remain the same. There is no alternate Canvas 2D UI or third gradient theme. A matched ambient CSS field is shown temporarily *during* GPU initialization, before the first valid shader frame, to prevent a blank flash.
 
-Respect reduced-motion settings by selecting the stationary backup. Websites cannot override disabled graphics APIs, and a CPU fallback cannot guarantee identical shader pixels.
+Respect reduced-motion settings by rendering the original shader at a stationary time when graphics work, and disabling ambient movement in the lined CSS fallback. Never override the user's explicit motion preference. The browser can block WebGL; no website can force a disabled graphics API.
 
 ## The glass treatment
 
@@ -26,7 +26,7 @@ Small interactions should respond promptly. Sliding navigation, the theme switch
 
 Keep animation on composited properties where possible, avoid making whole lists repaint, and never create a fresh expensive glass shader for every response row. Off-screen rows may use browser rendering containment; hidden or unused avatar images should not monopolize bandwidth.
 
-The reduced-motion preference disables ambient movement. Reduced-transparency preferences use less translucent surfaces. On constrained connections, avatar loading should favor visible images. When both WebGL APIs cannot initialize, **do not repeatedly retry GPU initialization on every UI update**; use a lightweight Canvas 2D animation if supported and slow composited radial gradients otherwise. Brief context losses get at most one bounded GPU retry, then a stable fallback. The gradient palette should follow the existing 580ms light/dark thumb transition without a flash.
+The reduced-motion preference disables ambient movement. Reduced-transparency preferences use less translucent surfaces. On constrained connections, avatar loading should favor visible images. When both WebGL APIs cannot initialize, use the stationary or gently composited lined CSS backdrop. Do not spin a Canvas 2D rendering loop on the main thread. Brief GPU context losses get one bounded retry and a second WebGL API attempt before settling on the fallback. Keep the background theme transition aligned to the 580ms switch.
 
 ## Accessibility
 
@@ -34,7 +34,7 @@ Controls use native buttons and inputs where possible. Keyboard shortcut search 
 
 ## Visual regression checklist
 
-Before merging interface changes, check both themes at desktop and narrow mobile widths, in **WebGL-enabled and WebGL-disabled browsers**. Test a collapsed sidebar, long responses, Settings with many avatars, OTP forms, keyboard navigation, and light/dark transitions while entering a draft. Automated builds cannot measure touch latency or verify the optical appearance.
+Before merging interface changes, check both themes at desktop and narrow mobile widths, in **WebGL-enabled and WebGL-disabled browsers**, checking the original shader and lined fallback separately. Test a collapsed sidebar, long responses, Settings with many avatars, OTP forms, keyboard navigation, and light/dark transitions while entering a draft. Automated builds cannot measure touch latency or verify the optical appearance.
 
 The archive should remain recognizable and fluid even when a browser has to simplify how it renders the decorative effects.
 

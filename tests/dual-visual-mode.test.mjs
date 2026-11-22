@@ -10,11 +10,11 @@ test('only original and fallback presentation modes exist, independent of render
   assert.match(js, /R\.dataset\.visualMode=mode/);
   assert.match(js, /env\.dataset\.visualMode=mode/);
   assert.match(js, /visualMode\(env,'original',kind\)/);
-  assert.match(js, /visualMode\(env,'fallback','canvas2d'\)/);
-  assert.match(js, /visualMode\(env,'fallback','gradient'\)/);
+  assert.match(js, /visualMode\(env,'fallback','lines'\)/);
+  assert.doesNotMatch(js, /bg2d\(|canvasUnavailable|visualMode\(env,'fallback','canvas2d'\)/);
   assert.doesNotMatch(js, /visualMode\(env,'(?:low|medium|high|simple|legacy)'/);
   assert.match(js, /for\(const candidate of \['webgl2','webgl'\]\)/);
-  assert.match(js, /if\(!G&&!canvasUnavailable\)G=bg2d\(env\)/);
+  assert.match(js, /if\(!G\)visualMode\(env,'fallback','lines'\)/);
 });
 
 test('full original glass controls, rim lighting and spring animations apply to both backgrounds', () => {
@@ -31,21 +31,23 @@ test('full original glass controls, rim lighting and spring animations apply to 
     'Failed refraction must never kill the common UI animation layer');
 });
 
-test('the currently committed fallback cannot draw the old monochrome line grid', () => {
-  for (const p of ['src/styles/premium.css','src/styles/base.css','src/features/archive/archive.css','public/liquid-glass.js']) {
-    const s = read(p);
-    assert.doesNotMatch(s, /repeating-linear-gradient\(/, p + ' may not restore the abandoned grid');
-  }
+test('fallback restores only the approved lined background, never alternate controls', () => {
   const css = read('src/styles/premium.css');
-  assert.match(css, /--ambient-blue:rgba\(76,101,193,\.30\)/);
-  assert.match(css, /--ambient-violet:rgba\(105,74,156,\.20\)/);
-  assert.match(css, /\.optical-weave\{[\s\S]*background:\s*radial-gradient/);
+  const js = read('public/liquid-glass.js');
+  assert.match(css, /--fallback-base:#0c0d11/);
+  assert.match(css, /--fallback-base:#e6e8eb/);
+  assert.match(css, /repeating-linear-gradient\(0deg,transparent 0 7px,var\(--fallback-line\)/);
+  assert.match(css, /repeating-linear-gradient\(90deg,transparent 0 7px,var\(--fallback-line-2\)/);
+  assert.match(css, /data-ambient-mode="pending"/);
+  assert.match(js, /visualMode\(env,'original',kind\)/);
+  assert.match(js, /visualMode\(env,'fallback','lines'\)/);
+  assert.doesNotMatch(js, /data\.visualMode===.*(?:button|toggle|nav)/);
 });
 
 test('Cloudflare revalidates the document and unbundled visual script', () => {
   const headers = read('public/_headers');
   const html = read('index.html');
-  assert.match(html, /src="\/liquid-glass\.js\?v=original-glass-20261122-2"/);
+  assert.match(html, /src="\/liquid-glass\.js\?v=original-glass-20261122-3"/);
   assert.match(headers, /\/liquid-glass\.js\s+Cache-Control: no-store/);
   assert.match(headers, /\/index\.html\s+Cache-Control: no-store/);
   assert.match(headers, /\/\s+Cache-Control: no-store/);
