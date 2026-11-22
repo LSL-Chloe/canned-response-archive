@@ -770,6 +770,9 @@
 /* Type ambient colors so the fallback crossfades over the existing 580ms
    theme thumb, instead of snapping light gradients over dark controls.
    Browsers lacking registered properties still receive the same legible theme. */
+@property --a-bg{syntax:"<color>";inherits:true;initial-value:#0c0e17}
+@property --caustic{syntax:"<color>";inherits:true;initial-value:rgba(162,159,238,.21)}
+@property --caustic-edge{syntax:"<color>";inherits:true;initial-value:rgba(112,152,224,.10)}
 @property --ambient-blue{syntax:"<color>";inherits:true;initial-value:rgba(76,101,193,.30)}
 @property --ambient-violet{syntax:"<color>";inherits:true;initial-value:rgba(105,74,156,.20)}
 @property --ambient-rose{syntax:"<color>";inherits:true;initial-value:rgba(145,79,131,.24)}
@@ -802,6 +805,12 @@
 }
 .archive-app[data-theme],.auth-experience[data-theme]{
   background:transparent;position:relative;isolation:isolate;
+  /* CSS-only safety net if the optional visual JS cannot initialize. */
+  transition:color .58s ease,--a-bg .58s ease,--caustic .58s ease,--caustic-edge .58s ease,
+    --ambient-blue .58s ease,--ambient-violet .58s ease,--ambient-rose .58s ease;
+}
+@media(prefers-reduced-motion:reduce){
+  .archive-app[data-theme],.auth-experience[data-theme]{transition:none!important}
 }
 .archive-app>.optical-environment,.auth-experience>.optical-environment{
   position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;

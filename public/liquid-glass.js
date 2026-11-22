@@ -53,7 +53,7 @@ const css=`
 html[data-lg="0"] [data-liquid-glass]::after,html[data-lg="0"] [data-lgx]::after{background:var(--lg-r2)}
 /* Color changes follow the existing .58s sliding theme thumb, without replacing
    its spring animation or delaying React state changes. */
-.archive-app[data-theme],.auth-experience[data-theme]{transition:color .58s ease,--ambient-blue .58s ease,--ambient-violet .58s ease,--ambient-rose .58s ease}
+.archive-app[data-theme],.auth-experience[data-theme]{transition:color .58s ease,--a-bg .58s ease,--caustic .58s ease,--caustic-edge .58s ease,--ambient-blue .58s ease,--ambient-violet .58s ease,--ambient-rose .58s ease}
 .archive-app>.optical-environment,.auth-experience>.optical-environment{transition:background-color .58s ease}
 .archive-app .archive-sidebar{transition:width .27s cubic-bezier(.16,1,.3,1),flex-basis .27s cubic-bezier(.16,1,.3,1),padding .27s cubic-bezier(.16,1,.3,1),background-color .58s ease,border-color .58s ease}
 .archive-app .archive-topbar{transition:background-color .58s ease,color .58s ease,border-color .58s ease}

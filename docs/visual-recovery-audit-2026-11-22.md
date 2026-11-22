@@ -13,7 +13,7 @@ That makes an otherwise current deployment *look like* an older design; it does 
 - Restore subtle purple/violet and navy-blue ambient lighting in both light and dark modes, including panels, field borders and glass selection tints.
 - Replace the grid with composited soft radial gradients that remain attractive **without GPU acceleration** and need no image assets or new network requests.
 - Keep the original `public/liquid-glass.js` WebGL2 shader where it works. It still handles reactive highlights, background ripples, theme toggling and refraction.
-- Type the three ambient CSS color variables and transition them over the existing **580ms** theme-thumb motion, retaining the original toggle.
+- Type the ambient, base-background and caustic CSS color variables and transition them over the existing **580ms** theme-thumb motion, retaining the original toggle. The CSS itself provides a reduced-motion-aware fallback transition even if the optional visual JavaScript cannot run.
 - Avoid repeated WebGL initialization on every React DOM update when hardware acceleration is unavailable. After a lost WebGL context, fall back to gradients and allow one retry, then stop retrying.
 - Preserve reduced-motion/reduced-transparency behavior. The fallback contains no flashing or line patterns and animates only through slow transforms and opacity.
 
