@@ -115,7 +115,7 @@ function browser({ webgl2 = true, webgl1 = true, canvas2d = true, failGL2Shader 
   };
   assert.doesNotThrow(() => runInNewContext(source, sandbox, {timeout: 2000}));
   return {
-    app, env, contexts, shaderSources, fills, canvases, classes, calls, frames, timers,
+    app, env, root: doc.documentElement, contexts, shaderSources, fills, canvases, classes, calls, frames, timers,
     frame(t) { now = t; const jobs = frames.splice(0); for (const cb of jobs) cb(t); },
     clearTimers() { while(timers.length) timers.shift()(); },
     activeClasses() { return Array.from(classes); },
@@ -140,6 +140,7 @@ test('original WebGL2 shader runs first, and only hides CSS after its first succ
   assert.equal(ui.env.dataset.visualMode, 'fallback', 'Keep matched backdrop until original first frame is valid');
   ui.frame(42);
   assert.equal(ui.env.dataset.ambientMode, 'webgl2');
+  assert.equal(ui.root.dataset.ambientMode, 'webgl2', 'Fallback-only cosmetics must be off after GPU success');
   assert.equal(ui.env.dataset.visualMode, 'original');
   assert.equal(ui.classes.has('lg-gl'), true);
   assert.ok(ui.calls.includes('webgl2:draw'));
@@ -168,6 +169,7 @@ test('a failed first WebGL frame reveals lined CSS without a blank or a third re
   ui.frame(48);
   assert.equal(ui.classes.has('lg-gl'), false);
   assert.equal(ui.env.dataset.ambientMode, 'lines');
+  assert.equal(ui.root.dataset.ambientMode, 'lines', 'Lined backup should enable matching glass controls');
   assert.equal(ui.env.dataset.visualMode, 'fallback');
   assert.ok(!ui.contexts.includes('2d'));
 });
