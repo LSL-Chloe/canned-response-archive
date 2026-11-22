@@ -147,6 +147,9 @@ function scan(){
   G._stop();G=null;
  }
  if(!env)return;
+ // The matched backup is visible during shader startup too; switch to the
+ // original only after a successful rendered frame, without a blank flash.
+ if(!env.dataset.visualMode)visualMode(env,'fallback','gradient');
  if(calm){
   if(G){G._stop();G=null}
   visualMode(env,'fallback','gradient');
