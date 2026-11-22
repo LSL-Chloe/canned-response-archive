@@ -767,6 +767,13 @@
 }
 
 
+/* Type ambient colors so the fallback crossfades over the existing 580ms
+   theme thumb, instead of snapping light gradients over dark controls.
+   Browsers lacking registered properties still receive the same legible theme. */
+@property --ambient-blue{syntax:"<color>";inherits:true;initial-value:rgba(76,101,193,.30)}
+@property --ambient-violet{syntax:"<color>";inherits:true;initial-value:rgba(105,74,156,.20)}
+@property --ambient-rose{syntax:"<color>";inherits:true;initial-value:rgba(145,79,131,.24)}
+
 /* Restored atmospheric field: preserve the approved violet/blue WebGL layer,
    but NEVER fall back to the temporary monochrome checkerboard on browsers
    without WebGL2, in reduced-motion mode or when the script cannot run.
