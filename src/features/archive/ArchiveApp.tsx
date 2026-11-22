@@ -288,7 +288,8 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
               </span>
             </button>
             {adminMenuOpen && !sidebarCollapsed && (
-              <div id="archive-admin-subnav" className="archive-admin-subnav" role="group"
+              <div id="archive-admin-subnav"
+                className={`archive-admin-subnav${page !== 'agents' ? ' no-selection' : ''}`} role="group"
                 aria-label="Admin dashboard pages" style={{ '--admin-subtab': 0 } as CSSProperties}>
                 <Glass className="archive-admin-subnav-lens" radius={12}
                   style={{ borderRadius: 12, background: 'var(--liquid-selection-fill)' }}
