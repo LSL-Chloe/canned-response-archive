@@ -6,7 +6,8 @@ import { test } from 'node:test';
 const source = readFileSync(new URL('../public/liquid-glass.js', import.meta.url), 'utf8');
 
 function browser({ webgl2 = true, webgl1 = true, canvas2d = true, failGL2Shader = false,
-  reducedMotion = false, reducedTransparency = false, invalidFirstFrame = false } = {}) {
+  reducedMotion = false, reducedTransparency = false, invalidFirstFrame = false,
+  blackAfterMs = null, lateErrorAfterMs = null } = {}) {
   let now = 0;
   const contexts = [], shaderSources = [], calls = [], frames = [], timers = [];
   const handlers = new Map(), canvases = [], fills = [], classes = new Set();
@@ -43,7 +44,7 @@ function browser({ webgl2 = true, webgl1 = true, canvas2d = true, failGL2Shader 
     return {
       VERTEX_SHADER: 35633, FRAGMENT_SHADER: 35632, COMPILE_STATUS: 35713,
       LINK_STATUS: 35714, ARRAY_BUFFER: 34962, STATIC_DRAW: 35044,
-      FLOAT: 5126, TRIANGLES: 4, NO_ERROR: 0,
+      FLOAT: 5126, TRIANGLES: 4, NO_ERROR: 0, RGBA: 6408, UNSIGNED_BYTE: 5121,
       createShader() { return {}; },
       shaderSource(shader, s) { shaderSources.push({kind, source: s}); },
       compileShader() {}, getShaderParameter() { return !(failGL2Shader && kind === 'webgl2'); },
@@ -55,7 +56,15 @@ function browser({ webgl2 = true, webgl1 = true, canvas2d = true, failGL2Shader 
       deleteProgram() {}, viewport() {},
       uniform2f() {}, uniform1f() {}, uniform4fv() {},
       drawArrays() { calls.push(kind + ':draw'); },
-      getError() { const e = lastError;lastError = 0;return e; },
+      readPixels(x,y,w,h,format,type,out) {
+        calls.push(kind + ':probe');
+        out.set(blackAfterMs !== null && now >= blackAfterMs
+          ? [0,0,0,255] : [20,23,32,255]);
+      },
+      getError() {
+        if (lateErrorAfterMs !== null && now >= lateErrorAfterMs) return 1282;
+        const e = lastError;lastError = 0;return e;
+      },
       isContextLost() { return false; },
     };
   }
@@ -240,4 +249,47 @@ test('lined fallback does not obstruct ordinary text selection or inputs', () =>
   let prevented = false;
   ui.selectionStart({preventDefault() { prevented = true; }});
   assert.equal(prevented, false, 'The CSS-only backdrop has no selection interceptor');
+});
+
+test('the original shader never hides fallback behind a black FIRST GPU frame', () => {
+  const ui = browser({blackAfterMs:0});
+  ui.frame(44);
+  assert.equal(ui.env.dataset.ambientMode, 'lines');
+  assert.equal(ui.root.dataset.ambientMode, 'lines');
+  assert.equal(ui.classes.has('lg-gl'), false);
+  assert.ok(ui.calls.includes('webgl2:probe'));
+});
+
+test('silent black frames minutes after startup reveal fallback without a context-loss event', () => {
+  const ui = browser({blackAfterMs:1000});
+  ui.frame(42);
+  assert.equal(ui.env.dataset.ambientMode, 'webgl2');
+  ui.frame(4500); // First suspicious black sample; do not tear down on one glitch.
+  assert.equal(ui.env.dataset.ambientMode, 'webgl2');
+  ui.frame(5100); // A confirming probe fails and must remove the black canvas.
+  assert.equal(ui.env.dataset.visualMode, 'fallback');
+  assert.equal(ui.env.dataset.ambientMode, 'lines');
+  assert.equal(ui.root.dataset.ambientMode, 'lines');
+  assert.equal(ui.classes.has('lg-gl'), false);
+  assert.equal(ui.canvases[0].isConnected, false);
+  assert.ok(ui.activeListeners('pointermove') === 0,
+    'A failed GPU canvas must release its pointer listeners');
+});
+
+test('late WebGL errors trigger fallback even without the browser contextlost event', () => {
+  const ui = browser({lateErrorAfterMs:2500});
+  ui.frame(42);
+  assert.equal(ui.env.dataset.ambientMode, 'webgl2');
+  ui.frame(4800);
+  assert.equal(ui.env.dataset.ambientMode, 'lines');
+  assert.equal(ui.classes.has('lg-gl'), false);
+});
+
+test('healthy GPU only probes one pixel occasionally, without switching the approved UI', () => {
+  const ui = browser();
+  ui.frame(42);
+  for (let i = 1; i <= 60; i++) ui.frame(i * 250);
+  assert.equal(ui.env.dataset.ambientMode, 'webgl2');
+  assert.equal(ui.env.dataset.visualMode, 'original');
+  assert.equal(ui.calls.filter(s => s === 'webgl2:probe').length, 4);
 });
