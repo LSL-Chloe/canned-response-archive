@@ -88,7 +88,7 @@ test('security, data and cloud configuration do not drift during a visual recove
   const app = read('src/features/archive/ArchiveApp.tsx');
   const css = read('src/styles/premium.css');
   const html = read('index.html');
-  assert.match(html, /<script defer src="\/liquid-glass\.js\?v=original-glass-20261123-1"><\/script>/);
+  assert.match(html, /<script defer src="\/liquid-glass\.js\?v=original-glass-20261123-2"><\/script>/);
   assert.match(wrangler, /previews/);
   assert.match(app, /data-theme=\{theme\}/);
   assert.match(css, /content-visibility: auto/);
