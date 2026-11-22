@@ -50,14 +50,14 @@ test('WebGL2 loss stays graceful and never triggers endless GPU retries on React
   assert.match(layer, /webglUnavailable=false,canvasUnavailable=false,contextLossCount=0/);
   assert.match(layer, /if\(!webglUnavailable&&performance\.now\(\)>=gpuRetryAt\)G=bg\(env\)/);
   assert.match(layer, /if\(!G&&!canvasUnavailable\)G=bg2d\(env\)/);
-  assert.match(layer, /if\(!G\)env\.dataset\.ambientMode='gradient'/);
-  assert.match(layer, /env\.dataset\.ambientMode=kind/);
+  assert.match(layer, /if\(!G\)visualMode\(env,'fallback','gradient'\)/);
+  assert.match(layer, /visualMode\(env,'original',kind\)/);
   assert.match(layer, /webglcontextlost/);
   assert.match(layer, /env\.classList\.remove\('lg-gl'\)/);
   assert.match(layer, /if\(\+\+contextLossCount>1\)webglUnavailable=true/);
   assert.match(layer, /if\(!c\._ready\)/);
-  assert.match(layer, /env\.dataset\.ambientMode=kind/);
-  assert.match(layer, /env\.dataset\.ambientMode='canvas2d'/);
+  assert.match(layer, /visualMode\(env,'original',kind\)/);
+  assert.match(layer, /visualMode\(env,'fallback','canvas2d'\)/);
   assert.match(layer, /\.lg-gl>\.optical-weave,\.lg-gl>\.optical-caustic\{display:none\}/);
   assert.doesNotMatch(layer, /user-select:none!important/, 'Keep direct text selection working');
 });
@@ -94,7 +94,7 @@ test('security, data and cloud configuration do not drift during a visual recove
   const app = read('src/features/archive/ArchiveApp.tsx');
   const css = read('src/styles/premium.css');
   const html = read('index.html');
-  assert.match(html, /<script defer src="\/liquid-glass\.js"><\/script>/);
+  assert.match(html, /<script defer src="\/liquid-glass\.js\?v=original-glass-20261122-2"><\/script>/);
   assert.match(wrangler, /previews/);
   assert.match(app, /data-theme=\{theme\}/);
   assert.match(css, /content-visibility: auto/);
