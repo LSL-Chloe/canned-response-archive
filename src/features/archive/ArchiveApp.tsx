@@ -201,7 +201,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   }, [refresh]);
 
   const responses = useMemo(() => [...shared, ...privateRows], [shared, privateRows]);
-  const selectedTab = page === 'search' ? 0 : page === 'library' ? 1 : (page === 'team' || page === 'agents') ? 2 : -1;
+  const selectedTab = page === 'search' ? 0 : page === 'library' ? 1 : page === 'team' ? 2 : -1;
 
   function requireLogin(reason: 'private' | 'mine' | 'create' | 'transfer') {
     setLoginIntent(reason);
@@ -236,8 +236,8 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
   }
   function navigate(target: Page) {
     setAccountMenuOpen(false);
-    if ((target === 'team' || target === 'agents') && agent?.role !== 'admin') return;
-    if (target === 'team' || target === 'agents') setAdminMenuOpen(true);
+    if (target === 'agents' && agent?.role !== 'admin') return;
+    if (target === 'agents') setAdminMenuOpen(true);
     if (target === 'settings' && !agent) { setLoginOpen(true); return; }
     setPage(target);
   }
@@ -258,6 +258,54 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
             <Icon name="panel" size={17}/>
           </button>
         </div>
+        {agent?.role === 'admin' && (
+          <nav aria-label="Admin dashboard" className={`archive-nav archive-admin-nav${page !== 'agents' ? ' no-selection' : ''}`}
+            style={{ '--active-tab': 0 } as CSSProperties}>
+          <Glass className="archive-nav-selection" radius={30} style={{
+            borderRadius: 30, background: 'var(--liquid-selection-fill)',
+          }} optics={{
+            mapSize: 256, depth: .78, curvature: .48, strength: .19,
+            bend: .49, bendWidth: .12, dispersion: .24,
+            sheen: 1.08, sheenWidth: 1.55, specular: 1.25,
+            glow: .16, frost: 0, clipToShape: true, softEdge: true,
+          }}>
+            <span className="archive-nav-selection-center" aria-hidden="true"/>
+          </Glass>
+            <button type="button" className={page === 'agents' ? 'active' : ''}
+              aria-expanded={adminMenuOpen && !sidebarCollapsed}
+              aria-controls={adminMenuOpen && !sidebarCollapsed ? 'archive-admin-subnav' : undefined}
+              onPointerEnter={() => { void import('./ManageAgentsWorkspace'); }}
+              onFocus={() => { void import('./ManageAgentsWorkspace'); }}
+              onClick={() => {
+                if (sidebarCollapsed) setSidebarCollapsed(false);
+                if (page === 'agents' && !sidebarCollapsed) setAdminMenuOpen(value => !value);
+                else { setAdminMenuOpen(true); navigate('agents'); }
+              }} title="Admin dashboard">
+              <span className="archive-nav-icon"><Icon name="shield" size={20}/></span>
+              <span className="archive-nav-label">Admin dashboard</span>
+              <span className={`archive-admin-chevron${adminMenuOpen && !sidebarCollapsed ? ' is-open' : ''}`} aria-hidden="true">
+                <Icon name="chevron" size={13}/>
+              </span>
+            </button>
+            {adminMenuOpen && !sidebarCollapsed && (
+              <div id="archive-admin-subnav" className="archive-admin-subnav" role="group"
+                aria-label="Admin dashboard pages" style={{ '--admin-subtab': 0 } as CSSProperties}>
+                <Glass className="archive-admin-subnav-lens" radius={12}
+                  style={{ borderRadius: 12, background: 'var(--liquid-selection-fill)' }}
+                  optics={{ mapSize: 96, depth: .56, curvature: .40, strength: .15, bend: .42,
+                    bendWidth: .13, dispersion: .12, sheen: .9, specular: .9,
+                    frost: 0, clipToShape: true, softEdge: true }}>
+                  <span className="archive-admin-subnav-lens-fill" aria-hidden="true"/>
+                </Glass>
+                <button type="button" className={page === 'agents' ? 'active' : ''}
+                  aria-current={page === 'agents' ? 'page' : undefined}
+                  onPointerEnter={() => { void import('./ManageAgentsWorkspace'); }}
+                  onFocus={() => { void import('./ManageAgentsWorkspace'); }}
+                  onClick={() => navigate('agents')}>Manage agents</button>
+              </div>
+            )}
+          </nav>
+        )}
         <nav aria-label="Main navigation" className={`archive-nav${selectedTab < 0 ? ' no-selection' : ''}`}
           style={{ '--active-tab': selectedTab } as CSSProperties}>
           <Glass className="archive-nav-selection" radius={30} style={{
@@ -282,49 +330,13 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
             <span className="archive-nav-icon"><Icon name="library" size={20}/></span>
             <span className="archive-nav-label">Canned responses</span>
           </button>
-          {agent?.role === 'admin' && (
-            <>
-              <button type="button" className={(page === 'team' || page === 'agents') ? 'active' : ''}
-                aria-expanded={adminMenuOpen && !sidebarCollapsed} aria-controls="archive-admin-subnav"
-                onPointerEnter={() => { void import('./TeamWorkspace'); void import('./ManageAgentsWorkspace'); }}
-                onFocus={() => { void import('./TeamWorkspace'); }}
-                onClick={() => {
-                  if (sidebarCollapsed) setSidebarCollapsed(false);
-                  setAdminMenuOpen(open => sidebarCollapsed ? true : !open);
-                  if (page !== 'team' && page !== 'agents') navigate('team');
-                }} title="Admin dashboard">
-                <span className="archive-nav-icon"><Icon name="team" size={20}/></span>
-                <span className="archive-nav-label">Admin dashboard</span>
-                <span className={`archive-admin-chevron${adminMenuOpen && !sidebarCollapsed ? ' is-open' : ''}`} aria-hidden="true">
-                  <Icon name="chevron" size={13}/>
-                </span>
-              </button>
-              {adminMenuOpen && !sidebarCollapsed && (
-                <div id="archive-admin-subnav"
-                  className={`archive-admin-subnav${page !== 'team' && page !== 'agents' ? ' no-selection' : ''}`}
-                  role="group" aria-label="Admin dashboard pages"
-                  style={{ '--admin-subtab': page === 'agents' ? 1 : 0 } as CSSProperties}>
-                  <Glass className="archive-admin-subnav-lens" radius={12}
-                    style={{ borderRadius: 12, background: 'var(--liquid-selection-fill)' }}
-                    optics={{ mapSize: 96, depth: .56, curvature: .40, strength: .15, bend: .42,
-                      bendWidth: .13, dispersion: .12, sheen: .9, specular: .9,
-                      frost: 0, clipToShape: true, softEdge: true }}>
-                    <span className="archive-admin-subnav-lens-fill" aria-hidden="true"/>
-                  </Glass>
-                  <button type="button" className={page === 'team' ? 'active' : ''}
-                    aria-current={page === 'team' ? 'page' : undefined}
-                    onPointerEnter={() => { void import('./TeamWorkspace'); }}
-                    onFocus={() => { void import('./TeamWorkspace'); }}
-                    onClick={() => navigate('team')}>Team overview</button>
-                  <button type="button" className={page === 'agents' ? 'active' : ''}
-                    aria-current={page === 'agents' ? 'page' : undefined}
-                    onPointerEnter={() => { void import('./ManageAgentsWorkspace'); }}
-                    onFocus={() => { void import('./ManageAgentsWorkspace'); }}
-                    onClick={() => navigate('agents')}>Manage agents</button>
-                </div>
-              )}
-            </>
-          )}
+          <button type="button" className={page === 'team' ? 'active' : ''} aria-current={page === 'team' ? 'page' : undefined}
+            onPointerEnter={() => { void import('./TeamWorkspace'); }}
+            onFocus={() => { void import('./TeamWorkspace'); }}
+            onClick={() => navigate('team')} title="Team overview">
+            <span className="archive-nav-icon"><Icon name="team" size={20}/></span>
+            <span className="archive-nav-label">Team overview</span>
+          </button>
         </nav>
       </aside>
       <div className="archive-main">
@@ -374,7 +386,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
               reload={() => refresh()} onNotice={onNotice} onError={onError}/>}
             {page === 'settings' && agent && <SettingsWorkspace agent={agent} onAgentChange={setAgent} avatarUrl={avatarUrl} onAvatarChange={setAvatarUrl}
               onNotice={onNotice} onError={onError}/>}
-            {page === 'team' && agent?.role === 'admin' && <TeamWorkspace onError={onError}/>}
+            {page === 'team' && <TeamWorkspace onError={onError}/>
             {page === 'agents' && agent?.role === 'admin' && <ManageAgentsWorkspace agent={agent} onNotice={onNotice} onError={onError}/>}
           </Suspense>
         </main>
