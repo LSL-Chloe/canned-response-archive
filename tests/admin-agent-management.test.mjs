@@ -55,15 +55,21 @@ async function mockedBackend(role, work) {
 
 test('admin-only deletion rejects anonymous agents and self deletion', async () => {
   await mockedBackend('admin', async calls => {
-    assert.equal((await handleResponses(request(MEMBER, 'Member', false), env,
-      '/api/admin/users/' + MEMBER)).status, 401);
-    assert.equal((await handleResponses(request(ADMIN, 'Admin'), env,
-      '/api/admin/users/' + ADMIN)).status, 403);
+    await assert.rejects(
+      handleResponses(request(MEMBER, 'Member', false), env, '/api/admin/users/' + MEMBER),
+      error => error.status === 401 && error.code === 'login_required',
+    );
+    await assert.rejects(
+      handleResponses(request(ADMIN, 'Admin'), env, '/api/admin/users/' + ADMIN),
+      error => error.status === 403 && error.code === 'self_delete_forbidden',
+    );
     assert.deepEqual(calls, []);
   });
   await mockedBackend('agent', async calls => {
-    assert.equal((await handleResponses(request(MEMBER, 'Member'), env,
-      '/api/admin/users/' + MEMBER)).status, 403);
+    await assert.rejects(
+      handleResponses(request(MEMBER, 'Member'), env, '/api/admin/users/' + MEMBER),
+      error => error.status === 403 && error.code === 'forbidden',
+    );
     assert.deepEqual(calls, []);
   });
 });
@@ -84,9 +90,10 @@ test('a verified admin can delete another agent; the SQL RPC rechecks role and c
 
 test('stale or wrong name confirmation cannot delete an agent', async () => {
   await mockedBackend('admin', async calls => {
-    const res = await handleResponses(request(MEMBER, 'Wrong name'), env, '/api/admin/users/' + MEMBER);
-    assert.equal(res.status, 409);
-    assert.equal((await res.json()).error, 'confirmation_mismatch');
+    await assert.rejects(
+      handleResponses(request(MEMBER, 'Wrong name'), env, '/api/admin/users/' + MEMBER),
+      error => error.status === 409 && error.code === 'confirmation_mismatch',
+    );
     assert.equal(calls.length, 1);
   });
 });
