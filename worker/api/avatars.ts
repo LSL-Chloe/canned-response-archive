@@ -35,13 +35,23 @@ function sourceUrl(value: unknown): string | null {
 
 export async function handleAvatars(request: Request, env: Env, path: string, url: URL): Promise<Response> {
   const signed = await getSession(env, request);
-  if (!signed) fail(401, 'login_required', 'Sign in to manage your profile picture');
-  const agentId = signed.agent.id;
-
 
   if (path === '/api/avatars/image' && request.method === 'GET') {
     const raw = sourceUrl(url.searchParams.get('url'));
     if (!raw) fail(400, 'invalid_image', 'Choose an image');
+    if (!signed) {
+      // The team directory is public. Permit its currently selected catalog
+      // pictures, but do NOT turn the signed-in catalog proxy into an arbitrary
+      // anonymous fetch endpoint. Match the exact stored image URL first.
+      const selected = await queryTable<{ id: string }>(env, 'agents', {
+        select: 'id', avatar_url: `eq.${raw}`, limit: '1',
+      });
+      if (!selected.length) fail(403, 'not_public_avatar', 'This image is not a selected public profile picture');
+      if (!await requireRateLimit(env, 'avatar:public:' +
+        (request.headers.get('CF-Connecting-IP') || 'guest'), 160, 900)) {
+        fail(429, 'rate_limited', 'Too many public avatar requests');
+      }
+    }
     // Strict allowlist + no redirects: this must never become an arbitrary URL proxy.
     const response = await fetch(raw, {
       redirect: 'manual', signal: AbortSignal.timeout(9000),
@@ -64,6 +74,9 @@ export async function handleAvatars(request: Request, env: Env, path: string, ur
       },
     });
   }
+
+  if (!signed) fail(401, 'login_required', 'Sign in to manage your profile picture');
+  const agentId = signed.agent.id;
 
   if (path === '/api/account/avatar' && request.method === 'GET') {
     const rows = await queryTable<{ avatar_url: string | null }>(env, 'agents', {

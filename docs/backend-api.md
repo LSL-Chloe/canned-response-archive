@@ -40,7 +40,8 @@ OTP codes are six digits, expire after ten minutes, and allow at most five wrong
 | GET | `/api/responses/export?scope=private` | Download your own private replies |
 | GET | `/api/responses/export?scope=shared` | Administrator only |
 | POST | `/api/responses/import` | Signed-in user for private imports; administrator for shared imports |
-| GET | `/api/admin/users` | Administrator-only registered-agent list (name, role, join date, shared/private counts), without private text or email addresses |
+| GET | `/api/team` | Public, rate-limited, read-only agent directory (name, role, join date, shared/private counts and selected avatar URLs); never returns emails, PIN hashes, session data or private reply bodies |
+| GET | `/api/admin/users` | Administrator-only registered-agent list with the same profile metadata and counts, for Manage agents |
 | DELETE | `/api/admin/users/:id` | Administrator only. Send JSON `{"confirmName":"Exact agent name"}`. Permanently removes the targeted non-admin account, its sessions, and all its replies in a single database transaction; keeps shared shortcuts used by others. Self-deletion and deleting an administrator are forbidden. |
 
 Replies live under `#shortcut` names, with original internal spaces and underscores preserved (1–64 characters, case-insensitive uniqueness). Several independent replies can share one shortcut. Creating another reply doesn't overwrite an existing one.
@@ -75,7 +76,7 @@ An import accepts 1–50 rows per request. Each batch is **transactional** and s
 | GET | `/api/avatars/popular` | Signed-in, optional popular-character suggestions |
 | GET | `/api/avatars/variations` | Signed-in, additional fan-wiki or anime artwork |
 | GET | `/api/avatars/booru-looks` | Signed-in, filtered general-rated artwork for one character |
-| GET | `/api/avatars/image` | Signed-in, allowlisted public image proxy for hosts that block direct loading |
+| GET | `/api/avatars/image` | Signed-in users may use the allowlisted catalog proxy; signed-out viewers may fetch only URLs currently selected as a registered agent's public profile picture (database match + per-IP rate limit) |
 
 Most featured icons come from a bundled manifest and don't require a catalog request. External image providers are optional and can fail without preventing use of the rest of the archive.
 

@@ -26,6 +26,7 @@ export interface TeamAgent {
   joined_at: string;
   shared_count: number;
   private_count: number;
+  avatar_url: string | null;
 }
 export class ApiProblem extends Error {
   constructor(public readonly status: number, message: string) {
@@ -98,7 +99,14 @@ export async function login(identifier: string, pin: string): Promise<Agent> {
 export function logout(): Promise<{ signedOut: boolean }> {
   return api('/api/auth/logout', { method: 'POST', body: JSON.stringify({}) });
 }
+/** Read-only profile directory, available to guests and signed-in agents. */
 export async function getTeam(): Promise<TeamAgent[]> {
+  const data = await api<{ users: TeamAgent[] }>('/api/team');
+  return data.users;
+}
+
+/** Administrative directory; this endpoint still enforces admin authorization. */
+export async function getAdminAgents(): Promise<TeamAgent[]> {
   const data = await api<{ users: TeamAgent[] }>('/api/admin/users');
   return data.users;
 }
