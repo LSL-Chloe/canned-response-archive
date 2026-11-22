@@ -13,7 +13,7 @@ function browser({ webgl2 = true, webgl1 = true, canvas2d = true, failGL2Shader 
 
   class Element {
     constructor(tag) {
-      this.tag = tag;this.style = {};this.dataset = {};
+      this.tag = tag;this.style = { setProperty() {}, removeProperty() {} };this.dataset = {};
       this.isConnected = true;this.attrs = {};this.children = [];
       this.localHandlers = new Map();
     }
