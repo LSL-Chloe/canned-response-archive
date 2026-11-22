@@ -103,6 +103,19 @@ export async function getTeam(): Promise<TeamAgent[]> {
   return data.users;
 }
 
+/** Admin-only permanent account deletion. The server rechecks permissions and
+ * exact name confirmation before removing the agent and their responses. */
+export function deleteAgent(id: string, confirmName: string): Promise<{
+  deleted: true;
+  deleted_responses: number;
+  preserved_shared_shortcuts: number;
+  avatarCleanupFailed: boolean;
+}> {
+  return api(`/api/admin/users/${encodeURIComponent(id)}`, {
+    method: 'DELETE', body: JSON.stringify({ confirmName }),
+  });
+}
+
 /** The server enforces scope: only admins may export/import Shared. */
 export function exportResponses(visibility: Visibility): Promise<TransferFile> {
   return api<TransferFile>(`/api/responses/export?scope=${visibility}`);

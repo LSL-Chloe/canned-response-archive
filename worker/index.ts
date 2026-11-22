@@ -32,7 +32,7 @@ export default {
       if (path.startsWith('/api/auth/') || path.startsWith('/api/account/')) {
         return await handleAuth(request, env, path);
       }
-      if (path.startsWith('/api/responses') || path === '/api/admin/users') {
+      if (path.startsWith('/api/responses') || path === '/api/admin/users' || path.startsWith('/api/admin/users/')) {
         return await handleResponses(request, env, path);
       }
       return json({ error: 'Not found' }, 404);
