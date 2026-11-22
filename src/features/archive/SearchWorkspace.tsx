@@ -89,6 +89,20 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
     onNotice('Response inserted. Ctrl+Z or Cmd+Z restores the shortcut search.');
   }
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    // One Escape clears the entire composer, even if a shortcut menu or a
+    // response variant is open. Reset the custom insertion undo snapshot so
+    // Ctrl/Cmd+Z cannot unexpectedly restore a previously inserted reply.
+    if (event.key === 'Escape' && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      setDraft('');
+      setCaret(0);
+      setDismissed(true);
+      setHighlight(0);
+      setSelectedShortcut(null);
+      lastInsert.current = null;
+      setSelection(0);
+      return;
+    }
     const command = event.ctrlKey || event.metaKey;
     if (command && event.key.toLowerCase() === 'z' && !event.shiftKey) {
       const previous = lastInsert.current;
@@ -106,12 +120,6 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
       return;
     }
     if (!open) return;
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      if (current) goBack();
-      else setDismissed(true);
-      return;
-    }
     if (current && event.key === 'ArrowLeft') {
       event.preventDefault();
       goBack();
@@ -161,6 +169,7 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
         <textarea
           ref={input}
           aria-label="Message draft with optional hashtag shortcuts"
+          aria-keyshortcuts="Escape"
           aria-autocomplete="list"
           aria-expanded={open}
           aria-controls="archive-suggestions"
@@ -235,7 +244,7 @@ export default function SearchWorkspace({ responses, loading, onNotice, onError 
         )}
         <div className="archive-composer-bottom">
           <span className="archive-composer-hint"><kbd>#</kbd> Optional for shortcut search
-            <span className="archive-hint-desktop"> · <kbd>Enter</kbd> open · <kbd>Ctrl</kbd> + <kbd>Z</kbd> undo · <kbd>Ctrl</kbd> + <kbd>C</kbd> copy</span>
+            <span className="archive-hint-desktop"> · <kbd>Enter</kbd> open · <kbd>Ctrl</kbd> + <kbd>Z</kbd> undo · <kbd>Ctrl</kbd> + <kbd>C</kbd> copy · <kbd>Esc</kbd> clear</span>
           </span>
           <LiquidButton className="archive-button archive-button-primary" type="button"
             disabled={!draft} onClick={() => void copyDraft()}>Copy draft</LiquidButton>
