@@ -4,7 +4,7 @@ The archive should feel like a focused writing tool, not a dashboard that demand
 
 ## Light and dark
 
-Both themes use a restrained **violet/blue ambient field**, not the abandoned black-and-grey checkerboard. The dark theme is deep navy with soft blue and purple light; the light theme uses quiet lavender and pearl tones. The moving WebGL effect enhances that atmosphere, but the CSS-only fallback must preserve the same visual direction when WebGL2 is blocked or unavailable.
+Both themes use a restrained **violet/blue ambient field**, not the abandoned black-and-grey checkerboard. The dark theme is deep navy with soft blue and purple light; the light theme uses quiet lavender and pearl tones. The original WebGL2 shader is the **first renderer attempted on every motion-enabled browser**. If it cannot compile or render, the same shader runs through a compatible WebGL1 path when available, followed by a lightweight animated Canvas 2D version and finally the same ambient CSS gradients. The fallback preserves the layout, color identity, glass controls, and theme timing; exact pixel-for-pixel GPU shading cannot be guaranteed on a CPU fallback.
 
 ## The glass treatment
 
@@ -18,7 +18,7 @@ Small interactions should respond promptly. Sliding navigation, the theme switch
 
 Keep animation on composited properties where possible, avoid making whole lists repaint, and never create a fresh expensive glass shader for every response row. Off-screen rows may use browser rendering containment; hidden or unused avatar images should not monopolize bandwidth.
 
-The reduced-motion preference disables ambient movement. Reduced-transparency preferences use less translucent surfaces. On constrained connections, avatar loading should favor visible images. When WebGL2 cannot initialize, **do not repeatedly retry GPU initialization on every UI update**; use slow, composited radial-gradient ambiance instead of reverting to a grid. The gradient palette should follow the existing 580ms light/dark thumb transition without a flash.
+The reduced-motion preference disables ambient movement. Reduced-transparency preferences use less translucent surfaces. On constrained connections, avatar loading should favor visible images. When both WebGL APIs cannot initialize, **do not repeatedly retry GPU initialization on every UI update**; use a lightweight Canvas 2D animation if supported and slow composited radial gradients otherwise. Brief context losses get at most one bounded GPU retry, then a stable fallback. The gradient palette should follow the existing 580ms light/dark thumb transition without a flash.
 
 ## Accessibility
 
