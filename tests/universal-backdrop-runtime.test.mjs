@@ -138,6 +138,7 @@ test('original WebGL2 shader runs first, and only hides CSS after its first succ
   assert.deepEqual(ui.contexts, ['webgl2']);
   assert.equal(ui.classes.has('lg-gl'), false);
   assert.equal(ui.env.dataset.visualMode, 'fallback', 'Keep matched backdrop until original first frame is valid');
+  assert.equal(ui.root.dataset.ambientMode, 'pending', 'Do not apply lined fallback controls during original GPU startup');
   ui.frame(42);
   assert.equal(ui.env.dataset.ambientMode, 'webgl2');
   assert.equal(ui.root.dataset.ambientMode, 'webgl2', 'Fallback-only cosmetics must be off after GPU success');
