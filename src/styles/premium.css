@@ -6,8 +6,8 @@
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
   font-synthesis:none; -webkit-font-smoothing:antialiased;
 }
-:root[data-theme="dark"]{background:#0d0e11;color:#f2f3f4;color-scheme:dark}
-:root[data-theme="light"]{background:#f3f4f5;color:#17191c;color-scheme:light}
+:root[data-theme="dark"]{background:#0c0e17;color:#f4f4fa;color-scheme:dark}
+:root[data-theme="light"]{background:#f0f1f6;color:#202331;color-scheme:light}
 .archive-app[data-theme="dark"],.auth-experience[data-theme="dark"]{
   --a-bg:#111216;--a-surface:#1a1b20;--a-soft:#22242a;--a-line:#33363c;
   --a-text:#f2f3f5;--a-muted:#a4a8b1;--a-accent:#d8e2eb;--a-accent-soft:#32363c;
@@ -767,43 +767,51 @@
 }
 
 
-/* OPTICAL FIELD — visible detail behind SVG displacement lenses, not frosted panels.
-   Motion uses transform/opacity only; no per-frame JS or network requests. */
+/* Restored atmospheric field: preserve the approved violet/blue WebGL layer,
+   but NEVER fall back to the temporary monochrome checkerboard on browsers
+   without WebGL2, in reduced-motion mode or when the script cannot run.
+   Only transform/opacity animate, with no extra network assets or per-frame CSS. */
 .archive-app[data-theme="dark"],.auth-experience[data-theme="dark"]{
-  --a-bg:#0c0d11;--a-surface:#191a1f;--a-soft:#272930;--a-line:rgba(236,241,247,.13);
-  --a-text:#f3f4f6;--a-muted:#b6bac3;--a-accent:#e4ebf4;--a-accent-soft:rgba(228,235,244,.10);
-  --dock-track:rgba(8,9,12,.64);--rail:rgba(11,12,16,.63);
-  --weave-line:rgba(229,234,241,.19);--weave-line-2:rgba(232,237,245,.11);
-  --caustic:rgba(223,231,244,.27);--caustic-edge:rgba(168,180,195,.10);
-  --liquid-panel-tint:rgba(15,17,22,.61);--liquid-selection-fill:rgba(218,226,236,.17);
-  --liquid-button-tint:rgba(185,196,208,.19);--liquid-button-fg:#f2f4f7;
-  --ui-success:#a4e5c8;--field:rgba(18,20,26,.74);--field-line:rgba(239,243,248,.18);
+  --a-bg:#0c0e17;--a-surface:#191a26;--a-soft:#252637;--a-line:rgba(217,218,241,.14);
+  --a-text:#f4f4fa;--a-muted:#b8bacd;--a-accent:#c6c9ee;--a-accent-soft:rgba(171,161,231,.12);
+  --dock-track:rgba(12,13,25,.62);--rail:rgba(15,17,29,.62);
+  --ambient-blue:rgba(76,101,193,.30);--ambient-violet:rgba(105,74,156,.20);
+  --ambient-rose:rgba(145,79,131,.24);
+  --caustic:rgba(162,159,238,.21);--caustic-edge:rgba(112,152,224,.10);
+  --liquid-panel-tint:rgba(22,22,39,.56);--liquid-selection-fill:rgba(186,176,229,.17);
+  --liquid-button-tint:rgba(176,156,216,.19);--liquid-button-fg:#f5f4fb;
+  --ui-success:#a4e5c8;--field:rgba(21,22,38,.74);--field-line:rgba(219,219,246,.17);
 }
 .archive-app[data-theme="light"],.auth-experience[data-theme="light"]{
-  --a-bg:#e6e8eb;--a-surface:#f8f9fb;--a-soft:#eaecf0;--a-line:rgba(37,45,55,.14);
-  --a-text:#1d232a;--a-muted:#4d5964;--a-accent:#273746;--a-accent-soft:rgba(38,49,63,.09);
-  --dock-track:rgba(220,225,231,.55);--rail:rgba(247,249,251,.58);
-  --weave-line:rgba(49,59,72,.17);--weave-line-2:rgba(31,41,53,.08);
-  --caustic:rgba(255,255,255,.85);--caustic-edge:rgba(111,121,138,.20);
-  --liquid-panel-tint:rgba(254,255,255,.61);--liquid-selection-fill:rgba(255,255,255,.55);
-  --liquid-button-tint:rgba(251,253,255,.66);--liquid-button-fg:#17212b;
-  --field:rgba(249,251,253,.84);--field-line:rgba(34,45,58,.20);
+  --a-bg:#eff0f6;--a-surface:#f9f9fc;--a-soft:#ebeaf4;--a-line:rgba(62,60,89,.14);
+  --a-text:#252536;--a-muted:#59576b;--a-accent:#555b91;--a-accent-soft:rgba(128,122,187,.12);
+  --dock-track:rgba(224,226,238,.58);--rail:rgba(250,249,255,.62);
+  --ambient-blue:rgba(133,153,227,.24);--ambient-violet:rgba(164,145,216,.19);
+  --ambient-rose:rgba(214,166,200,.20);
+  --caustic:rgba(255,255,255,.8);--caustic-edge:rgba(137,127,191,.16);
+  --liquid-panel-tint:rgba(255,253,255,.64);--liquid-selection-fill:rgba(255,255,255,.58);
+  --liquid-button-tint:rgba(244,239,255,.68);--liquid-button-fg:#29263c;
+  --field:rgba(250,250,255,.84);--field-line:rgba(80,76,117,.19);
 }
 .archive-app[data-theme],.auth-experience[data-theme]{
   background:transparent;position:relative;isolation:isolate;
 }
 .archive-app>.optical-environment,.auth-experience>.optical-environment{
   position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
-  background:var(--a-bg);
+  background:
+    radial-gradient(ellipse 75% 93% at -7% 3%,var(--ambient-blue) 0%,transparent 72%),
+    radial-gradient(ellipse 70% 92% at 110% 91%,var(--ambient-rose) 0%,transparent 72%),
+    radial-gradient(ellipse 65% 77% at 54% 35%,var(--ambient-violet) 0%,transparent 78%),
+    var(--a-bg);
 }
 .optical-weave{
-  position:absolute;inset:-12%;opacity:.29;will-change:transform;
-  background-image:
-    repeating-linear-gradient(0deg,transparent 0 7px,var(--weave-line) 8px 9px,transparent 10px 14px),
-    repeating-linear-gradient(90deg,transparent 0 7px,var(--weave-line-2) 8px 9px,transparent 10px 14px);
-  background-size:100% 100%;
-  -webkit-mask-image:radial-gradient(ellipse 80% 88% at 58% 49%,#000 2%,transparent 96%);
-  mask-image:radial-gradient(ellipse 80% 88% at 58% 49%,#000 2%,transparent 96%);
+  position:absolute;inset:-14%;opacity:.8;will-change:transform;
+  background:
+    radial-gradient(ellipse 39% 56% at 9% 25%,var(--ambient-blue),transparent 77%),
+    radial-gradient(ellipse 40% 58% at 85% 72%,var(--ambient-rose),transparent 81%),
+    radial-gradient(ellipse 33% 47% at 53% 42%,var(--ambient-violet),transparent 82%);
+  -webkit-mask-image:radial-gradient(ellipse 95% 93% at 51% 49%,#000 8%,transparent 100%);
+  mask-image:radial-gradient(ellipse 95% 93% at 51% 49%,#000 8%,transparent 100%);
   animation:optical-weave-drift 42s ease-in-out infinite alternate;
 }
 .optical-caustic{
