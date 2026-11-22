@@ -387,7 +387,7 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
               reload={() => refresh()} onNotice={onNotice} onError={onError}/>}
             {page === 'settings' && agent && <SettingsWorkspace agent={agent} onAgentChange={setAgent} avatarUrl={avatarUrl} onAvatarChange={setAvatarUrl}
               onNotice={onNotice} onError={onError}/>}
-            {page === 'team' && <TeamWorkspace onError={onError}/>
+            {page === 'team' && <TeamWorkspace onError={onError}/>}
             {page === 'agents' && agent?.role === 'admin' && <ManageAgentsWorkspace agent={agent} onNotice={onNotice} onError={onError}/>}
           </Suspense>
         </main>
