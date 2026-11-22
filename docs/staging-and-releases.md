@@ -44,7 +44,7 @@ Official Cloudflare documentation:
 
 The two Supabase projects track their SQL changes independently. Migration **names and applied version IDs** can differ from the filename timestamps in Git; check `supabase/migrations/README.md` and the actual migration history before applying anything.
 
-As of 22 November 2026, staging has all **nine** schema migrations, including `admin_delete_agent` (the ninth). The live database originally had eight and must receive that **additive, service-role-only function** *before* the corresponding Admin Dashboard release is deployed. The function changes no existing account or reply until an explicitly authorized deletion is requested.
+As of 22 November 2026, **both staging and the live database have nine schema migrations**. The additive `admin_delete_agent` function was installed on the live database ahead of the Admin Dashboard code release. Immediately afterward, production still held **3 agents, 227 responses, 119 shortcuts and 202 Shared-feed entries**. Only `service_role` can execute the new function; anonymous and ordinary authenticated database roles cannot. It changes no account or reply unless a privileged deletion is explicitly requested.
 
 The latest staging security audit reported row-level security enabled on all ten application tables. Nine informational `rls_enabled_no_policy` findings describe intentionally server-only tables, not public grants. The only directly guest-readable response source is the shared feed.
 
