@@ -7,7 +7,7 @@ const mem=navigator.deviceMemory||4,cores=navigator.hardwareConcurrency||4;
 let tier=mem<=2||cores<=4?0:mem<=4||cores<=6?1:2;           // 0 low-end · 1 mid · 2 high
 const calm=M('(prefers-reduced-motion:reduce)');
 if(M('(prefers-reduced-transparency:reduce)')||navigator.connection?.saveData)tier=0;
-const refract=CSS.supports('backdrop-filter','url(#a)');      // true lensing needs Chromium
+const refract=typeof CSS!=='undefined'&&CSS.supports('backdrop-filter','url(#a)'); // optional SVG lenses
 R.dataset.lg=tier;
 
 /* ───────── MATERIAL (CSS) ───────── */
@@ -73,7 +73,9 @@ const maps=new Map();let uid=0;
 function mapURL(w,h,r,b){
  const k=[w,h,r,b].join(),hit=maps.get(k);if(hit)return hit;
  const s=Math.max(1,Math.sqrt(w*h/30000)),cw=Math.max(2,Math.round(w/s)),ch=Math.max(2,Math.round(h/s));
- const c=D.createElement('canvas');c.width=cw;c.height=ch;const x=c.getContext('2d'),im=x.createImageData(cw,ch),a=im.data;
+ const c=D.createElement('canvas');c.width=cw;c.height=ch;
+ const x=c.getContext('2d');if(!x)return null;
+ const im=x.createImageData(cw,ch),a=im.data;
  const hw=cw/2,hh=ch/2,rr=Math.min(r/s,hw,hh),bb=Math.max(1,Math.min(b/s,hw,hh));
  for(let j=0;j<ch;j++)for(let i=0;i<cw;i++){
   const px=i+.5-hw,py=j+.5-hh,qx=Math.abs(px)-(hw-rr),qy=Math.abs(py)-(hh-rr),ox=Math.max(qx,0),oy=Math.max(qy,0),ol=Math.hypot(ox,oy);
@@ -96,7 +98,9 @@ function apply(el){
   f.innerHTML='<feImage preserveAspectRatio="none" result="m"/><feDisplacementMap in="SourceGraphic" in2="m" xChannelSelector="R" yChannelSelector="G"/>';defs.append(f)}
  f.setAttribute('x',0);f.setAttribute('y',0);f.setAttribute('width',w);f.setAttribute('height',h);
  const im=f.firstChild;im.setAttribute('x',0);im.setAttribute('y',0);im.setAttribute('width',w);im.setAttribute('height',h);
- im.setAttribute('href',mapURL(w,h,r,lens?Math.min(18,h*.45):24));
+ const texture=mapURL(w,h,r,lens?Math.min(18,h*.45):24);
+ if(!texture){el.style.removeProperty('--lg-bf');return}
+ im.setAttribute('href',texture);
  f.lastChild.setAttribute('scale',lens?Math.min(42,h*.85):15);
  el.style.setProperty('--lg-bf',`url(#${id}) saturate(var(--lg-sat)) brightness(var(--lg-br))`);
 }
@@ -109,7 +113,10 @@ const GROUPS=[
  ['.archive-dialog,.archive-selection-toolbar,.archive-team-table-wrap,.archive-suggestion-popover','nb'],
  ['.archive-sign-in-link,.archive-account-button,.archive-button:not(.liquid-action-button)','css'],
  ['.archive-account-menu,.archive-message,.archive-tabs-lens,.auth-tabs-lens,.archive-visibility-lens,.otp-core-lens','']];
-let G=null,q=0,bT=0,webglUnavailable=false,contextLossCount=0;
+let G=null,q=0,bT=0,webglUnavailable=false,canvasUnavailable=false,contextLossCount=0;
+let gpuRetryAt=0;
+const MODE_COLORS={dark:[[12,13,19],[75,99,179],[117,71,139],[161,94,149]],
+  light:[[230,232,238],[146,165,226],[190,163,216],[230,180,205]]};
 const busy=(ms=480)=>{R.dataset.busy='';clearTimeout(bT);bT=setTimeout(()=>delete R.dataset.busy,ms)};
 addEventListener('scroll',()=>busy(160),{passive:true,capture:true});
 function scan(){
@@ -117,13 +124,23 @@ function scan(){
  D.querySelectorAll('[data-liquid-glass],[data-lgx=""]').forEach(e=>{if(!e._lg){e._lg=1;ro.observe(e)}});
  const app=D.querySelector('.archive-app');if(app&&!app._lgo){app._lgo=1;new MutationObserver(()=>busy()).observe(app,{attributes:true,attributeFilter:['class']})}
  const env=D.querySelector('.optical-environment');
- if(env){
-  if(!G&&!calm&&!webglUnavailable){
-   G=bg(env);
-   if(!G){webglUnavailable=true;env.dataset.ambientMode='gradient'}
-   else env.dataset.ambientMode='webgl';
-  }else if(G&&!G.isConnected){env.prepend(G);env.classList.add('lg-gl')}
-  else if(calm)env.dataset.ambientMode='gradient';
+ // React can replace the page and its backdrop while navigating. Dispose old
+ // listeners and GPU contexts before wiring the new background.
+ if(G&&(!env||G._env!==env)){
+  G._stop();G=null;
+ }
+ if(!env)return;
+ if(calm){
+  if(G){G._stop();G=null}
+  env.dataset.ambientMode='gradient';
+  return;
+ }
+ if(!G){
+  if(!webglUnavailable&&performance.now()>=gpuRetryAt)G=bg(env);
+  if(!G&&!canvasUnavailable)G=bg2d(env);
+  if(!G)env.dataset.ambientMode='gradient';
+  // Do not hide the CSS background until the chosen canvas has actually
+  // rendered a valid frame. This prevents the former black first-frame flash.
  }
 }
 new MutationObserver(()=>{cancelAnimationFrame(q);q=requestAnimationFrame(scan)}).observe(D.body,{childList:true,subtree:true});
@@ -155,13 +172,50 @@ void main(){
  col+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-.5)/255.;
  o=vec4(col,1.);}`;
 function bg(env){
- const c=D.createElement('canvas');c.style.cssText='position:absolute;inset:0;width:100%;height:100%';
- const gl=c.getContext('webgl2',{antialias:false,alpha:false,powerPreference:'low-power',desynchronized:true});if(!gl)return null;
- const sh=(t,s)=>{const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);return x},p=gl.createProgram();
- gl.attachShader(p,sh(gl.VERTEX_SHADER,VS));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(p);
- if(!gl.getProgramParameter(p,gl.LINK_STATUS))return null;gl.useProgram(p);
- const u=n=>gl.getUniformLocation(p,n),uR=u('uR'),uM=u('uM'),uT=u('uT'),uD=u('uD'),uK=u('uK');
- env.prepend(c);env.classList.add('lg-gl');
+ // WebGL2 is the original, pixel-identical shader. WebGL1 runs the same
+ // fragment equations when WebGL2 is disabled by hardware or browser policy.
+ // Each API needs a NEW canvas: a canvas cannot switch context types.
+ const options={antialias:false,alpha:false,powerPreference:'low-power',desynchronized:true};
+ let c=null,gl=null,p=null,kind='';
+ for(const candidate of ['webgl2','webgl']){
+  const canvas=D.createElement('canvas');
+  let ctx=null;
+  try{ctx=canvas.getContext(candidate,options)}catch{continue}
+  if(!ctx)continue;
+  try{
+   const is2=candidate==='webgl2';
+   const vertex=is2?VS:'attribute vec2 aP;void main(){gl_Position=vec4(aP,0.,1.);}';
+   const fragment=is2?FS:FS.replace('#version 300 es\\n','')
+     .replace('out vec4 o;','').replace('o=vec4(col,1.);','gl_FragColor=vec4(col,1.);');
+   const shader=(type,source)=>{
+    const sh=ctx.createShader(type);if(!sh)return null;
+    ctx.shaderSource(sh,source);ctx.compileShader(sh);
+    if(!ctx.getShaderParameter(sh,ctx.COMPILE_STATUS)){ctx.deleteShader(sh);return null}
+    return sh;
+   };
+   const v=shader(ctx.VERTEX_SHADER,vertex),f=shader(ctx.FRAGMENT_SHADER,fragment);
+   if(!v||!f){if(v)ctx.deleteShader(v);if(f)ctx.deleteShader(f);continue}
+   const program=ctx.createProgram();if(!program){ctx.deleteShader(v);ctx.deleteShader(f);continue}
+   ctx.attachShader(program,v);ctx.attachShader(program,f);
+   ctx.linkProgram(program);
+   const linked=ctx.getProgramParameter(program,ctx.LINK_STATUS);
+   ctx.deleteShader(v);ctx.deleteShader(f);
+   if(!linked){ctx.deleteProgram(program);continue}
+   ctx.useProgram(program);
+   if(!is2){
+    const buffer=ctx.createBuffer(),attr=ctx.getAttribLocation(program,'aP');
+    if(!buffer||attr<0){ctx.deleteProgram(program);continue}
+    ctx.bindBuffer(ctx.ARRAY_BUFFER,buffer);
+    ctx.bufferData(ctx.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),ctx.STATIC_DRAW);
+    ctx.enableVertexAttribArray(attr);ctx.vertexAttribPointer(attr,2,ctx.FLOAT,false,0,0);
+   }
+   c=canvas;gl=ctx;p=program;kind=candidate;break;
+  }catch{ /* shader/driver failure: try the other API before Canvas2D */ }
+ }
+ if(!gl){webglUnavailable=true;return null}
+ c.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+ c._env=env;c._mode=kind;c._ready=false;
+ const u=n=>gl.getUniformLocation(p,n),uR=u('uR'),uM=u('uM'),uT=u('uT'),uD=u('uD'),uK=u('uK[0]')||u('uK');
  // Match the initial React appearance before the very first WebGL frame.
  const readDark=()=>((D.querySelector('.archive-app,.auth-experience')?.dataset.theme||R.dataset.theme)==='dark'?1:0);
  const initialDark=readDark();
