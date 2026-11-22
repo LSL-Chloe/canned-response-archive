@@ -1851,3 +1851,24 @@
 @media(prefers-reduced-motion:reduce){
   .archive-app .archive-admin-chevron svg{transition:none!important}
 }
+
+
+/* Selected admin subpage glass pill; no separate mouse-following hover lens. */
+.archive-app .archive-admin-subnav{isolation:isolate}
+.archive-app .archive-admin-subnav .archive-admin-subnav-lens{
+  position:absolute;left:1px;right:1px;top:2px;height:33px;z-index:1;
+  pointer-events:none;border-radius:12px;
+  transform:translate3d(0,calc(var(--admin-subtab,0) * 35px),0);
+  transition:transform .52s cubic-bezier(.18,1.12,.26,1),opacity .22s ease;
+  box-shadow:inset 0 1px 0 var(--glass-highlight),0 4px 10px rgba(0,0,0,.11);
+}
+.archive-app .archive-admin-subnav.no-selection .archive-admin-subnav-lens{opacity:0}
+.archive-app .archive-admin-subnav .archive-admin-subnav-lens-fill{
+  display:block;width:100%;height:100%;border-radius:inherit;
+}
+.archive-app .archive-nav .archive-admin-subnav button{
+  position:relative;z-index:2;
+}
+@media(prefers-reduced-motion:reduce){
+  .archive-app .archive-admin-subnav .archive-admin-subnav-lens{transition:none!important}
+}
