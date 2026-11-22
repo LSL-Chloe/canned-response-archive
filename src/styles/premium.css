@@ -777,10 +777,10 @@
 @property --ambient-violet{syntax:"<color>";inherits:true;initial-value:rgba(105,74,156,.20)}
 @property --ambient-rose{syntax:"<color>";inherits:true;initial-value:rgba(145,79,131,.24)}
 
-/* Restored atmospheric field: preserve the approved violet/blue WebGL layer,
-   but NEVER fall back to the temporary monochrome checkerboard on browsers
-   without WebGL2, in reduced-motion mode or when the script cannot run.
-   Only transform/opacity animate, with no extra network assets or per-frame CSS. */
+/* Original WebGL stays the default. The earlier lined monochrome background
+   is ONLY the visual fallback if GPU rendering fails or scripts are blocked.
+   Theme colors and glass-control styling are intentionally independent of this
+   decorative field: the controls remain identical in both visual modes. */
 .archive-app[data-theme="dark"],.auth-experience[data-theme="dark"]{
   --a-bg:#0c0e17;--a-surface:#191a26;--a-soft:#252637;--a-line:rgba(217,218,241,.14);
   --a-text:#f4f4fa;--a-muted:#b8bacd;--a-accent:#c6c9ee;--a-accent-soft:rgba(171,161,231,.12);
@@ -812,8 +812,28 @@
 @media(prefers-reduced-motion:reduce){
   .archive-app[data-theme],.auth-experience[data-theme]{transition:none!important}
 }
+/* Use the original lined backdrop for failure/no-script. These variables are
+   only consumed by the fixed backdrop and never change a UI control. */
+.archive-app[data-theme="dark"]>.optical-environment,
+.auth-experience[data-theme="dark"]>.optical-environment{
+  --fallback-base:#0c0d11;
+  --fallback-line:rgba(229,234,241,.19);
+  --fallback-line-2:rgba(232,237,245,.11);
+}
+.archive-app[data-theme="light"]>.optical-environment,
+.auth-experience[data-theme="light"]>.optical-environment{
+  --fallback-base:#e6e8eb;
+  --fallback-line:rgba(49,59,72,.17);
+  --fallback-line-2:rgba(31,41,53,.08);
+}
 .archive-app>.optical-environment,.auth-experience>.optical-environment{
   position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+  background:var(--fallback-base);
+}
+/* While WebGL initializes, show the approved ambient palette instead of the
+   backup. The CSS automatically reveals the lined fallback if WebGL fails. */
+.archive-app>.optical-environment[data-ambient-mode="pending"],
+.auth-experience>.optical-environment[data-ambient-mode="pending"]{
   background:
     radial-gradient(ellipse 75% 93% at -7% 3%,var(--ambient-blue) 0%,transparent 72%),
     radial-gradient(ellipse 70% 92% at 110% 91%,var(--ambient-rose) 0%,transparent 72%),
@@ -821,15 +841,18 @@
     var(--a-bg);
 }
 .optical-weave{
-  position:absolute;inset:-14%;opacity:.8;will-change:transform;
-  background:
-    radial-gradient(ellipse 39% 56% at 9% 25%,var(--ambient-blue),transparent 77%),
-    radial-gradient(ellipse 40% 58% at 85% 72%,var(--ambient-rose),transparent 81%),
-    radial-gradient(ellipse 33% 47% at 53% 42%,var(--ambient-violet),transparent 82%);
-  -webkit-mask-image:radial-gradient(ellipse 95% 93% at 51% 49%,#000 8%,transparent 100%);
-  mask-image:radial-gradient(ellipse 95% 93% at 51% 49%,#000 8%,transparent 100%);
+  position:absolute;inset:-12%;opacity:.29;will-change:transform;
+  background-image:
+    repeating-linear-gradient(0deg,transparent 0 7px,var(--fallback-line) 8px 9px,transparent 10px 14px),
+    repeating-linear-gradient(90deg,transparent 0 7px,var(--fallback-line-2) 8px 9px,transparent 10px 14px);
+  background-size:100% 100%;
+  -webkit-mask-image:radial-gradient(ellipse 80% 88% at 58% 49%,#000 2%,transparent 96%);
+  mask-image:radial-gradient(ellipse 80% 88% at 58% 49%,#000 2%,transparent 96%);
   animation:optical-weave-drift 42s ease-in-out infinite alternate;
 }
+/* Pending uses the exact original scene, not the lined failure appearance. */
+.optical-environment[data-ambient-mode="pending"]>.optical-weave,
+.optical-environment[data-ambient-mode="pending"]>.optical-caustic{opacity:0}
 .optical-caustic{
   position:absolute;pointer-events:none;opacity:.32;
   width:80vw;height:23vw;min-width:580px;min-height:120px;
