@@ -2019,7 +2019,7 @@
     .archive-avatar-reset,.archive-avatar-back,.archive-avatar-expand-results,
     .archive-collapse-toggle,.auth-link-button){
   background:linear-gradient(165deg,var(--fallback-glass-sheen),transparent 43%),
-    var(--fallback-glass-fill)!important;
+    linear-gradient(var(--fallback-glass-fill),var(--fallback-glass-fill))!important;
   border-color:var(--fallback-glass-edge)!important;
   box-shadow:inset 0 1.5px 1px var(--fallback-glass-highlight),
     inset 0 -2px 4px var(--fallback-glass-depth),
@@ -2067,7 +2067,7 @@
 :is(.archive-nav-selection,.archive-tabs-lens,.archive-visibility-lens,
     .archive-admin-subnav-lens,.auth-tabs-lens,.otp-core-lens){
   background:linear-gradient(170deg,var(--fallback-glass-sheen),transparent 46%),
-    var(--fallback-glass-selected)!important;
+    linear-gradient(var(--fallback-glass-selected),var(--fallback-glass-selected))!important;
   box-shadow:inset 0 1.5px 2px var(--fallback-glass-highlight),
     inset 0 -2px 4px var(--fallback-glass-depth),
     0 5px 12px var(--fallback-glass-depth)!important;
