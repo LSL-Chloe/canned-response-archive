@@ -297,5 +297,112 @@ function bg(env){
  requestAnimationFrame(loop);
  return c;
 }
+
+/* ───────── CPU BACKUP (Canvas2D, same scene and 580ms theme timing) ─────────
+   Only used if BOTH GPU paths fail. It draws low-resolution, slowly-moving
+   equivalents of the six original shader lights, and leaves every glass
+   control / hover lens / CSS transition completely unchanged. */
+function bg2d(env){
+ const c=D.createElement('canvas');
+ let x=null;try{x=c.getContext('2d',{alpha:false,desynchronized:true})}catch{}
+ if(!x){canvasUnavailable=true;return null}
+ c.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+ c._env=env;c._mode='canvas2d';c._ready=false;
+ const life=new AbortController(),signal=life.signal;
+ let running=true,W=innerWidth,H=innerHeight,prev=0,mx=0,my=0,tx=0,ty=0,act=0;
+ let blend=((D.querySelector('.archive-app,.auth-experience')?.dataset.theme||R.dataset.theme)==='dark'?1:0);
+ let fromDark=blend,targetDark=blend,changeAt=0;
+ const lights=[],t0=performance.now(),res=tier===0?.38:tier===1?.48:.57;
+ const size=()=>{
+  W=Math.max(1,innerWidth);H=Math.max(1,innerHeight);
+  c.width=Math.max(2,Math.round(W*res));c.height=Math.max(2,Math.round(H*res));
+ };
+ const stop=()=>{
+  if(!running)return;
+  running=false;life.abort();c.remove();env.classList.remove('lg-gl');
+  env.dataset.ambientMode='gradient';
+ };
+ c._stop=stop;
+ const fail=()=>{
+  if(!running)return;
+  canvasUnavailable=true;stop();
+  if(G===c)G=null;
+  requestAnimationFrame(scan);
+ };
+ const pt=e=>{tx=(e.clientX-W/2)/H;ty=(H/2-e.clientY)/H;act=performance.now()};
+ const controls='a,button,input,textarea,select,option,label,h1,h2,h3,h4,h5,h6,p,span,kbd,small,strong,em,code,[contenteditable],[role="button"],[role="option"],[role="link"],[role="textbox"]';
+ addEventListener('resize',size,{signal});
+ addEventListener('pointermove',pt,{passive:true,signal});
+ addEventListener('pointerdown',e=>{
+  pt(e);
+  const t=e.target;
+  if(e.pointerType==='mouse'&&e.isPrimary&&e.button===0&&t instanceof Element&&
+     t.closest('.archive-app,.auth-experience')&&!t.closest(controls)){
+   lights.push({x:tx,y:ty,time:performance.now()});
+   if(lights.length>6)lights.shift();
+  }
+ },{passive:true,signal});
+ size();
+ const rgb=(a,b,k)=>a.map((v,i)=>Math.round(v+(b[i]-v)*k));
+ const rgba=(a,alpha)=>'rgba('+a.join(',')+','+alpha.toFixed(3)+')';
+ const glow=(cx,cy,radius,color,alpha)=>{
+  if(radius<1||alpha<=0)return;
+  const gr=x.createRadialGradient(cx,cy,0,cx,cy,radius);
+  gr.addColorStop(0,rgba(color,alpha));
+  gr.addColorStop(.45,rgba(color,alpha*.42));
+  gr.addColorStop(1,rgba(color,0));
+  x.fillStyle=gr;x.fillRect(cx-radius,cy-radius,radius*2,radius*2);
+ };
+ function loop(now){
+  if(!running)return;
+  requestAnimationFrame(loop);
+  if(D.hidden)return;
+  // On very low-end CPUs 20fps keeps the 2D fallback responsive without
+  // competing with the main-thread input and liquid-glass button animations.
+  const min=tier===0?50:now-act>4000?42:33;
+  if(now-prev<min)return;
+  const dt=Math.min(.12,(now-prev)/1000);prev=now;
+  const smooth=1-Math.exp(-dt*5);
+  mx+=(tx-mx)*smooth;my+=(ty-my)*smooth;
+  const next=((D.querySelector('.archive-app,.auth-experience')?.dataset.theme||R.dataset.theme)==='dark'?1:0);
+  if(next!==targetDark){fromDark=blend;targetDark=next;changeAt=now}
+  const pr=Math.max(0,Math.min(1,(now-changeAt)/580));
+  blend=fromDark+(targetDark-fromDark)*(pr*pr*(3-2*pr));
+  try{
+   const light=MODE_COLORS.light,dark=MODE_COLORS.dark;
+   const base=rgb(light[0],dark[0],blend);
+   x.fillStyle='rgb('+base.join(',')+')';x.fillRect(0,0,c.width,c.height);
+   const t=(now-t0)/1000,h=c.height,w=c.width;
+   for(let i=0;i<6;i++){
+    const ph=i*1.7;
+    let u=Math.sin(t*.17+ph*1.3)*.75+Math.cos(t*.11+ph)*.2;
+    let v=Math.cos(t*.13+ph*.8)*.42+Math.sin(t*.19+ph)*.15;
+    u+=mx*(.08+i*.05);v+=my*(.08+i*.05);
+    if(i===0){u=u*.35+mx*.65;v=v*.35+my*.65}
+    const tint=rgb(light[1+(i%3)],dark[1+(i%3)],blend);
+    const radius=h*(.34+.08*Math.sin(t*.4+ph))*(i===0?1.7:1.55);
+    glow(w*.5+u*h,h*.5-v*h,radius,tint,blend>.5?.27:.32);
+   }
+   for(let j=lights.length-1;j>=0;j--){
+    const p=lights[j],age=(now-p.time)/1000;
+    if(age>3.5){lights.splice(j,1);continue}
+    const opacity=(1-age/3.5)*.12;
+    const color=rgb([103,121,174],[181,166,235],blend);
+    const radius=age*.55*h;
+    const cx=w*.5+p.x*h,cy=h*.5-p.y*h;
+    x.beginPath();x.arc(cx,cy,radius,0,Math.PI*2);
+    x.strokeStyle=rgba(color,opacity);x.lineWidth=Math.max(1,h*.008);
+    x.stroke();
+   }
+   if(!c._ready){
+    if(!env.isConnected){stop();return}
+    c._ready=true;env.prepend(c);env.classList.add('lg-gl');
+    env.dataset.ambientMode='canvas2d';
+   }
+  }catch{fail()}
+ }
+ requestAnimationFrame(loop);
+ return c;
+}
 scan();
 })();
