@@ -9,7 +9,7 @@ test('uploaded liquid-glass layer is loaded without replacing the original theme
   const layer = read('public/liquid-glass.js');
   const themeToggle = read('src/ui/ThemeToggle.tsx');
   const app = read('src/features/archive/ArchiveApp.tsx');
-  assert.match(html, /<script defer src="\/liquid-glass\.js"><\/script>/);
+  assert.match(html, /<script defer src="\/liquid-glass\.js\?v=original-glass-20261122-2"><\/script>/);
   assert.match(layer, /REACTIVE 3D BACKGROUND/);
   assert.match(layer, /prefers-reduced-motion:reduce/);
   assert.match(layer, /webglcontextlost/);
