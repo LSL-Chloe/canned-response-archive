@@ -16,6 +16,18 @@ export interface ArchiveResponse {
   createdBy?: string;
   ownedByMe?: boolean;
 }
+/** Resolve the byline without ever inferring ownership from display names.
+ * Only an authenticated viewer receives Private rows; those rows belong to
+ * that viewer, while Shared feed rows provide their recorded creator name.
+ */
+export function responseCreatorName(
+  record: ArchiveResponse,
+  viewer: Pick<Agent, 'agent_name'> | null,
+): string {
+  if (record.visibility === 'private') return viewer?.agent_name || 'Unknown agent';
+  return record.createdBy?.trim() || (record.ownedByMe ? viewer?.agent_name : '') || 'Unknown agent';
+}
+
 /**
  * Polling may return the same feed every five seconds. Reuse the previous
  * array when nothing relevant changed so long lists and glass controls
