@@ -45,7 +45,7 @@ Automated checks cover logic and source-level protections, but do not prove the 
 ## Preview deployments
 
 Non-production Cloudflare Worker previews are isolated from production settings.
-The checked-in `previews: {}` entry only allows Wrangler to create previews;
+The checked-in `previews.vars.SUPABASE_URL` points exclusively to the public staging project;
 it does not grant them access to the production Supabase project. If preview
 features need database access, use a separate disposable test project with
 independent credentials and only test data. Do not promote preview secrets or
@@ -62,5 +62,7 @@ The dependency lockfile is committed and checked in CI. A separate production se
 A signed-in user may move their own responses between Shared (publicly readable) and Private. The administrator may also move an **existing Shared** reply created by another agent to Private. That reply remains owned by its original author; after the move, even the administrator cannot view its private text. No one can use the UI or Worker API to reveal another account's Private reply by moving it to Shared.
 
 Bulk selection restricts regular agents to their own replies. Administrators may additionally delete others' Shared replies, but never another account's Private replies. Deletes are permanent. The Worker checks the signed-in session and enforces rate limits, and a service-role-only database function rechecks every selected row under locks before deleting it atomically per batch. Larger selections are multiple batches, so an interrupted request may have already committed a prior batch. Confirm the filter and selection before deleting.
+
+Administrator account deletion is broader than deleting individual Shared replies: it permanently removes a selected non-admin account and **all of that account's Shared and Private replies** without exposing Private reply bodies to the administrator. The Worker requires an active admin session, exact agent-name confirmation, and a rate limit. A service-role-only SQL transaction checks the actor and locks the target before revoking sessions and deleting rows; shared shortcuts still used by other agents survive. This is irreversible, so ensure backups are available before performing real deletions.
 
 A successful source build is not a substitute for testing actual account boundaries and backup restoration in a staging environment.
