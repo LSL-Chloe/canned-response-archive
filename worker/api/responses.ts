@@ -63,6 +63,32 @@ async function addResponse(env: Env, agentId: string, rawShortcut: unknown, rawB
   return saved[0];
 }
 
+interface TeamDirectoryRow {
+  id: string;
+  agent_name: string;
+  role: 'agent' | 'admin';
+  joined_at: string;
+  shared_count: number;
+  private_count: number;
+  avatar_url: string | null;
+}
+
+/** Only public-facing profile metadata and counts. Never return credentials,
+ * email addresses, PIN hashes, sessions, or the text of private responses. */
+async function teamDirectory(env: Env): Promise<TeamDirectoryRow[]> {
+  const stats = await callRpc<Omit<TeamDirectoryRow, 'avatar_url'>[]>(env, 'admin_agent_stats');
+  // Batch the profile image lookup: no per-agent queries, and an avatar that
+  // has just changed always comes from the live agents table on refresh.
+  const pictures = await queryTable<{ id: string; avatar_url: string | null }>(env, 'agents', {
+    select: 'id,avatar_url', limit: '1000',
+  });
+  const byId = new Map(pictures.map(profile => [profile.id, profile.avatar_url]));
+  return stats.map(agent => ({
+    ...agent,
+    avatar_url: byId.get(agent.id) ?? null,
+  }));
+}
+
 export async function handleResponses(request: Request, env: Env, path: string): Promise<Response> {
   const url = new URL(request.url);
   const signed = await getSession(env, request);
@@ -314,13 +340,20 @@ export async function handleResponses(request: Request, env: Env, path: string):
     }
   }
 
+  if (path === '/api/team' && request.method === 'GET') {
+    // Team overview is a read-only directory, including for guests.
+    // The separate admin route below remains restricted.
+    const client = request.headers.get('CF-Connecting-IP') || signed?.agent.id || 'guest';
+    if (!await requireRateLimit(env, `team:view:${client.slice(0, 72)}`, 120, 3600)) {
+      return fail(429, 'rate_limited', 'Too many directory requests');
+    }
+    return json({ users: await teamDirectory(env) });
+  }
+
   if (path === '/api/admin/users' && request.method === 'GET') {
     if (!signed) return fail(401, 'login_required', 'Sign in to view user statistics');
     if (signed.agent.role !== 'admin') return fail(403, 'forbidden', 'Administrator access required');
-    const data = await callRpc<Array<{
-      id: string; agent_name: string; role: string; joined_at: string; shared_count: number; private_count: number;
-    }>>(env, 'admin_agent_stats');
-    return json({ users: data });
+    return json({ users: await teamDirectory(env) });
   }
   return fail(404, 'not_found', 'Route not found');
 }
