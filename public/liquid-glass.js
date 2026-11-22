@@ -14,6 +14,9 @@ R.dataset.lg=tier;
 // Renderer availability never changes the React controls or their animations.
 const visualMode=(env,mode,renderer)=>{
  R.dataset.visualMode=mode;
+ // CSS can identify the *actual* lined fallback rather than styling the
+ // pending first GPU frame or the original WebGL controls.
+ R.dataset.ambientMode=renderer;
  env.dataset.visualMode=mode;
  env.dataset.ambientMode=renderer;
 };
