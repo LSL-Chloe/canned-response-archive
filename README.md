@@ -12,17 +12,17 @@ Suppose you regularly explain how to reset an account password. Save that explan
 
 A shortcut can contain **several different replies**, so you can keep variations without overwriting anything. Changing one reply from Shared to Private (or back) moves only that reply; its original creator remains its owner.
 
-- **Search and draft:** Start typing a known shortcut with or without `#`, or use `#` anywhere to browse shortcuts. The library search also accepts both forms. Filter by name, press Enter or the right arrow to open one, then select a reply. Undo insertion with Ctrl/Cmd+Z.
+- **Search and draft:** Start typing a known shortcut with or without `#`, or use `#` anywhere to browse shortcuts. The library search also accepts both forms. Filter by name, press Enter or the right arrow to open one, then select a reply. Undo insertion with Ctrl/Cmd+Z. With the draft editor focused and no text selected, Ctrl/Cmd+C copies the entire draft; highlighting specific text still copies only the selection.
 - **Your library:** Save, search, edit, and delete responses. Use **All**, **Shared**, **Private**, or **By me** to see just the replies you personally created, across both scopes. Change a reply's visibility while editing without moving its neighbors, or use **Select → Select all → Delete selected** for bulk cleanup. Agents can manage their own responses; admins can also manage anyone's shared replies.
 - **Move your data:** Export responses to JSON or import an existing archive. Imports append new entries rather than replace them.
 - **Account and appearance:** Sign in with your agent name **or verified email address** and the same four-digit PIN. Email is optional at signup; a verified email also supports PIN recovery, while an account without email can continue signing in by agent name. Settings also offers light/dark themes and a character avatar picker (including a 470-image Crunchyroll collection, plus TV and movie characters). Thumbnails load on demand, with a CDN and source fallback.
-- **Team overview:** Administrators can see user and response counts, and manage shared responses. They cannot read another person's private response text.
+- **Admin dashboard:** Administrators can open **Team overview** for account/response counts or **Manage agents** to search registered accounts and delete an agent after confirming their exact name. Account deletion also removes that agent’s shared and private replies and revokes their sessions, while keeping shared shortcuts still used by other accounts. An administrator cannot view another person's private text or delete their own administrator account.
 
 **Please know what “Shared” means:** shared response text and creator display names are deliberately available to people visiting the site **without signing in**. Never place passwords, personal data, customer secrets, or confidential internal material in Shared responses. Private responses are returned only to their owner.
 
 ## See it in action
 
-The current site is available at [archiveresp.dpdns.org](https://archiveresp.dpdns.org/) (the original [Cloudflare workers.dev address](https://canned-response-archive.mohid-limesoftlogics.workers.dev/) also works). The domain points to the same Worker and **development infrastructure**; a custom domain does not turn it into a production-ready workplace service. Use only approved content until separate production infrastructure, backups, and end-to-end security checks are complete.
+The **live site** (from `main`) is available at [archiveresp.dpdns.org](https://archiveresp.dpdns.org/) (the original [Cloudflare workers.dev address](https://canned-response-archive.mohid-limesoftlogics.workers.dev/) also works). The domain points to the same Worker and **development infrastructure**; a custom domain does not turn it into a production-ready workplace service. Use only approved content until separate production infrastructure, backups, and end-to-end security checks are complete.
 
 ## Run it locally
 
@@ -36,6 +36,8 @@ cp .dev.vars.example .dev.vars
 # Fill in the local-only credentials described in docs/setup.md
 npm run dev
 ```
+
+The site uses a responsive liquid-glass interface with a synchronized light/dark toggle and reduced-motion support. Email verification shows a six-digit lock-on progress animation; an account is marked verified only after the server confirms the code.
 
 The website is built with **React, TypeScript, and Vite**. The API runs in a **Cloudflare Worker** and stores responses, account records, and session data in **Supabase PostgreSQL**. Email verification can be sent through a signed Google Apps Script relay.
 
