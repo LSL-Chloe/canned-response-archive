@@ -67,6 +67,7 @@ The command `npm run check` runs all three checks. GitHub Actions uses `npm ci` 
 | [Email setup](docs/gmail-otp-setup.md) | Optional Gmail verification relay |
 | [Security](SECURITY.md) | Sensitive data, known limitations, and reporting concerns |
 | [Code review](docs/security-performance-review.md) | Audit findings, changes, and work left before production |
+| [November 2026 release review](docs/release-review-2026-11-22.md) | Staging-to-live release scope, database prerequisite, checks, and remaining risks |
 | [Contributing](CONTRIBUTING.md) | Making and reviewing changes |
 
 ## Redesigns without changing the live site
