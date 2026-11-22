@@ -13,7 +13,7 @@ This is the review record for bringing the 12 staged commits since `main@6001e6a
 
 1. Inspected the `develop` → `main` compare and all changed-file paths, relevant front-end/Worker handlers, SQL migrations, permissions and CI workflows.
 2. Latest `develop` verification, dependency checks, credential-pattern scan and Cloudflare Preview build passed before this release review.
-3. The live database originally held **3 agents, 227 replies, 119 shortcuts and 202 Shared-feed entries**. The live project is historically named `canned-response-archive-dev`; do not confuse it with staging. It had eight applied migrations before the additive admin-deletion function.
+3. The live database originally held **3 agents, 227 replies, 119 shortcuts and 202 Shared-feed entries**. The live project is historically named `canned-response-archive-dev`; do not confuse it with staging. It had eight applied migrations before the additive admin-deletion function, and now has nine.
 4. The staging project had nine applied migrations and its own Worker credentials. Anonymous and regular authenticated database roles cannot execute the account-deletion RPC.
 5. A **rollback-only** staging SQL test verified that an ordinary agent cannot delete a different agent, the administrator cannot delete themselves, and a successful test deletion preserves another agent's Shared reply and reassigns a still-used shared shortcut. Test rows were not persisted; staging counts were unchanged afterward.
 6. Reviewed the repository's public documentation and replaced stale information describing an unprotected `main` branch or an unconfigured staging Preview.
