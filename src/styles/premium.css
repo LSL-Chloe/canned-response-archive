@@ -1987,6 +1987,7 @@
   --fallback-glass-fill:rgba(28,30,42,.44);
   --fallback-glass-selected:rgba(67,67,85,.48);
   --fallback-glass-highlight:rgba(255,255,255,.49);
+  --fallback-glass-sheen:rgba(255,255,255,.13);
   --fallback-glass-edge:rgba(242,244,255,.22);
   --fallback-glass-depth:rgba(0,0,0,.32);
   --fallback-glass-track:rgba(9,10,16,.68);
@@ -1999,6 +2000,7 @@
   --fallback-glass-fill:rgba(248,249,255,.61);
   --fallback-glass-selected:rgba(255,255,255,.82);
   --fallback-glass-highlight:rgba(255,255,255,.96);
+  --fallback-glass-sheen:rgba(255,255,255,.44);
   --fallback-glass-edge:rgba(255,255,255,.86);
   --fallback-glass-depth:rgba(46,50,69,.16);
   --fallback-glass-track:rgba(205,209,221,.68);
@@ -2016,7 +2018,7 @@
     .archive-sign-in-link,.archive-transfer-file-label,.archive-avatar-source-tabs button,
     .archive-avatar-reset,.archive-avatar-back,.archive-avatar-expand-results,
     .archive-collapse-toggle,.auth-link-button){
-  background:linear-gradient(165deg,var(--fallback-glass-highlight),transparent 43%),
+  background:linear-gradient(165deg,var(--fallback-glass-sheen),transparent 43%),
     var(--fallback-glass-fill)!important;
   border-color:var(--fallback-glass-edge)!important;
   box-shadow:inset 0 1.5px 1px var(--fallback-glass-highlight),
@@ -2064,7 +2066,7 @@
 :is(.archive-app,.auth-experience)
 :is(.archive-nav-selection,.archive-tabs-lens,.archive-visibility-lens,
     .archive-admin-subnav-lens,.auth-tabs-lens,.otp-core-lens){
-  background:linear-gradient(170deg,var(--fallback-glass-highlight),transparent 46%),
+  background:linear-gradient(170deg,var(--fallback-glass-sheen),transparent 46%),
     var(--fallback-glass-selected)!important;
   box-shadow:inset 0 1.5px 2px var(--fallback-glass-highlight),
     inset 0 -2px 4px var(--fallback-glass-depth),
