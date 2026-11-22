@@ -300,7 +300,17 @@ export default function ArchiveApp({ theme, onThemeToggle }: {
                 </span>
               </button>
               {adminMenuOpen && !sidebarCollapsed && (
-                <div id="archive-admin-subnav" className="archive-admin-subnav" role="group" aria-label="Admin dashboard pages">
+                <div id="archive-admin-subnav"
+                  className={`archive-admin-subnav${page !== 'team' && page !== 'agents' ? ' no-selection' : ''}`}
+                  role="group" aria-label="Admin dashboard pages"
+                  style={{ '--admin-subtab': page === 'agents' ? 1 : 0 } as CSSProperties}>
+                  <Glass className="archive-admin-subnav-lens" radius={12}
+                    style={{ borderRadius: 12, background: 'var(--liquid-selection-fill)' }}
+                    optics={{ mapSize: 96, depth: .56, curvature: .40, strength: .15, bend: .42,
+                      bendWidth: .13, dispersion: .12, sheen: .9, specular: .9,
+                      frost: 0, clipToShape: true, softEdge: true }}>
+                    <span className="archive-admin-subnav-lens-fill" aria-hidden="true"/>
+                  </Glass>
                   <button type="button" className={page === 'team' ? 'active' : ''}
                     aria-current={page === 'team' ? 'page' : undefined}
                     onPointerEnter={() => { void import('./TeamWorkspace'); }}
