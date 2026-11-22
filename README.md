@@ -37,7 +37,7 @@ cp .dev.vars.example .dev.vars
 npm run dev
 ```
 
-The site uses a responsive liquid-glass interface with a synchronized light/dark toggle and reduced-motion support. Email verification shows a six-digit lock-on progress animation; an account is marked verified only after the server confirms the code.
+The interface uses the finalized liquid-glass controls, theme toggle, and spring transitions. It first attempts the original animated WebGL design (WebGL2, then WebGL1). Only when neither can render does it use the earlier lined CSS background, retaining the same controls and interactions with toggle-matched glass highlights. Reduced-motion settings are respected; a browser cannot be forced to enable WebGL. The HTML and optional visual script have cache-safe update rules so outdated versions are less likely to persist. Email verification shows a six-digit lock-on progress animation; an account is marked verified only after the server confirms the code.
 
 The website is built with **React, TypeScript, and Vite**. The API runs in a **Cloudflare Worker** and stores responses, account records, and session data in **Supabase PostgreSQL**. Email verification can be sent through a signed Google Apps Script relay.
 
@@ -62,6 +62,7 @@ The command `npm run check` runs all three checks. GitHub Actions uses `npm ci` 
 | [API reference](docs/backend-api.md) | Endpoints, permissions, and rate limits |
 | [Features and permissions](docs/requirements.md) | What each role can do |
 | [Design](DESIGN.md) | Liquid-glass principles, motion, and accessibility |
+| [Original UI and fallback QA](docs/visual-release-2026-11-23.md) | Approved two-mode visual release, safeguards, and device checks |
 | [Archive QA](docs/archive-qa.md) | Manual checks for saving, searching, and importing responses |
 | [Authentication QA](docs/auth-qa.md) | Signup, login, and PIN recovery checks |
 | [Email setup](docs/gmail-otp-setup.md) | Optional Gmail verification relay |
