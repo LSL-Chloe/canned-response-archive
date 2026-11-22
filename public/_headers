@@ -1,0 +1,10 @@
+# Keep the unversioned entry document and visual boot script fresh.
+# Other built assets retain Cloudflare/Vite's normal caching policy.
+/
+  Cache-Control: no-store
+
+/index.html
+  Cache-Control: no-store
+
+/liquid-glass.js
+  Cache-Control: no-store

@@ -4,7 +4,19 @@ The archive should feel like a focused writing tool, not a dashboard that demand
 
 ## Light and dark
 
-Both themes use subdued neutral colors, a finely woven background, and restrained highlights. The UI is meant to feel familiar on a desktop and natural on a phone. The dark theme is deep graphite rather than pitch black; the light theme is a gentle pearl gray.
+Both themes keep the finalized violet/blue **original WebGL shader** as the preferred decorative background, using WebGL2 or WebGL1 when available. The approved component styles, glass optics, switch proportions and spring timing are shared throughout the app.
+
+## Exactly two visual backgrounds
+
+**Original (always attempted first):** run the approved shader via WebGL2 or WebGL1. On low-end devices, only the internal render resolution or frame cadence may be reduced; the buttons, glass controls, selection pills, theme switch and their motion do not change.
+
+**Fallback (only if WebGL fails or the script cannot execute):** use the previous black/white **lined CSS backdrop**, themed appropriately for dark or light mode. It is the *only* alternative background. All other UI styling and interactions remain the same. There is no alternate Canvas 2D UI or third gradient theme. A matched ambient CSS field is shown temporarily *during* GPU initialization, before the first valid shader frame, to prevent a blank flash.
+
+Respect reduced-motion settings by rendering the original shader at a stationary time when graphics work, and disabling ambient movement in the lined CSS fallback. Never override the user's explicit motion preference. The browser can block WebGL; no website can force a disabled graphics API.
+
+### Matching the toggle on the lined fallback
+
+The compact glass light/dark switch is the reference for fallback control material. When the lined background is active, existing buttons, selection lenses, option tracks and form controls share its soft convex rim, transparent depth, restrained specular sheen and spring timing. This is a fallback-only CSS treatment of the **same controls**, not an alternate interface. Use the active background renderer flag to distinguish the real lined fallback from the pending first WebGL frame; a missing flag also keeps the styling when optional visual JavaScript is blocked. Do not introduce extra SVG filters per response row or apply expensive background blur to scroll-heavy surfaces. The original WebGL look must remain unchanged, and reduced-motion/transparency preferences still take precedence.
 
 ## The glass treatment
 
@@ -18,7 +30,7 @@ Small interactions should respond promptly. Sliding navigation, the theme switch
 
 Keep animation on composited properties where possible, avoid making whole lists repaint, and never create a fresh expensive glass shader for every response row. Off-screen rows may use browser rendering containment; hidden or unused avatar images should not monopolize bandwidth.
 
-The reduced-motion preference disables the ambient movement. Reduced-transparency preferences use less translucent surfaces. On constrained connections, avatar loading should favor visible images.
+The reduced-motion preference disables ambient movement. Reduced-transparency preferences use less translucent surfaces. On constrained connections, avatar loading should favor visible images. When both WebGL APIs cannot initialize, use the stationary or gently composited lined CSS backdrop. Do not spin a Canvas 2D rendering loop on the main thread. Brief GPU context losses get one bounded retry and a second WebGL API attempt before settling on the fallback. Keep the background theme transition aligned to the 580ms switch.
 
 ## Accessibility
 
@@ -26,7 +38,7 @@ Controls use native buttons and inputs where possible. Keyboard shortcut search 
 
 ## Visual regression checklist
 
-Before merging interface changes, check both themes at desktop and narrow mobile widths. Test a collapsed sidebar, long responses, Settings with many avatars, OTP forms, and keyboard navigation. Automated builds cannot measure touch latency or verify the optical appearance.
+Before merging interface changes, check both themes at desktop and narrow mobile widths, in **WebGL-enabled and WebGL-disabled browsers**, checking the original shader and lined fallback separately. Test a collapsed sidebar, long responses, Settings with many avatars, OTP forms, keyboard navigation, and light/dark transitions while entering a draft. Automated builds cannot measure touch latency or verify the optical appearance.
 
 The archive should remain recognizable and fluid even when a browser has to simplify how it renders the decorative effects.
 
