@@ -4,16 +4,21 @@ import { test } from 'node:test';
 
 const source = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
-test('admin subpages share a single sliding selected-state glass pill', () => {
+test('admin remains above the regular three-item navigation with its selected glass state', () => {
   const app = source('src/features/archive/ArchiveApp.tsx');
   const css = source('src/styles/premium.css');
   assert.match(app, /className="archive-admin-subnav-lens"/);
-  assert.match(app, /'--admin-subtab': page === 'agents' \? 1 : 0/);
+  assert.match(app, /'--admin-subtab': 0/);
+  assert.match(app, /aria-label="Admin dashboard"/);
+  assert.match(app, /aria-label="Main navigation"/);
+  assert.ok(app.indexOf('aria-label="Admin dashboard"') < app.indexOf('aria-label="Main navigation"'));
   assert.match(app, /className=\{page === 'team' \? 'active' : ''\}/);
   assert.match(app, /className=\{page === 'agents' \? 'active' : ''\}/);
+  assert.match(app, /page === 'team' \? 2 : -1/);
+  assert.match(css, /\.archive-admin-nav\{margin-bottom:9px\}/);
+  assert.match(css, /\.archive-admin-nav:has\(\.archive-admin-subnav\)\{/);
+  assert.match(css, /grid-template-rows:44px auto/);
   assert.match(css, /\.archive-admin-subnav \.archive-admin-subnav-lens\{/);
-  assert.match(css, /var\(--admin-subtab,0\) \* 35px/);
-  assert.match(css, /\.archive-admin-subnav\.no-selection \.archive-admin-subnav-lens\{opacity:0\}/);
   assert.match(css, /\.archive-admin-subnav \.archive-admin-subnav-lens-fill/);
   assert.doesNotMatch(css, /--hover-slot|--hover-visible/, 'No additional hover-only pill');
   assert.match(css, /\.archive-nav \.archive-admin-subnav button:hover/);
