@@ -1899,3 +1899,31 @@
   .archive-app .archive-directory-identity{gap:7px}
   .archive-app .archive-directory-avatar{width:27px;height:27px;flex-basis:27px}
 }
+
+
+/* Compact LiveChat-style response attribution. Reuse the same avatar component
+   as Team overview without introducing a new visual language or glass layer. */
+.archive-app .archive-response-meta .archive-response-attribution{
+  display:inline-flex;align-items:center;gap:8px;max-width:100%;min-width:0;
+}
+.archive-app .archive-response-meta .archive-directory-avatar{
+  width:23px;height:23px;flex:0 0 23px;
+}
+.archive-app .archive-response-meta .archive-directory-avatar-initial{
+  font-size:10px;
+}
+.archive-app .archive-response-attribution-text{
+  min-width:0;line-height:1.45;overflow-wrap:anywhere;
+}
+.archive-app .archive-response-attribution-text strong{
+  color:var(--a-text);font-weight:650;
+}
+.archive-app .archive-response-attribution-text time{
+  font-variant-numeric:tabular-nums;
+}
+@media(max-width:530px){
+  .archive-app .archive-response-meta .archive-response-attribution{gap:7px}
+  .archive-app .archive-response-meta .archive-directory-avatar{
+    width:22px;height:22px;flex-basis:22px;
+  }
+}
