@@ -4,7 +4,7 @@ The archive should feel like a focused writing tool, not a dashboard that demand
 
 ## Light and dark
 
-Both themes use subdued neutral colors, a finely woven background, and restrained highlights. The UI is meant to feel familiar on a desktop and natural on a phone. The dark theme is deep graphite rather than pitch black; the light theme is a gentle pearl gray.
+Both themes use a restrained **violet/blue ambient field**, not the abandoned black-and-grey checkerboard. The dark theme is deep navy with soft blue and purple light; the light theme uses quiet lavender and pearl tones. The moving WebGL effect enhances that atmosphere, but the CSS-only fallback must preserve the same visual direction when WebGL2 is blocked or unavailable.
 
 ## The glass treatment
 
@@ -18,7 +18,7 @@ Small interactions should respond promptly. Sliding navigation, the theme switch
 
 Keep animation on composited properties where possible, avoid making whole lists repaint, and never create a fresh expensive glass shader for every response row. Off-screen rows may use browser rendering containment; hidden or unused avatar images should not monopolize bandwidth.
 
-The reduced-motion preference disables the ambient movement. Reduced-transparency preferences use less translucent surfaces. On constrained connections, avatar loading should favor visible images.
+The reduced-motion preference disables ambient movement. Reduced-transparency preferences use less translucent surfaces. On constrained connections, avatar loading should favor visible images. When WebGL2 cannot initialize, **do not repeatedly retry GPU initialization on every UI update**; use slow, composited radial-gradient ambiance instead of reverting to a grid. The gradient palette should follow the existing 580ms light/dark thumb transition without a flash.
 
 ## Accessibility
 
@@ -26,7 +26,7 @@ Controls use native buttons and inputs where possible. Keyboard shortcut search 
 
 ## Visual regression checklist
 
-Before merging interface changes, check both themes at desktop and narrow mobile widths. Test a collapsed sidebar, long responses, Settings with many avatars, OTP forms, and keyboard navigation. Automated builds cannot measure touch latency or verify the optical appearance.
+Before merging interface changes, check both themes at desktop and narrow mobile widths, in **WebGL-enabled and WebGL-disabled browsers**. Test a collapsed sidebar, long responses, Settings with many avatars, OTP forms, keyboard navigation, and light/dark transitions while entering a draft. Automated builds cannot measure touch latency or verify the optical appearance.
 
 The archive should remain recognizable and fluid even when a browser has to simplify how it renders the decorative effects.
 
